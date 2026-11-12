@@ -33,7 +33,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 
 ## Phase 2: Video-Niveau (docs/VISION.md, Abschnitte 1 bis 5)
 Ziel: Die Seite, die man Leuten zeigt. Fable-Checkpoint B vorher. Entwickelt wird gegen das Hamburg-Replay, dafür braucht es kein laufendes Rennen.
-- [ ] `node scripts/fetch-osm.ts hamburg-2026` auf dem Mac ausführen, `public/data/hamburg-2026/scene.json` committen
+- [x] `node scripts/fetch-osm.ts hamburg-2026` auf dem Mac ausführen, `public/data/hamburg-2026/scene.json` committen
 - [ ] View3D aus dem Legacy als TypeScript-Modul portieren, three.js aus npm, Lazy Loading behalten, Gebäude aus `scene.json`
 - [ ] Läuferfigur, Pins, Avatare, Konfetti, Meldungen (VISION 2 und 3)
 - [ ] HUD und Panel mit Replay-Daten (VISION 4)
