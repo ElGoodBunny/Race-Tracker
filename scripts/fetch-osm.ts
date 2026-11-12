@@ -4,7 +4,8 @@
 // Data © OpenStreetMap contributors, ODbL. Be nice to the public Overpass servers: one run, not a loop.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dedupeElements, osmToScene, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm.ts";
+import { dedupeElements, osmToScene, overpassTimedOut, routeBounds, type OverpassElement } from "../src/lib/osm.ts";
+import { OverpassError, loadOsmParts, withRetry } from "./lib/osm-fetch.ts";
 
 const [slug, corridorArg] = process.argv.slice(2);
 if (!slug) {
@@ -16,41 +17,48 @@ const race = JSON.parse(readFileSync(`src/content/races/${slug}.json`, "utf8"));
 const bounds = routeBounds(race.course.route, corridor);
 
 const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
-// Tries each server once. Returns null if all fail or time out.
-async function fetchQuery(label: string, query: string): Promise<OverpassElement[] | null> {
+// One request. 502/504 and no answer (network error or 200 s silence) become OverpassError for withRetry.
+async function request(url: string, query: string): Promise<OverpassElement[]> {
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "POST", body: new URLSearchParams({ data: query }), headers: { "User-Agent": "race-tracker (github.com/Infopibe/race-tracker)" }, signal: AbortSignal.timeout(200_000) });
+  } catch (e) {
+    throw new OverpassError(`no answer (${(e as Error).message})`);
+  }
+  if (!res.ok) throw new OverpassError(`HTTP ${res.status}`, res.status);
+  const json = await res.json();
+  if (overpassTimedOut(json)) throw new OverpassError(json.remark, res.status);
+  return json.elements;
+}
+
+// Tries each server in turn, each with retries. Throws if all fail.
+async function fetchPart(label: string, query: string): Promise<OverpassElement[]> {
   for (const url of ENDPOINTS) {
     try {
       console.log(`${label}: ${url} ...`);
-      const res = await fetch(url, { method: "POST", body: new URLSearchParams({ data: query }), headers: { "User-Agent": "race-tracker (github.com/Infopibe/race-tracker)" } });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (overpassTimedOut(json)) throw new Error(json.remark);
-      return json.elements;
+      const elements = await withRetry(() => request(url, query), {
+        onRetry: (err, ms) => console.warn(`  ${err.message}, retry in ${ms / 1000} s`),
+      });
+      console.log(`  ${label}: ${elements.length} elements`);
+      return elements;
     } catch (e) {
       console.warn(`  failed: ${(e as Error).message}`);
     }
   }
-  return null;
+  throw new Error(`${label}: all servers failed`);
 }
 
-const raw: OverpassElement[] = [];
-for (const { category, query } of overpassQueries(bounds)) {
-  let part = await fetchQuery(category, query);
-  if (!part && category === "buildings") {
-    console.log("buildings: splitting into 2 x 2 tiles");
-    part = [];
-    for (const [i, tile] of splitBounds(bounds).entries()) {
-      const tilePart = await fetchQuery(`buildings tile ${i + 1}/4`, overpassQueries(tile).find((q) => q.category === "buildings")!.query);
-      if (!tilePart) process.exit(1);
-      part.push(...tilePart);
-    }
-  }
-  if (!part) process.exit(1);
-  console.log(`  ${category}: ${part.length} elements`);
-  raw.push(...part);
+const result = await loadOsmParts(bounds, `.cache/osm/${slug}`, fetchPart);
+const list = (keys: string[]) => (keys.length ? keys.join(", ") : "-");
+console.log(`\nfrom cache: ${list(result.fromCache)}`);
+console.log(`fetched:    ${list(result.fetched)}`);
+console.log(`missing:    ${list(result.missing)}`);
+if (result.missing.length) {
+  console.error("Not all parts loaded, scene.json not written. Run again later, cached parts are kept.");
+  process.exit(1);
 }
-const elements = dedupeElements(raw);
-console.log(`${raw.length} elements, ${raw.length - elements.length} duplicates removed`);
+const elements = dedupeElements(result.elements);
+console.log(`${result.elements.length} elements, ${result.elements.length - elements.length} duplicates removed`);
 
 const scene = osmToScene(elements, race.course.route, corridor);
 mkdirSync(`public/data/${slug}`, { recursive: true });
