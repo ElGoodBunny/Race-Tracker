@@ -17,7 +17,7 @@ Stand: 12.11.2026. Zielbild ist das Video aus München, Details und Kriterien in
 ## Phase 1: Feature-Parität mit dem Artifact
 Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar über die Checkliste.
 - [ ] Supabase-Projekt anlegen, Migration einspielen, Anonymous Sign-in + CAPTCHA aktivieren, Dima als Admin eintragen
-- [ ] Migration: sieben Schema-Lücken aus Checkpoint A plus diese drei Entscheidungen, jede mit RLS-Test (`docs/decisions/2026-11-12-architektur.md`)
+- [ ] Migration: sieben Schema-Lücken aus Checkpoint A plus diese drei Entscheidungen, jede mit RLS-Test, beim LiveTrack-Link inklusive der Fälle fremder Host, Subdomain-Trick, `http`, Port und Zugangsdaten in der URL (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Datenschicht `src/lib/live.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
 - [ ] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile)
 - [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil
@@ -27,7 +27,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf
 - [ ] Pinnwand mit Schnellnachrichten und "Gesehen"-Button
 - [ ] Zwischenzeiten-Tabelle und Split-Eingabe (nur Dima)
-- [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, Start/Ziel zurücksetzen. LiveTrack-Link nur setzen über `set_livetrack_link`, angezeigt wird nur "hinterlegt ja/nein" mit Zeitpunkt, nie der Link (`docs/decisions/2026-11-12-architektur.md`)
+- [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, Start/Ziel zurücksetzen. LiveTrack-Link nur setzen über `set_livetrack_link` (nur `https://livetrack.garmin.com`, Liste erlaubter Hosts in der Funktion), angezeigt wird über `livetrack_link_status` nur "hinterlegt ja/nein" mit Zeitpunkt, nie der Link (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Simulation mit Geschwindigkeitsstufen
 - [ ] FAQ, Abschluss, Footer mit Quellen
 - [ ] Fehlertexte aus dem Legacy übernehmen (Rate Limit, keine Rechte, offline)
