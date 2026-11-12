@@ -22,14 +22,29 @@ Statisch, was statisch ist. Live, was sich am Renntag ändert.
 
 ## Rollen
 - **Besuch ohne Login**: liest alles.
-- **Gast** (anonymer Supabase-Account mit Anzeigenamen): setzt Spots, schreibt auf die Pinnwand, meldet Sichtungen, löscht nur Eigenes. Max. 10 Einträge pro Tabelle in 10 Minuten.
+- **Gast** (anonymer Supabase-Account mit Anzeigenamen): setzt bis zu 3 Spots pro Rennen, schreibt auf die Pinnwand, meldet Sichtungen, löscht nur Eigenes. Max. 10 Einträge pro Tabelle in 10 Minuten. Ohne Anzeigenamen ist kein Schreiben möglich.
+- **Crew** (pro Rennen, in `race_crew`): setzt offizielle Splits (`set_official_split`) sowie Start und Ziel (`set_race_times`) für ihr Rennen, ändert keine Renneinstellungen. Kein Rate Limit.
 - **Dima** (Magic Link, in `admins`): alles, inklusive offizieller Splits und Renneinstellungen.
 
 Dima als Admin eintragen (einmalig im SQL Editor, nach dem ersten Magic-Link-Login):
 ```sql
 insert into public.admins (user_id)
 select id from auth.users where email = 'DEINE-MAIL';
+insert into public.profiles (id, display_name)
+select id, 'Dima' from auth.users where email = 'DEINE-MAIL';
 ```
+Ohne Eintrag in `profiles` scheitert jedes Schreiben, auch offizielle Splits.
+
+Crew für ein Rennen eintragen (im SQL Editor, nachdem die Person sich einmal per Magic Link angemeldet hat):
+```sql
+insert into public.race_crew (race_slug, user_id)
+select 'hamburg-2026', id from auth.users where email = 'CREW-MAIL';
+insert into public.profiles (id, display_name)
+select id, 'NAME' from auth.users where email = 'CREW-MAIL'
+on conflict (id) do nothing;
+```
+
+Der LiveTrack-Link liegt in `race_secrets` und ist über die API nicht lesbar. Setzen nur per `set_livetrack_link(slug, url)` (Admins, nur `https://livetrack.garmin.com`), Anzeige per `livetrack_link_status(slug)`. Lesen nur mit dem Service-Key.
 
 ## Entscheidungen
 - **Astro statt SPA-Framework**: Rennseiten sind größtenteils statisch, Live-Teile sind Inseln. Kleinster JS-Footprint, schnellster erster Eindruck.

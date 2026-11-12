@@ -14,12 +14,12 @@ Ohne `.env` läuft die Seite statisch (Strecke, Karte). Für Live-Daten `.env.ex
 
 ## Supabase einrichten
 1. Projekt anlegen (Region Frankfurt)
-2. `supabase/migrations/20261112000000_init.sql` im SQL Editor ausführen
+2. Alle Dateien aus `supabase/migrations/` in der Reihenfolge ihrer Namen im SQL Editor ausführen
 3. Authentication: Anonymous Sign-ins und E-Mail (Magic Link) aktivieren, CAPTCHA einschalten
 4. Einmal per Magic Link einloggen, dann als Admin eintragen (SQL in `docs/ARCHITECTURE.md`)
 
 ## Neues Rennen
-JSON nach dem Muster von `src/content/races/hamburg-2026.json` anlegen und eine Zeile in `public.races` mit demselben `slug`. Ab Phase 3 per `npm run new-race` aus einer GPX-Datei.
+JSON nach dem Muster von `src/content/races/hamburg-2026.json` anlegen und eine Zeile in `public.races` mit demselben `slug` und `distance_km` gleich `distanceKm` aus der JSON. Ab Phase 3 per `npm run new-race` aus einer GPX-Datei.
 
 ## Doku
 - `CLAUDE.md` Regeln für Claude Code

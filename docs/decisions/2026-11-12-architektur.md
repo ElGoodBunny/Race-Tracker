@@ -159,4 +159,16 @@ Beantwortet am 12.11., siehe nächster Abschnitt.
 | `races` hat keine Spalte `live_track_url` mehr | Spalte existiert nicht |
 
 ## Übernommen
-Noch nichts. Vorschlag für die Umsetzung: Punkte 1 bis 7 aus Frage 4 als eine Migration am Anfang von Phase 1, die Regeln aus Frage 3 in `src/lib/live.ts`, Frage 5 in Phase 2b.
+**13.11., Migration `supabase/migrations/20261113000000_phase1.sql`**, jeder Punkt mit Fall in `tests/rls.test.ts`:
+- Frage 4, Punkt 1: `author_name` per Trigger aus `profiles`, ohne Profil kein Schreiben, beim Bearbeiten bleibt der Name. `created_by` wird beim Löschen des Kontos `null`, Beiträge bleiben.
+- Punkt 2: `messages.kind` entfernt, alte Sichtungs-Nachrichten gelöscht. Leere Nachrichten bleiben verboten (neuer Check, weil der alte mit `kind` wegfiel).
+- Punkt 3: `seen_at` setzt der Server, der Wert vom Client wird überschrieben.
+- Punkt 4: eindeutiger Index für einen offiziellen Split pro km. Statt Update-Policy die Funktion `set_official_split(slug, km, net_sec)`, weil ein Upsert von PostgREST den Teilindex nicht treffen kann (geprüft: `on conflict` ohne `where` schlägt fehl).
+- Punkt 5: `races.distance_km`, Hamburg mit dem Wert aus der Renndatei (ein Test vergleicht beide). Spots und Checkpoints hinter dem Ziel werden abgelehnt.
+- Punkt 6: `telemetry.distance_m` für die Distanz der Uhr.
+- Punkt 7: `races.updated_at` per Trigger. Die anderen beiden Unterpunkte sind durch die Entscheidungen 1 und 3 ersetzt.
+- Entscheidung 1: höchstens 3 Spots pro Gast und Rennen, Admins ausgenommen, ohne Sperre.
+- Entscheidung 2: `race_crew`, `is_crew(slug)`, `set_race_times(slug, start_at, finish_at)`. Crew darf offizielle Splits ihres Rennens setzen und löschen und ist vom Rate Limit ausgenommen.
+- Entscheidung 3: `race_secrets`, `set_livetrack_link`, `livetrack_link_status`, `races.live_track_url` entfernt.
+
+Noch offen: Seed in der ersten Migration nur auf den Slug reduzieren (Frage 1), Statusfelder für den Poller (Frage 5), Regeln aus Frage 3 in `src/lib/live.ts`.
