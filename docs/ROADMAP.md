@@ -17,6 +17,7 @@ Stand: 12.11.2026. Zielbild ist das Video aus München, Details und Kriterien in
 ## Phase 1: Feature-Parität mit dem Artifact
 Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar über die Checkliste.
 - [ ] Supabase-Projekt anlegen, Migration einspielen, Anonymous Sign-in + CAPTCHA aktivieren, Dima als Admin eintragen
+- [ ] Migration: sieben Schema-Lücken aus Checkpoint A plus diese drei Entscheidungen, jede mit RLS-Test (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Datenschicht `src/lib/live.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
 - [ ] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile)
 - [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil

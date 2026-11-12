@@ -114,9 +114,21 @@ Nach Dringlichkeit. Alles gehört in eine neue Migration vor Phase 1, jeder Punk
 5. Generalprobe mit Abbruch mitten im Lauf.
 
 ## Entscheidungen, die bei Dima liegen
+Beantwortet am 12.11., siehe nächster Abschnitt.
+
 - Ein Spot pro Gast und Rennen, oder mehrere?
 - Wer wird zweiter Admin am Renntag?
 - Soll der LiveTrack-Link für alle sichtbar bleiben? `races` ist öffentlich lesbar, der Link zeigt die echte Position. Wenn nein, gehört er in eine Tabelle ohne Select-Policy. Das ist auch Thema von Checkpoint C.
+
+## Entscheidungen von Dima (12.11.2026)
+1. **Spots:** bis zu 3 pro Gast und Rennen, per Trigger in der Datenbank erzwungen.
+2. **Neue Rolle crew pro Rennen:** Tabelle `race_crew`, Funktion `is_crew(slug)`. Crew darf offizielle Splits und Start/Ziel setzen, aber keine Renneinstellungen ändern.
+3. **LiveTrack-Link raus aus `races`:** in eine Tabelle `race_secrets` ohne Policies. Nur der Poller liest ihn mit dem Service-Key.
+
+**Was das für die Umsetzung heißt**
+- **Spots:** Der Trigger zählt die Spots von `created_by` im Rennen vor dem Einfügen. Zwei gleichzeitige Einfügungen könnten beide durchkommen. Für einen privaten Tracker reicht das, eine Sperre pro Nutzer (`pg_advisory_xact_lock`) macht es wasserdicht. Admins sind wie beim Rate Limit ausgenommen.
+- **Crew:** RLS prüft Zeilen, nicht Spalten. Damit Crew nur `actual_start` und `finished_at` an `races` ändern kann, gibt es zwei Wege: eine Funktion mit `security definer`, die nur diese beiden Felder setzt, oder Spalten-Rechte für die Rolle `authenticated` plus eine Update-Policy für Crew. Empfehlung: die Funktion, weil Spalten-Rechte für alle angemeldeten Nutzer gelten und leicht übersehen werden. Für offizielle Splits wird die Insert-Policy von `checkpoints` um `is_crew(race_slug)` erweitert, ebenso Löschen und das Upsert aus Punkt 4 der Schema-Lücken. `race_crew` selbst bekommt keine Schreib-Policies, eingetragen wird wie bei `admins` im SQL Editor. Crew ist vom Rate Limit ausgenommen.
+- **LiveTrack-Link:** "Ohne Policies" heißt auch, dass Dima den Link nicht aus den Einstellungen der Seite speichern kann. Optionen: im SQL Editor setzen, oder eine Funktion mit `security definer`, die nur Admins schreiben lässt und nichts zurückgibt. Lesen bleibt in beiden Fällen dem Poller vorbehalten. Der Roadmap-Punkt "Einstellungen" muss entsprechend angepasst werden, sobald das entschieden ist.
 
 ## Übernommen
 Noch nichts. Vorschlag für die Umsetzung: Punkte 1 bis 7 aus Frage 4 als eine Migration am Anfang von Phase 1, die Regeln aus Frage 3 in `src/lib/live.ts`, Frage 5 in Phase 2b.
