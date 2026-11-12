@@ -1,0 +1,60 @@
+---
+// One page per race. Phase 0: static hero + course map.
+// Phase 1 ports the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits, 3D).
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import CourseMap from "../components/CourseMap.astro";
+import { fmtDur, fmtKm, fmtPace } from "../lib/format";
+
+export async function getStaticPaths() {
+  const races = await getCollection("races");
+  return races.map((entry) => ({ params: { race: entry.data.slug }, props: { race: entry.data } }));
+}
+
+const { race } = Astro.props;
+const dateFmt = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric", timeZone: race.timezone });
+const startFmt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: race.timezone });
+const planned = new Date(race.plannedStart);
+const net = race.result?.netSec;
+---
+
+<Base title={`Dima läuft ${race.city}`} description={`${race.title}: geschätzte Position, Zwischenzeiten, Cheering Spots und Pinnwand.`}>
+  <section class="wrap hero">
+    <a class="body-5 back" href="/">Alle Rennen</a>
+    <h1 class="heading-1 grad">Dima läuft {race.city}</h1>
+    <p class="title-2 sub">{race.title}, {dateFmt.format(planned)}, Start {startFmt.format(planned)} Uhr.</p>
+    <dl class="facts">
+      <div><dt class="caption-4 muted">Distanz</dt><dd class="heading-6 mono">{fmtKm(race.distanceKm, 1)} km</dd></div>
+      {race.bib && <div><dt class="caption-4 muted">Startnummer</dt><dd class="heading-6 mono">{race.bib}</dd></div>}
+      {net ? (
+        <>
+          <div><dt class="caption-4 muted">Netto</dt><dd class="heading-6 mono">{fmtDur(net)}</dd></div>
+          <div><dt class="caption-4 muted">Pace</dt><dd class="heading-6 mono">{fmtPace(net / race.distanceKm)} /km</dd></div>
+        </>
+      ) : (
+        <div><dt class="caption-4 muted">Ziel</dt><dd class="heading-6 mono">{fmtDur(race.targetSec)}</dd></div>
+      )}
+    </dl>
+  </section>
+
+  <section class="wrap" id="live" aria-labelledby="live-h">
+    <h2 id="live-h" class="heading-2 section-title">Die Strecke</h2>
+    <CourseMap race={race} />
+  </section>
+</Base>
+
+<style>
+  .hero { padding-block: var(--s900) var(--s600); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s300); }
+  .back { color: var(--muted); text-decoration: none; }
+  .back:hover { color: var(--ink); }
+  .grad { max-width: 680px; letter-spacing: -0.03em; background: linear-gradient(90deg, var(--head-from), var(--head-to)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: var(--s50); }
+  .sub { color: var(--muted); font-weight: 400; max-width: 680px; }
+  .facts { display: flex; flex-wrap: wrap; gap: var(--s300) var(--s400); margin: 0; }
+  .facts dd { margin: 0; }
+  .section-title { margin-bottom: var(--s400); }
+  @media (max-width: 640px) {
+    .hero { padding-block: var(--s800) var(--s400); }
+    .grad { font-size: 48px; line-height: 48px; }
+    .section-title { font-size: 30px; line-height: 36px; margin-bottom: var(--s300); }
+  }
+</style>

@@ -1,0 +1,55 @@
+---
+// Static SVG course map, rendered at build time. Works without JavaScript.
+// The live layer (runner, spots, tap-to-place) is added later as a client script (docs/ROADMAP.md, Phase 1).
+import type { CollectionEntry } from "astro:content";
+import { makeProjection, latLngAt, type LatLng } from "../lib/course";
+
+interface Props {
+  race: CollectionEntry<"races">["data"];
+}
+const { race } = Astro.props;
+const c = race.course;
+const { vbw, vbh, project } = makeProjection(c.bounds);
+const path = (pts: LatLng[], close = false) =>
+  pts.map((p, i) => `${i ? "L" : "M"}${project(p).map((v) => v.toFixed(1)).join(",")}`).join("") + (close ? "Z" : "");
+
+const routeD = path(c.route as LatLng[]);
+const kmMarks = Array.from({ length: Math.floor(race.distanceKm) }, (_, i) => i + 1)
+  .filter((k) => k % 5 === 0)
+  .map((k) => ({ k, xy: project(latLngAt(c as never, k)) }));
+const labels = c.landmarks
+  .filter((l) => l.label)
+  .map((l) => ({ ...l, xy: project(c.route[l.idx] as LatLng) }));
+const start = project(c.route[0] as LatLng);
+const finish = project(c.route[c.route.length - 1] as LatLng);
+---
+
+<figure class="map">
+  <svg viewBox={`0 0 ${vbw} ${vbh}`} role="img" aria-label={`Strecke ${race.title}, ${race.distanceKm.toLocaleString("de-DE")} km`}>
+    <rect width={vbw} height={vbh} fill="var(--land)" />
+    {c.features.parks.map((p) => <path d={path(p as LatLng[], true)} fill="var(--park)" />)}
+    {c.features.water.map((p) => <path d={path(p as LatLng[], true)} fill="var(--water)" stroke="var(--water-line)" stroke-width="1" />)}
+    {c.features.canals.map((p) => <path d={path(p as LatLng[])} fill="none" stroke="var(--water)" stroke-width="6" stroke-linecap="round" />)}
+    <path d={routeD} fill="none" stroke="var(--route-todo)" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" />
+    <path d={routeD} fill="none" stroke="var(--route)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+    {kmMarks.map(({ k, xy }) => (
+      <g transform={`translate(${xy[0]},${xy[1]})`}>
+        <circle r="11" fill="var(--route)" />
+        <text class="mono" text-anchor="middle" dy="4" font-size="11" font-weight="600" fill="var(--route-ink)">{k}</text>
+      </g>
+    ))}
+    <circle cx={start[0]} cy={start[1]} r="7" fill="var(--signal)" />
+    <circle cx={finish[0]} cy={finish[1]} r="7" fill="var(--ink)" />
+    {labels.map((l) => (
+      <text x={l.xy[0] + (l.dx ?? 0)} y={l.xy[1] + (l.dy ?? 0)} text-anchor={l.anchor ?? "start"} font-size="13" font-weight="500" fill="var(--ink)" paint-order="stroke" stroke="var(--land)" stroke-width="4">{l.label}</text>
+    ))}
+  </svg>
+  <figcaption class="body-6 muted">{c.source}</figcaption>
+</figure>
+
+<style>
+  .map { margin: 0; display: flex; flex-direction: column; gap: var(--s100); }
+  svg { width: 100%; height: auto; display: block; border-radius: 24px; border: 1px solid var(--line); background: var(--land); }
+  text { font-family: var(--f-body); }
+  .mono { font-family: var(--f-mono); }
+</style>

@@ -1,0 +1,46 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import { fmtDur, fmtKm } from "../lib/format";
+
+const races = (await getCollection("races")).sort((a, b) => b.data.date.localeCompare(a.data.date));
+const dateFmt = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+const statusLabel = { upcoming: "Bald", live: "Live", finished: "Im Ziel" } as const;
+---
+
+<Base title="Dima läuft" description="Live-Tracker für Dimas Rennen: geschätzte Position, Cheering Spots und Pinnwand.">
+  <section class="wrap hero">
+    <p class="caption-4 muted">PibeRuns Race Tracker</p>
+    <h1 class="heading-1 grad">Dima läuft</h1>
+    <p class="title-2 sub">Wo ich gerade bin und wann ich bei dir vorbeikomme. Ein Tracker pro Rennen.</p>
+  </section>
+
+  <section class="wrap">
+    <ul class="races">
+      {races.map(({ data: r }) => (
+        <li>
+          <a class="card" href={`/${r.slug}`}>
+            <span class={`pill caption-4 ${r.status}`}>{statusLabel[r.status]}</span>
+            <span class="heading-6">{r.title}</span>
+            <span class="body-6 muted">
+              {r.city} · {dateFmt.format(new Date(r.date))} · <span class="mono">{fmtKm(r.distanceKm, 1)} km</span>
+              {r.result && <> · Netto <span class="mono">{fmtDur(r.result.netSec)}</span></>}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .hero { padding-block: var(--s900) var(--s600); display: flex; flex-direction: column; gap: var(--s300); }
+  .grad { letter-spacing: -0.03em; background: linear-gradient(90deg, var(--head-from), var(--head-to)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-weight: 400; max-width: 680px; }
+  .races { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s200); grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s100); padding: var(--s300); border-radius: 24px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: transform var(--t-move) var(--ease); }
+  .card:hover { transform: translateY(-2px); }
+  .pill { padding: var(--s50) var(--s100); border-radius: 9999px; border: 1px solid var(--line); }
+  .pill.live { color: var(--signal); border-color: var(--signal); }
+  @media (max-width: 640px) { .hero { padding-block: var(--s800) var(--s400); } .grad { font-size: 48px; line-height: 48px; } }
+</style>

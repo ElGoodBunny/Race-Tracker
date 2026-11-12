@@ -1,0 +1,32 @@
+{
+  "name": "race-tracker",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@supabase/supabase-js": "^2.119.0",
+    "astro": "^7.4.11",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@electric-sql/pglite": "^0.5.16",
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

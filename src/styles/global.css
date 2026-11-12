@@ -1,0 +1,7 @@
+/* Layout basics ported from legacy/hamburg-2026.html ("layout" block). */
+.skip{position:fixed;left:var(--s200);top:var(--s200);z-index:90;padding:var(--s75) var(--s100);border-radius:8px;background:var(--toast);color:var(--toast-ink);text-decoration:none;transform:translateY(-200%)}
+.skip:focus{transform:none}
+.wrap{max-width:1220px;margin-inline:auto;padding-inline:var(--s200)}
+@media (min-width:640px){.wrap{padding-inline:var(--s300)}}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}

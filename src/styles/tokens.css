@@ -1,0 +1,76 @@
+/* Ported 1:1 from legacy/hamburg-2026.html (Designsystem Stand 03.11.2026). See docs/DESIGN.md. */
+:root{
+  --s25:2px; --s50:4px; --s75:8px; --s100:12px; --s200:16px; --s300:24px; --s400:32px; --s500:40px; --s600:48px; --s700:64px; --s800:80px; --s900:96px;
+  --ease:cubic-bezier(0.22,1,0.36,1); --t-move:500ms; --t-color:300ms;
+  --f-body:"Geist Variable","Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Geist Mono Variable","Geist Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+
+  --bg:#F5F5F4; --surface:#FFFFFF; --surface-2:#EEEEEC; --ink:#111111; --muted:#62625F; --line:#E2E2DF;
+  --pressed:#111111; --pressed-ink:#FFFFFF; --toast:#111111; --toast-ink:#FFFFFF;
+  --nav-bg:rgba(255,255,255,.72); --menu-bg:rgba(245,245,244,.94);
+  --head-from:#000000; --head-to:#666666;
+  --water:#C6DCE8; --water-line:#9FBFD1; --park:#D3E5D4; --land:#FAFAF9;
+  --route:#0A5CA8; --route-ink:#FFFFFF; --route-todo:#B4C8D6; --signal:#E2501B; --signal-ink:#FFFFFF;
+  --good:#1D7F55; --warn:#A86A12; --bad:#C22F2F;
+  --shadow:0 1px 2px rgba(17,17,17,.04),0 12px 32px rgba(17,17,17,.06);
+  --flag-1:#E2501B; --flag-2:#E9B517; --flag-3:#1F6FC0; --flag-4:#1D7F55; --flag-5:#8A3FB8; --flag-6:#C2185B;
+}
+/* dark: surfaces only #000000 #181818 #1F1F1F #272727 #313131 #131209 */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000000; --surface:#181818; --surface-2:#1F1F1F; --ink:#EDEDED; --muted:#A1A1A1; --line:#313131;
+  --pressed:#EDEDED; --pressed-ink:#000000; --toast:#313131; --toast-ink:#EDEDED;
+  --nav-bg:rgba(24,24,24,.72); --menu-bg:rgba(0,0,0,.94);
+  --head-from:#FFFFFF; --head-to:#9B9B9B;
+  --water:#11303F; --water-line:#1E4A5F; --park:#14301E; --land:#1F1F1F;
+  --route:#4DA3EE; --route-ink:#131209; --route-todo:#2E3E4A; --signal:#FF6A33; --signal-ink:#131209;
+  --good:#3DBB84; --warn:#E3A84C; --bad:#FF6B6B;
+  --shadow:none;
+  --flag-1:#FF6A33; --flag-2:#F2C53D; --flag-3:#4DA3EE; --flag-4:#3DBB84; --flag-5:#B57BE0; --flag-6:#F06292;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#181818; --surface-2:#1F1F1F; --ink:#EDEDED; --muted:#A1A1A1; --line:#313131;
+  --pressed:#EDEDED; --pressed-ink:#000000; --toast:#313131; --toast-ink:#EDEDED;
+  --nav-bg:rgba(24,24,24,.72); --menu-bg:rgba(0,0,0,.94);
+  --head-from:#FFFFFF; --head-to:#9B9B9B;
+  --water:#11303F; --water-line:#1E4A5F; --park:#14301E; --land:#1F1F1F;
+  --route:#4DA3EE; --route-ink:#131209; --route-todo:#2E3E4A; --signal:#FF6A33; --signal-ink:#131209;
+  --good:#3DBB84; --warn:#E3A84C; --bad:#FF6B6B;
+  --shadow:none;
+  --flag-1:#FF6A33; --flag-2:#F2C53D; --flag-3:#4DA3EE; --flag-4:#3DBB84; --flag-5:#B57BE0; --flag-6:#F06292;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:96px}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:24px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3,p,dl,dd{margin:0}
+h1,h2,h3{text-wrap:balance}
+p,.hint,.basis,.map-foot span,.foot span,.empty,dd{text-wrap:pretty}
+a{color:var(--route)}
+:focus-visible{outline:2px solid var(--route);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.ico{width:16px;height:16px;flex:none;display:block}
+.btn.lg .ico{width:20px;height:20px}
+
+/* ---------- text styles (B1), each defined once ---------- */
+.heading-1{font-size:60px;line-height:60px;font-weight:600}
+.heading-2{font-size:48px;line-height:48px;font-weight:600}
+.heading-3{font-size:36px;line-height:40px;font-weight:600}
+.heading-5{font-size:24px;line-height:32px;font-weight:600}
+.heading-6{font-size:20px;line-height:28px;font-weight:600}
+.title-1{font-size:20px;line-height:28px;font-weight:500}
+.title-2{font-size:18px;line-height:28px;font-weight:500}
+.title-3{font-size:16px;line-height:24px;font-weight:500}
+.title-4{font-size:14px;line-height:20px;font-weight:500}
+.body-3{font-size:16px;line-height:24px;font-weight:400}
+.body-4{font-size:14px;line-height:20px;font-weight:600}
+.body-5{font-size:14px;line-height:20px;font-weight:500}
+.body-6{font-size:14px;line-height:20px;font-weight:400}
+.button-lg{font-size:18px;line-height:28px;font-weight:600}
+.button-md{font-size:16px;line-height:24px;font-weight:600}
+.button-sm{font-size:14px;line-height:20px;font-weight:600}
+.caption-3{font-size:12px;line-height:16px;font-weight:600}
+.caption-4{font-size:12px;line-height:16px;font-weight:500}
+.caption-5{font-size:12px;line-height:16px;font-weight:400}
+
