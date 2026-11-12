@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LatLng } from "../src/lib/course";
-import { buildingHeight, osmToScene, overpassQuery, routeBounds, type OverpassElement } from "../src/lib/osm";
+import { buildingHeight, dedupeElements, osmToScene, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
 
 const route: LatLng[] = [[53.55, 9.96], [53.55, 9.97]]; // ~660 m west to east
 const square = (lat: number, lon: number, d = 0.0001) => [
@@ -46,11 +46,52 @@ describe("osmToScene", () => {
   });
 });
 
-describe("overpassQuery", () => {
+describe("overpassQueries", () => {
   it("uses the buffered route bounds", () => {
     const b = routeBounds(route, 600);
     expect(b.s).toBeLessThan(53.55);
     expect(b.e).toBeGreaterThan(9.97);
-    expect(overpassQuery(b)).toContain(`${b.s},${b.w},${b.n},${b.e}`);
+    for (const q of overpassQueries(b)) expect(q.query).toContain(`${b.s},${b.w},${b.n},${b.e}`);
+  });
+
+  it("splits buildings, parks, water and trees into separate queries with timeout 180", () => {
+    const qs = overpassQueries(routeBounds(route, 600));
+    expect(qs.map((q) => q.category)).toEqual(["buildings", "parks", "water", "trees"]);
+    for (const key of ['"building"', '"leisure"', '"natural"="water"', '"natural"="tree"']) {
+      expect(qs.filter((q) => q.query.includes(key))).toHaveLength(1);
+    }
+    for (const q of qs) expect(q.query).toContain("[timeout:180]");
+  });
+});
+
+describe("splitBounds", () => {
+  it("covers the box with 2 x 2 tiles without gaps", () => {
+    const b = { s: 50, w: 8, n: 52, e: 12 };
+    const tiles = splitBounds(b);
+    expect(tiles).toHaveLength(4);
+    expect(tiles).toContainEqual({ s: 50, w: 8, n: 51, e: 10 });
+    expect(tiles).toContainEqual({ s: 51, w: 10, n: 52, e: 12 });
+    expect(Math.min(...tiles.map((t) => t.s))).toBe(50);
+    expect(Math.max(...tiles.map((t) => t.e))).toBe(12);
+  });
+});
+
+describe("dedupeElements", () => {
+  it("drops repeated type and id, keeps same id with different type", () => {
+    const els: OverpassElement[] = [
+      { type: "way", id: 1, tags: { building: "yes" } },
+      { type: "way", id: 1, tags: { building: "yes" } },
+      { type: "relation", id: 1 },
+      { type: "node", id: 2 },
+    ];
+    expect(dedupeElements(els).map((e) => `${e.type}/${e.id}`)).toEqual(["way/1", "relation/1", "node/2"]);
+  });
+});
+
+describe("overpassTimedOut", () => {
+  it("detects the timeout remark Overpass sends with HTTP 200", () => {
+    expect(overpassTimedOut({ remark: "runtime error: Query timed out in \"query\" at line 3 after 181 seconds." })).toBe(true);
+    expect(overpassTimedOut({})).toBe(false);
+    expect(overpassTimedOut({ remark: "" })).toBe(false);
   });
 });

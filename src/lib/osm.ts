@@ -23,23 +23,58 @@ export interface SceneData {
   trees: number[];
 }
 
-export function overpassQuery(b: { s: number; w: number; n: number; e: number }): string {
+export type Bounds = { s: number; w: number; n: number; e: number };
+export type OsmCategory = "buildings" | "parks" | "water" | "trees";
+
+/** One query per category, so no single request runs into the public servers' timeout. */
+export function overpassQueries(b: Bounds): { category: OsmCategory; query: string }[] {
   const bbox = `${b.s},${b.w},${b.n},${b.e}`;
-  return `[out:json][timeout:120];
+  const q = (body: string) => `[out:json][timeout:180];
 (
-  way["building"](${bbox});
-  relation["building"](${bbox});
-  way["leisure"~"^(park|garden)$"](${bbox});
-  way["landuse"~"^(grass|forest|meadow|recreation_ground|village_green)$"](${bbox});
-  way["natural"="water"](${bbox});
-  relation["natural"="water"](${bbox});
-  way["waterway"="riverbank"](${bbox});
-  node["natural"="tree"](${bbox});
+${body}
 );
 out geom;`;
+  return [
+    { category: "buildings", query: q(`  way["building"](${bbox});
+  relation["building"](${bbox});`) },
+    { category: "parks", query: q(`  way["leisure"~"^(park|garden)$"](${bbox});
+  way["landuse"~"^(grass|forest|meadow|recreation_ground|village_green)$"](${bbox});`) },
+    { category: "water", query: q(`  way["natural"="water"](${bbox});
+  relation["natural"="water"](${bbox});
+  way["waterway"="riverbank"](${bbox});`) },
+    { category: "trees", query: q(`  node["natural"="tree"](${bbox});`) },
+  ];
 }
 
-export function routeBounds(route: LatLng[], marginM: number) {
+/** 2 x 2 tiles, fallback when a category times out on the whole box. */
+export function splitBounds(b: Bounds): Bounds[] {
+  const lat = (b.s + b.n) / 2;
+  const lng = (b.w + b.e) / 2;
+  return [
+    { s: b.s, w: b.w, n: lat, e: lng },
+    { s: b.s, w: lng, n: lat, e: b.e },
+    { s: lat, w: b.w, n: b.n, e: lng },
+    { s: lat, w: lng, n: b.n, e: b.e },
+  ];
+}
+
+/** Separate queries and tiles return some elements twice. */
+export function dedupeElements(elements: OverpassElement[]): OverpassElement[] {
+  const seen = new Set<string>();
+  return elements.filter((el) => {
+    const key = `${el.type}/${el.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** Overpass answers a timeout with HTTP 200, partial data and a remark. */
+export function overpassTimedOut(json: { remark?: string }): boolean {
+  return /timed out|runtime error/i.test(json.remark ?? "");
+}
+
+export function routeBounds(route: LatLng[], marginM: number): Bounds {
   const lat0 = route[0][0];
   const dLat = marginM / 111320;
   const dLng = marginM / (111320 * Math.cos((lat0 * Math.PI) / 180));
