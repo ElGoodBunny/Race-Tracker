@@ -8,8 +8,10 @@ interface Props {
   title: string;
   description: string;
   noindex?: boolean;
+  /** Where the course comes from (course.source of the race). Only race pages have one. */
+  source?: string;
 }
-const { title, description, noindex = true } = Astro.props;
+const { title, description, noindex = true, source } = Astro.props;
 ---
 
 <!doctype html>
@@ -31,7 +33,8 @@ const { title, description, noindex = true } = Astro.props;
       <slot />
     </main>
     <footer class="wrap foot body-6 muted">
-      <span>Strecke rekonstruiert aus offiziellen Angaben und OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende, ODbL).</span>
+      {source && <span>Strecke: {source}. </span>}
+      <span>Kartendaten © OpenStreetMap-Mitwirkende, ODbL.</span>
     </footer>
   </body>
 </html>

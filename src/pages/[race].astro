@@ -18,7 +18,7 @@ const planned = new Date(race.plannedStart);
 const net = race.result?.netSec;
 ---
 
-<Base title={`Dima läuft ${race.city}`} description={`${race.title}: geschätzte Position, Zwischenzeiten, Cheering Spots und Pinnwand.`}>
+<Base title={`Dima läuft ${race.city}`} description={`${race.title}: geschätzte Position, Zwischenzeiten, Cheering Spots und Pinnwand.`} source={race.course.source}>
   <section class="wrap hero">
     <a class="body-5 back" href="/">Alle Rennen</a>
     <h1 class="heading-1 grad">Dima läuft {race.city}</h1>
