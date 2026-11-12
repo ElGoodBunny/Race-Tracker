@@ -130,5 +130,13 @@ Beantwortet am 12.11., siehe nächster Abschnitt.
 - **Crew:** RLS prüft Zeilen, nicht Spalten. Damit Crew nur `actual_start` und `finished_at` an `races` ändern kann, gibt es zwei Wege: eine Funktion mit `security definer`, die nur diese beiden Felder setzt, oder Spalten-Rechte für die Rolle `authenticated` plus eine Update-Policy für Crew. Empfehlung: die Funktion, weil Spalten-Rechte für alle angemeldeten Nutzer gelten und leicht übersehen werden. Für offizielle Splits wird die Insert-Policy von `checkpoints` um `is_crew(race_slug)` erweitert, ebenso Löschen und das Upsert aus Punkt 4 der Schema-Lücken. `race_crew` selbst bekommt keine Schreib-Policies, eingetragen wird wie bei `admins` im SQL Editor. Crew ist vom Rate Limit ausgenommen.
 - **LiveTrack-Link:** "Ohne Policies" heißt auch, dass Dima den Link nicht aus den Einstellungen der Seite speichern kann. Optionen: im SQL Editor setzen, oder eine Funktion mit `security definer`, die nur Admins schreiben lässt und nichts zurückgibt. Lesen bleibt in beiden Fällen dem Poller vorbehalten. Der Roadmap-Punkt "Einstellungen" muss entsprechend angepasst werden, sobald das entschieden ist.
 
+**Nachtrag 12.11.: offene Punkte entschieden**
+- **Spots:** Trigger ohne Sperre. Dass zwei gleichzeitige Einfügungen einen vierten Spot durchlassen, wird in Kauf genommen.
+- **Crew:** wie oben empfohlen über eine Funktion mit `security definer`, die nur `actual_start` und `finished_at` setzt. Keine Update-Policy für Crew an `races`.
+- **LiveTrack-Link:** zwei Funktionen mit `security definer`, sonst kein Zugriff auf `race_secrets`.
+  - `set_livetrack_link(slug, url)`: nur für Admins aufrufbar, prüft auf `https://`, speichert den Link mit Zeitpunkt in `race_secrets` und gibt ihn nie zurück.
+  - Eine zweite Funktion für die Anzeige in den Einstellungen liefert nur "hinterlegt ja/nein" und den Zeitpunkt der letzten Änderung, nie den Link selbst.
+  - Den Link liest nur der Poller mit dem Service-Key.
+
 ## Übernommen
 Noch nichts. Vorschlag für die Umsetzung: Punkte 1 bis 7 aus Frage 4 als eine Migration am Anfang von Phase 1, die Regeln aus Frage 3 in `src/lib/live.ts`, Frage 5 in Phase 2b.

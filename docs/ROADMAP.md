@@ -27,7 +27,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf
 - [ ] Pinnwand mit Schnellnachrichten und "Gesehen"-Button
 - [ ] Zwischenzeiten-Tabelle und Split-Eingabe (nur Dima)
-- [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, LiveTrack-Link, Start/Ziel zurücksetzen
+- [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, Start/Ziel zurücksetzen. LiveTrack-Link nur setzen über `set_livetrack_link`, angezeigt wird nur "hinterlegt ja/nein" mit Zeitpunkt, nie der Link (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Simulation mit Geschwindigkeitsstufen
 - [ ] FAQ, Abschluss, Footer mit Quellen
 - [ ] Fehlertexte aus dem Legacy übernehmen (Rate Limit, keine Rechte, offline)
