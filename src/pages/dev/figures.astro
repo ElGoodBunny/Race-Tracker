@@ -1,0 +1,264 @@
+---
+// Development only: look of runner, pins, spectators and confetti before the 3D scene is built (docs/ADVISOR.md, Warm-up).
+import { getEntry } from "astro:content";
+import Base from "../../layouts/Base.astro";
+
+const race = (await getEntry("races", "hamburg-2026"))!.data;
+---
+
+<Base title="Figuren" description="Läufer, Pins, Zuschauer und Konfetti für die 3D-Strecke." noindex>
+  <section class="wrap page">
+    <h1 class="heading-3">Figuren</h1>
+    <p class="body-3 muted lead">Läufer, Pins, Zuschauer und Konfetti für die 3D-Strecke. Diese Seite ist nur für die Entwicklung. Zieh an der Scheibe, um sie zu drehen.</p>
+
+    <div class="stage" id="stage" data-bib={race.bib ?? ""}>
+      <canvas id="figures" aria-label="Drehscheibe mit Läufer, sechs Pins und vier Zuschauern"></canvas>
+      <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>
+    </div>
+
+    <div class="controls">
+      <label class="field">
+        <span class="caption-4 muted">Tempo</span>
+        <input type="range" id="speed" min="0" max="1.6" step="0.1" value="1" />
+        <output class="body-5 mono" id="speedOut" for="speed">1,0×</output>
+      </label>
+      <div class="seg" role="group" aria-label="Farbschema">
+        <button type="button" class="button-sm" data-theme-btn="light">Hell</button>
+        <button type="button" class="button-sm" data-theme-btn="dark">Dunkel</button>
+      </div>
+      <div class="seg" role="group" aria-label="Größe">
+        <button type="button" class="button-sm" data-size-btn="near" aria-pressed="true">Nah</button>
+        <button type="button" class="button-sm" data-size-btn="small" aria-pressed="false"><span class="mono">40</span> px</button>
+      </div>
+      <button type="button" class="button-sm btn" id="burst">Konfetti</button>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page { padding-block: var(--s700) 0; display: flex; flex-direction: column; gap: var(--s300); }
+  .lead { max-width: 680px; }
+  .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: grab; }
+  .stage canvas:active { cursor: grabbing; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
+  .fallback[hidden] { display: none; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
+  .field { display: flex; align-items: center; gap: var(--s100); }
+  .field input { width: 160px; accent-color: var(--ink); }
+  .field output { min-width: var(--s500); }
+  .seg { display: inline-flex; padding: var(--s25); border-radius: 9999px; background: var(--surface-2); }
+  .seg button, .btn { height: var(--s500); padding-inline: var(--s200); border: 0; border-radius: 9999px; cursor: pointer; transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
+  .seg button { background: transparent; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+  .btn { background: var(--pressed); color: var(--pressed-ink); }
+  @media (max-width: 640px) {
+    .page { padding-block: var(--s600) 0; }
+    .stage { aspect-ratio: 1 / 1; }
+    .field { width: 100%; }
+    .field input { flex: 1; width: auto; }
+  }
+</style>
+
+<script>
+  import {
+    Box3, CanvasTexture, CylinderGeometry, DirectionalLight, Group, HemisphereLight, Mesh, MeshLambertMaterial, PerspectiveCamera,
+    SRGBColorSpace, Scene, Shape, ShapeGeometry, WebGLRenderer, type Material, type Object3D,
+  } from "three";
+  import { createConfetti, createPin, createRunner, createSpectator, figurePalette, type Confetti, type Runner, type Spectator } from "../../lib/figures";
+
+  const stage = document.getElementById("stage")!;
+  const canvas = document.getElementById("figures") as HTMLCanvasElement;
+  const speedInput = document.getElementById("speed") as HTMLInputElement;
+  const speedOut = document.getElementById("speedOut")!;
+  const root = document.documentElement;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const TOKENS = ["bg", "ink", "pressed-ink", "muted", "toast", "signal", "land", "route", ...[1, 2, 3, 4, 5, 6].map((i) => `flag-${i}`), ...[1, 2, 3].flatMap((i) => [`figure-skin-${i}`, `figure-hair-${i}`])];
+  function readTokens(): Record<string, string> {
+    const cs = getComputedStyle(root);
+    return Object.fromEntries(TOKENS.map((t) => [t, cs.getPropertyValue(`--${t}`).trim()]));
+  }
+  const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
+
+  function bibTexture(text: string, bg: string, ink: string): CanvasTexture {
+    const c = document.createElement("canvas");
+    c.width = 270;
+    c.height = 200;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = ink;
+    ctx.font = '600 100px "Geist Mono Variable", ui-monospace, monospace';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const scale = Math.min(1, (c.width - 36) / ctx.measureText(text).width);
+    ctx.translate(c.width / 2, c.height / 2 + 6);
+    ctx.scale(scale, scale);
+    ctx.fillText(text, 0, 0);
+    const tex = new CanvasTexture(c);
+    tex.colorSpace = SRGBColorSpace;
+    return tex;
+  }
+
+  const DISC = 95;
+  const ROUTE_HALF = 12;
+  /** Route band across the disc: a strip cut to the circle. */
+  function routeBand(): ShapeGeometry {
+    const a = Math.asin(ROUTE_HALF / DISC);
+    const s = new Shape();
+    s.absarc(0, 0, DISC, -a, a, false);
+    s.absarc(0, 0, DISC, Math.PI - a, Math.PI + a, false);
+    return new ShapeGeometry(s, 16).rotateX(-Math.PI / 2);
+  }
+
+  function start() {
+    let renderer: WebGLRenderer;
+    try {
+      renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
+    } catch {
+      canvas.hidden = true;
+      document.getElementById("fallback")!.hidden = false;
+      return;
+    }
+    renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(30, 1, 1, 8000);
+    const hemi = new HemisphereLight(0xffffff, 0xffffff, 1.9);
+    const sun = new DirectionalLight(0xffffff, 2.3);
+    sun.position.set(70, 150, 90);
+    scene.add(hemi, sun);
+
+    const table = new Group();
+    table.rotation.y = -0.8;
+    scene.add(table);
+
+    let runner: Runner, spectators: Spectator[], confetti: Confetti, runnerHeight = 38;
+
+    function dispose(o: Object3D) {
+      o.traverse((m) => {
+        if (!(m instanceof Mesh)) return;
+        m.geometry.dispose();
+        const mat = m.material as Material & { map?: { dispose(): void } | null };
+        mat.map?.dispose();
+        mat.dispose();
+      });
+    }
+
+    function build() {
+      dispose(table);
+      table.clear();
+      const t = readTokens();
+      const p = figurePalette(t, isDark());
+      hemi.groundColor.set(t["land"]);
+
+      const disc = new Mesh(new CylinderGeometry(DISC, DISC, 3, 72), new MeshLambertMaterial({ color: t["land"] }));
+      disc.position.y = -1.5;
+      const band = new Mesh(routeBand(), new MeshLambertMaterial({ color: t["route"] }));
+      band.position.y = 0.1;
+      table.add(disc, band);
+
+      runner = createRunner(p, bibTexture(stage.dataset.bib ?? "", p.bib, p.bibInk));
+      runnerHeight = new Box3().setFromObject(runner.group).max.y;
+      table.add(runner.group);
+
+      // Five pins on the rim, the sixth next to the route with its crew at the foot.
+      const crewPin = { x: 32, z: 38 };
+      [125, 160, 195, 230, 265].forEach((deg, i) => {
+        const pin = createPin(p.flags[i]);
+        const a = (deg * Math.PI) / 180;
+        pin.position.set(Math.cos(a) * 74, 0, Math.sin(a) * 74);
+        table.add(pin);
+      });
+      const pin = createPin(p.flags[5]);
+      pin.position.set(crewPin.x, 0, crewPin.z);
+      pin.scale.setScalar(1.35);
+      table.add(pin);
+
+      // x, z, turn, size. All look across the route.
+      const crew: [number, number, number, number][] = [[14, 30, 0.35, 1], [26, 24, 0.1, 0.92], [39, 25, -0.15, 1.05], [50, 31, -0.4, 0.95]];
+      spectators = crew.map(([x, z, turn, size], i) => {
+        const s = createSpectator(p, { shirt: p.flags[i + 1], skin: p.skin[[1, 0, 2, 0][i]], hair: p.hair[[0, 2, 0, 1][i]], style: ([0, 2, 1, 0] as const)[i] });
+        s.group.position.set(x, 0, z);
+        s.group.rotation.y = Math.PI / 2 + turn;
+        s.group.scale.setScalar(size);
+        table.add(s.group);
+        return s;
+      });
+
+      confetti = createConfetti(p.flags);
+      table.add(confetti.mesh);
+    }
+
+    let size: "near" | "small" = "near";
+    function frameCamera() {
+      const w = stage.clientWidth, h = stage.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      const tanV = Math.tan((camera.fov * Math.PI) / 360);
+      // near: the disc fills the stage. small: the runner is 40 CSS px tall.
+      const dist = size === "near" ? Math.max((DISC * 1.2) / (tanV * camera.aspect), (DISC * 0.94) / tanV) : (runnerHeight * h) / (40 * 2 * tanV);
+      const elev = 0.42;
+      const targetY = size === "near" ? 6 : runnerHeight / 2;
+      camera.position.set(dist * Math.cos(elev), targetY + dist * Math.sin(elev), 0);
+      camera.lookAt(0, targetY, 0);
+      camera.updateProjectionMatrix();
+    }
+
+    // Drag to turn the disc.
+    let dragX: number | null = null;
+    canvas.addEventListener("pointerdown", (e) => {
+      dragX = e.clientX;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (dragX === null) return;
+      table.rotation.y += (e.clientX - dragX) * 0.01;
+      dragX = e.clientX;
+    });
+    for (const type of ["pointerup", "pointercancel"]) canvas.addEventListener(type, () => (dragX = null));
+
+    for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-theme-btn]")) {
+      btn.setAttribute("aria-pressed", String((btn.dataset.themeBtn === "dark") === isDark()));
+      btn.addEventListener("click", () => {
+        root.dataset.theme = btn.dataset.themeBtn;
+        for (const b of document.querySelectorAll("[data-theme-btn]")) b.setAttribute("aria-pressed", String(b === btn));
+        build();
+      });
+    }
+    for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-size-btn]")) {
+      btn.addEventListener("click", () => {
+        size = btn.dataset.sizeBtn as typeof size;
+        for (const b of document.querySelectorAll("[data-size-btn]")) b.setAttribute("aria-pressed", String(b === btn));
+        frameCamera();
+      });
+    }
+    speedInput.addEventListener("input", () => {
+      speedOut.textContent = `${Number(speedInput.value).toFixed(1).replace(".", ",")}×`;
+    });
+    document.getElementById("burst")!.addEventListener("click", () => confetti.burst(0, runnerHeight, 0));
+
+    build();
+    frameCamera();
+    new ResizeObserver(frameCamera).observe(stage);
+
+    let last = performance.now(), phase = 0, time = 0;
+    renderer.setAnimationLoop((now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      time += dt;
+      const speed = Number(speedInput.value);
+      phase += dt * (4 + 6.5 * speed);
+      runner.pose(phase, speed);
+      runner.pulse(time, !reduced);
+      for (const s of spectators) s.cheer(time);
+      confetti.step(dt);
+      if (!reduced && dragX === null) table.rotation.y += dt * 0.22;
+      renderer.render(scene, camera);
+    });
+  }
+
+  // The bib is drawn on a canvas, so the font has to be there first.
+  document.fonts.load('600 100px "Geist Mono Variable"').then(start, start);
+</script>
