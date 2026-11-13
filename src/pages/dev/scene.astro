@@ -1,0 +1,60 @@
+---
+// Development only: scene.json from above, to check outlines, islands and courtyards (Bauschritt 1, docs/decisions/2026-11-13-3d-konzept.md).
+import { readFileSync } from "node:fs";
+import { getEntry } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import type { SceneData } from "../../lib/osm";
+
+const race = (await getEntry("races", "hamburg-2026"))!.data;
+const scene: SceneData = JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8"));
+
+// Same projection as osmToScene. Moves to src/lib/view3d/world.ts in Bauschritt 2.
+const [lat0, lng0] = scene.origin;
+const kx = (Math.cos((lat0 * Math.PI) / 180) * Math.PI * 6371000) / 180;
+const ky = (Math.PI * 6371000) / 180;
+const route = race.course.route.map(([lat, lng]) => [(lng - lng0) * kx, (lat - lat0) * ky]);
+
+// SVG y points down, the scene's y points north: flip every y.
+const ringPath = (r: number[]) => {
+  let d = `M${r[0]} ${-r[1]}`;
+  for (let i = 2; i < r.length; i += 2) d += `L${r[i]} ${-r[i + 1]}`;
+  return d + "Z";
+};
+const polyPath = (p: { ring: number[]; holes?: number[][] }) => ringPath(p.ring) + (p.holes ?? []).map(ringPath).join("");
+const routePath = "M" + route.map(([x, y]) => `${x.toFixed(1)} ${(-y).toFixed(1)}`).join("L");
+
+const pad = 600;
+const xs = route.map((p) => p[0]);
+const ys = route.map((p) => -p[1]);
+const minX = Math.min(...xs) - pad;
+const minY = Math.min(...ys) - pad;
+const viewBox = `${minX.toFixed(0)} ${minY.toFixed(0)} ${(Math.max(...xs) + pad - minX).toFixed(0)} ${(Math.max(...ys) + pad - minY).toFixed(0)}`;
+
+const islands = scene.water.reduce((n, w) => n + (w.holes?.length ?? 0), 0);
+const courtyards = scene.buildings.reduce((n, b) => n + (b.holes?.length ?? 0), 0);
+---
+
+<Base title="Szene von oben" description="Kontrollbild der 3D-Szene aus OpenStreetMap." noindex>
+  <section class="wrap page">
+    <h1 class="heading-3">Szene von oben</h1>
+    <p class="body-3 muted">
+      <span class="mono">{scene.buildings.length}</span> Gebäude mit <span class="mono">{courtyards}</span> Höfen, <span class="mono">{scene.water.length}</span> Wasserflächen mit <span class="mono">{islands}</span> Inseln, <span class="mono">{scene.parks.length}</span> Grünflächen. Bäume sind hier nicht gezeichnet.
+    </p>
+    <svg class="map" viewBox={viewBox} role="img" aria-label="Szene Hamburg von oben">
+      <g class="park">{scene.parks.map((r) => <path d={ringPath(r)} />)}</g>
+      <g class="water">{scene.water.map((w) => <path d={polyPath(w)} />)}</g>
+      <g class="bld">{scene.buildings.map((b) => <path d={polyPath(b)} />)}</g>
+      <path class="route" d={routePath} />
+    </svg>
+  </section>
+</Base>
+
+<style>
+  .page { padding-block: var(--s700) 0; display: flex; flex-direction: column; gap: var(--s300); }
+  .map { width: 100%; height: auto; background: var(--land); border: 1px solid var(--line); border-radius: 24px; }
+  .map path { fill-rule: evenodd; stroke: none; }
+  .park path { fill: var(--park); }
+  .water path { fill: var(--water); stroke: var(--water-line); stroke-width: 0.5px; vector-effect: non-scaling-stroke; }
+  .bld path { fill: var(--muted); fill-opacity: 0.55; }
+  .map .route { fill: none; stroke: var(--route); stroke-width: 2px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+</style>
