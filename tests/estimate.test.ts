@@ -63,6 +63,22 @@ describe("estimate", () => {
     expect(e.phase).toBe("stale");
   });
 
+  it("is not 'stale' yet 4.4 h after start in Hamburg", () => {
+    const e = estimate({ ...base, targetSec: 36000 }, [], D, T0 + 4.4 * 3600 * 1000);
+    expect(e.phase).not.toBe("stale");
+  });
+
+  it("is not 'stale' yet 4:45 h after start of a marathon without any checkpoint", () => {
+    const e = estimate({ ...base, targetSec: 36000 }, [], 42.195, T0 + 4.75 * 3600 * 1000);
+    expect(e.phase).not.toBe("stale");
+  });
+
+  it("waits at least 7 h in a marathon, past the 6 h cutoff in Barcelona", () => {
+    const at = (h: number) => estimate({ ...base, targetSec: 36000 }, [], 42.195, T0 + h * 3600 * 1000).phase;
+    expect(at(6.9)).not.toBe("stale");
+    expect(at(7.1)).toBe("stale");
+  });
+
   it("ignores checkpoints from the future (more than 60 s ahead)", () => {
     const cps: Checkpoint[] = [{ km: 5, netSec: 1500, at: null, src: "official" }];
     const e = estimate(base, cps, D, T0 + 1000 * 1000);

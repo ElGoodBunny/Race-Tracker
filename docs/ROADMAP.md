@@ -9,7 +9,7 @@ Marathon, 42,195 km, Start 8:30 an der Plaça de Catalunya. Erster echter Live-E
 - Generalprobe mit Live-Daten bei einem langen Trainingslauf Anfang März 2027
 
 ## Offene Fehler
-- [ ] `STALE_AFTER_MS` in `src/lib/estimate.ts` ist fest 4,5 h und passt nicht zum Marathon
+- [x] `STALE_AFTER_MS` in `src/lib/estimate.ts` ist fest 4,5 h und passt nicht zum Marathon
 
 ## Phase 0: Fundament (erledigt 12.11.)
 - [x] Astro 7 + TypeScript strict + three.js + Supabase-Client
