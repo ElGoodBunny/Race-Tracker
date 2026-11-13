@@ -1,6 +1,5 @@
 ---
-// Static SVG course map, rendered at build time. Works without JavaScript.
-// The live layer (runner, spots, tap-to-place) is added later as a client script (docs/ROADMAP.md, Phase 1).
+// SVG course map, rendered at build time. The runner preview is optional and works without backend data.
 import type { CollectionEntry } from "astro:content";
 import { makeProjection, latLngAt, type LatLng } from "../lib/course";
 
@@ -14,6 +13,10 @@ const path = (pts: LatLng[], close = false) =>
   pts.map((p, i) => `${i ? "L" : "M"}${project(p).map((v) => v.toFixed(1)).join(",")}`).join("") + (close ? "Z" : "");
 
 const routeD = path(c.route as LatLng[]);
+const routeSamples = c.route.map((point, i) => {
+  const [x, y] = project(point as LatLng);
+  return { x, y, km: c.km[i] };
+});
 const kmMarks = Array.from({ length: Math.floor(race.distanceKm) }, (_, i) => i + 1)
   .filter((k) => k % 5 === 0)
   .map((k) => ({ k, xy: project(latLngAt(c as never, k)) }));
@@ -24,7 +27,8 @@ const start = project(c.route[0] as LatLng);
 const finish = project(c.route[c.route.length - 1] as LatLng);
 ---
 
-<figure class="map">
+<figure class="map" data-route={JSON.stringify(routeSamples)} data-distance-km={race.distanceKm}>
+  <div class="map-visual">
   <svg viewBox={`0 0 ${vbw} ${vbh}`} role="img" aria-label={`Strecke ${race.title}, ${race.distanceKm.toLocaleString("de-DE")} km`}>
     <rect width={vbw} height={vbh} fill="var(--land)" />
     {c.features.parks.map((p) => <path d={path(p as LatLng[], true)} fill="var(--park)" />)}
@@ -44,12 +48,161 @@ const finish = project(c.route[c.route.length - 1] as LatLng);
       <text x={l.xy[0] + (l.dx ?? 0)} y={l.xy[1] + (l.dy ?? 0)} text-anchor={l.anchor ?? "start"} font-size="13" font-weight="500" fill="var(--ink)" paint-order="stroke" stroke="var(--land)" stroke-width="4">{l.label}</text>
     ))}
   </svg>
+  <canvas id="runner-canvas" aria-hidden="true"></canvas>
+  </div>
+  <div class="simulation" aria-label="Streckenvorschau">
+    <button type="button" class="simulation-button" id="simulation-toggle" aria-pressed="false">Vorschau starten</button>
+    <label class="progress-control" for="simulation-progress">
+      <span class="caption-4 muted">Strecke</span>
+      <input id="simulation-progress" type="range" min="0" max={race.distanceKm} step="0.01" value="0" />
+    </label>
+    <output class="body-6 mono progress-output" id="simulation-output" for="simulation-progress" aria-live="polite">
+      0,0 km / {race.distanceKm.toLocaleString("de-DE", { maximumFractionDigits: 1 })} km
+    </output>
+    <span class="caption-5 muted demo-note">Demovorschau, einmalige Runde in 90 Sekunden</span>
+  </div>
   <figcaption class="body-6 muted">{c.source}</figcaption>
 </figure>
 
+<script>
+  import { AmbientLight, DirectionalLight, OrthographicCamera, Scene, WebGLRenderer } from "three";
+  import { createRunner, figurePalette } from "../lib/figures";
+
+  interface RoutePoint {
+    x: number;
+    y: number;
+    km: number;
+  }
+
+  const map = document.querySelector<HTMLElement>(".map[data-route]");
+  const canvas = map?.querySelector<HTMLCanvasElement>("#runner-canvas");
+  const svg = map?.querySelector<SVGSVGElement>("svg");
+  const visual = map?.querySelector<HTMLElement>(".map-visual");
+  const progress = map?.querySelector<HTMLInputElement>("#simulation-progress");
+  const output = map?.querySelector<HTMLOutputElement>("#simulation-output");
+  const toggle = map?.querySelector<HTMLButtonElement>("#simulation-toggle");
+
+  if (map && canvas && svg && visual && progress && output && toggle) {
+    const progressInput = progress;
+    const progressOutput = output;
+    const toggleButton = toggle;
+    const route = JSON.parse(map.dataset.route ?? "[]") as RoutePoint[];
+    const distance = Number(map.dataset.distanceKm);
+    const durationMs = 90_000;
+    const formatKm = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    let km = 0;
+    let playing = false;
+    let previousFrame = 0;
+
+    const viewBox = svg.viewBox.baseVal;
+    const scene = new Scene();
+    const camera = new OrthographicCamera(0, viewBox.width, viewBox.height, 0, 0.1, 2000);
+    camera.position.set(viewBox.width / 2, viewBox.height / 2, 1000);
+    camera.lookAt(viewBox.width / 2, viewBox.height / 2, 0);
+    const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+    const tokenStyles = getComputedStyle(document.documentElement);
+    const tokenNames = ["bg", "ink", "pressed-ink", "muted", "toast", "signal", "land", "route", ...[1, 2, 3, 4, 5, 6].map((i) => `flag-${i}`), ...[1, 2, 3].flatMap((i) => [`figure-skin-${i}`, `figure-hair-${i}`])];
+    const tokens = Object.fromEntries(tokenNames.map((name) => [name, tokenStyles.getPropertyValue(`--${name}`).trim()]));
+    const dark = document.documentElement.dataset.theme === "dark" || document.documentElement.classList.contains("dark");
+    const runner = createRunner(figurePalette(tokens, dark));
+    runner.group.scale.setScalar(0.75);
+    scene.add(runner.group);
+    scene.add(new AmbientLight(0xffffff, 2));
+    const keyLight = new DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(-100, 200, 400);
+    scene.add(keyLight);
+
+    const resizeRenderer = () => {
+      renderer.setSize(visual.clientWidth, visual.clientHeight, false);
+      renderer.render(scene, camera);
+    };
+    const resizeObserver = new ResizeObserver(resizeRenderer);
+    resizeObserver.observe(visual);
+    resizeRenderer();
+
+    function positionAt(kmOnCourse: number): Pick<RoutePoint, "x" | "y"> & { angle: number } {
+      let low = 0;
+      let high = route.length - 1;
+      while (high - low > 1) {
+        const middle = (low + high) >> 1;
+        if (route[middle].km <= kmOnCourse) low = middle;
+        else high = middle;
+      }
+      const from = route[low];
+      const to = route[high];
+      const fraction = (kmOnCourse - from.km) / (to.km - from.km || 1);
+      const x = from.x + (to.x - from.x) * fraction;
+      const y = from.y + (to.y - from.y) * fraction;
+      const angle = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI + 90;
+      return { x, y, angle };
+    }
+
+    function renderPosition() {
+      const point = positionAt(km);
+      const nextIndex = route.findIndex((p) => p.km > km);
+      const from = route[Math.max(0, nextIndex - 1)] ?? route[0];
+      const to = route[nextIndex] ?? route[route.length - 1];
+      runner.group.position.set(point.x, viewBox.height - point.y, 0);
+      runner.group.rotation.z = Math.atan2(-(to.y - from.y), to.x - from.x);
+      runner.pose((km / Math.max(distance, 1)) * Math.PI * 28, playing ? 1 : 0);
+      runner.pulse(performance.now() / 1000, playing);
+      renderer.render(scene, camera);
+      progressInput.value = String(km);
+      progressOutput.value = formatKm.format(km) + " km / " + formatKm.format(distance) + " km";
+    }
+
+    function stop() {
+      playing = false;
+      previousFrame = 0;
+      toggleButton.textContent = km >= distance ? "Noch einmal ansehen" : "Vorschau fortsetzen";
+      toggleButton.setAttribute("aria-pressed", "false");
+    }
+
+    function animate(now: number) {
+      if (!playing) return;
+      if (previousFrame) km = Math.min(distance, km + ((now - previousFrame) / durationMs) * distance);
+      previousFrame = now;
+      renderPosition();
+      if (km >= distance) stop();
+      else requestAnimationFrame(animate);
+    }
+
+    toggleButton.addEventListener("click", () => {
+      if (playing) {
+        stop();
+        return;
+      }
+      if (km >= distance) km = 0;
+      playing = true;
+      previousFrame = 0;
+      toggleButton.textContent = "Vorschau pausieren";
+      toggleButton.setAttribute("aria-pressed", "true");
+      requestAnimationFrame(animate);
+    });
+
+    progressInput.addEventListener("input", () => {
+      km = Number(progressInput.value);
+      if (playing) previousFrame = 0;
+      renderPosition();
+    });
+
+    renderPosition();
+  }
+</script>
+
 <style>
   .map { margin: 0; display: flex; flex-direction: column; gap: var(--s100); }
+  .map-visual { position: relative; width: 100%; }
   svg { width: 100%; height: auto; display: block; border-radius: 24px; border: 1px solid var(--line); background: var(--land); }
+  #runner-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   text { font-family: var(--f-body); }
   .mono { font-family: var(--f-mono); }
+  .simulation { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s100) var(--s300); }
+  .simulation-button { min-height: var(--s500); padding: 0 var(--s200); border: 0; border-radius: 9999px; background: var(--pressed); color: var(--pressed-ink); font: inherit; cursor: pointer; }
+  .progress-control { display: flex; flex: 1 1 240px; align-items: center; gap: var(--s100); }
+  .progress-control input { flex: 1; min-width: 100px; accent-color: var(--signal); }
+  .progress-output { min-width: 120px; color: var(--ink); }
+  .demo-note { flex-basis: 100%; }
 </style>

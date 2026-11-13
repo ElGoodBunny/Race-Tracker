@@ -60,9 +60,12 @@ if (result.missing.length) {
 const elements = dedupeElements(result.elements);
 console.log(`${result.elements.length} elements, ${result.elements.length - elements.length} duplicates removed`);
 
-const scene = osmToScene(elements, race.course.route, corridor);
+const warnings: string[] = [];
+const scene = osmToScene(elements, race.course.route, corridor, (msg) => warnings.push(msg));
+for (const w of warnings) console.warn(`  ${w}`);
 mkdirSync(`public/data/${slug}`, { recursive: true });
 const out = `public/data/${slug}/scene.json`;
 writeFileSync(out, JSON.stringify(scene));
 const kb = Math.round(JSON.stringify(scene).length / 1024);
-console.log(`${scene.buildings.length} buildings, ${scene.parks.length} parks, ${scene.water.length} water, ${scene.trees.length / 2} trees -> ${out} (${kb} kB)`);
+const holes = (items: { holes?: number[][] }[]) => items.reduce((n, i) => n + (i.holes?.length ?? 0), 0);
+console.log(`${scene.buildings.length} buildings (${holes(scene.buildings)} courtyards), ${scene.parks.length} parks, ${scene.water.length} water (${holes(scene.water)} islands), ${scene.trees.length / 2} trees -> ${out} (${kb} kB)`);
