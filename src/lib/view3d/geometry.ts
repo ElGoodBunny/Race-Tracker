@@ -1,5 +1,5 @@
 // Scene geometry as plain number arrays (docs/decisions/2026-11-13-3d-konzept.md, step 4).
-// Input is scene.json (x east, y north, metres). Output is in three.js axes via toThree from world.ts,
+// Input is SceneData, scene.json after unpackScene (x east, y north, metres). Output is in three.js axes via toThree from world.ts,
 // so the view can hand the arrays straight to a BufferGeometry.
 // Only the triangulation comes from three.js.
 

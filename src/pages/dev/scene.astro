@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
-import type { SceneData } from "../../lib/osm";
+import { unpackScene } from "../../lib/osm";
 import { makeLocal } from "../../lib/view3d/world";
 
 // SVG y points down, the scene's y points north: flip every y.
@@ -18,7 +18,7 @@ const polyPath = (p: { ring: number[]; holes?: number[][] }) => ringPath(p.ring)
 const views = (await getCollection("races"))
   .filter((r) => existsSync(`public/data/${r.id}/scene.json`))
   .map(({ id, data: race }) => {
-    const scene: SceneData = JSON.parse(readFileSync(`public/data/${id}/scene.json`, "utf8"));
+    const scene = unpackScene(JSON.parse(readFileSync(`public/data/${id}/scene.json`, "utf8")));
     const local = makeLocal(scene.origin);
     const route = race.course.route.map(([lat, lng]) => local.toXY(lat, lng));
     const pad = 600;

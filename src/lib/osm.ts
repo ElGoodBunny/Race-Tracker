@@ -1,6 +1,6 @@
 // OpenStreetMap to compact 3D scene data (buildings with heights, parks, water, trees; the coastline becomes sea in water).
-// Geometry is stored in local metres around the start, x east, y north, rounded to 0.5 m,
-// so the 3D scene needs no projection and the file stays small. Data © OpenStreetMap contributors, ODbL.
+// Geometry is in local metres around the start, x east, y north, rounded to 0.5 m, so the 3D scene
+// needs no projection. On disk it is packed (PackedScene, packScene, unpackScene below). Data © OpenStreetMap contributors, ODbL.
 
 import type { LatLng } from "./course";
 import { makeLocal } from "./view3d/world.ts";
@@ -188,8 +188,23 @@ export function osmToScene(elements: OverpassElement[], route: LatLng[], corrido
 
   /** Outer rings of a way or multipolygon, each with the holes that lie inside it. */
   const polygons = (el: OverpassElement): { outer: GeoPoint[]; holes: number[][] }[] => {
-    if (el.type === "way") return el.geometry ? [{ outer: el.geometry, holes: [] }] : [];
-    const outer = joinRings(role(el, "outer"));
+    if (el.type === "way") {
+      const g = el.geometry;
+      if (!g) return [];
+      if (g.length < 4 || !samePoint(g[0], g[g.length - 1])) {
+        warn(`way ${el.id}: open ring dropped`);
+        return [];
+      }
+      return [{ outer: g, holes: [] }];
+    }
+    // A building relation without outer members: parts without a role are its outline (relation 20197870).
+    let outerParts = role(el, "outer");
+    if (!outerParts.length && el.tags?.building) outerParts = role(el, "");
+    if (!outerParts.length) {
+      warn(`relation ${el.id}: no outer ring, dropped`);
+      return [];
+    }
+    const outer = joinRings(outerParts);
     const inner = joinRings(role(el, "inner"));
     if (outer.open) warn(`relation ${el.id}: ${outer.open} open outer ring(s) dropped`);
     if (inner.open) warn(`relation ${el.id}: ${inner.open} open inner ring(s) dropped`);
@@ -394,4 +409,72 @@ function insideXY(r: number[], [x, y]: [number, number]): boolean {
     if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) hit = !hit;
   }
   return hit;
+}
+
+/**
+ * scene.json on disk: like SceneData, but every ring is a list of integer differences in 0.5 m units
+ * (first point from 0, then from the previous point), without the closing point. Trees go to trees.json.
+ * Same geometry, about half the size and far better to gzip.
+ */
+export interface PackedScene {
+  format: 2;
+  origin: LatLng;
+  buildings: { ring: number[]; h: number; holes?: number[][] }[];
+  parks: number[][];
+  water: { ring: number[]; holes?: number[][] }[];
+}
+
+function packRing(r: number[]): number[] {
+  const n = r.length;
+  if (n < 8 || r[0] !== r[n - 2] || r[1] !== r[n - 1]) throw new Error("packScene: ring is not closed");
+  const out: number[] = [];
+  let px = 0;
+  let py = 0;
+  for (let i = 0; i < n - 2; i += 2) {
+    const x = r[i] * 2;
+    const y = r[i + 1] * 2;
+    if (!Number.isInteger(x) || !Number.isInteger(y)) throw new Error("packScene: point off the 0.5 m grid");
+    out.push(x - px, y - py);
+    px = x;
+    py = y;
+  }
+  return out;
+}
+
+function unpackRing(d: number[]): number[] {
+  const out: number[] = [];
+  let x = 0;
+  let y = 0;
+  for (let i = 0; i < d.length; i += 2) {
+    x += d[i];
+    y += d[i + 1];
+    out.push(x / 2, y / 2);
+  }
+  out.push(out[0], out[1]);
+  return out;
+}
+
+const mapHoles = <T extends { holes?: number[][] }>(p: T, f: (r: number[]) => number[]) => (p.holes ? { holes: p.holes.map(f) } : {});
+
+export function packScene(s: SceneData): { scene: PackedScene; trees: number[] } {
+  return {
+    scene: {
+      format: 2,
+      origin: s.origin,
+      buildings: s.buildings.map((b) => ({ ring: packRing(b.ring), h: b.h, ...mapHoles(b, packRing) })),
+      parks: s.parks.map(packRing),
+      water: s.water.map((w) => ({ ring: packRing(w.ring), ...mapHoles(w, packRing) })),
+    },
+    trees: s.trees,
+  };
+}
+
+export function unpackScene(p: PackedScene, trees: number[] = []): SceneData {
+  return {
+    origin: p.origin,
+    buildings: p.buildings.map((b) => ({ ring: unpackRing(b.ring), h: b.h, ...mapHoles(b, unpackRing) })),
+    parks: p.parks.map(unpackRing),
+    water: p.water.map((w) => ({ ring: unpackRing(w.ring), ...mapHoles(w, unpackRing) })),
+    trees,
+  };
 }

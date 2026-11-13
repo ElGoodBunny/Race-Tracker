@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import type { LatLng } from "../src/lib/course";
 import { makeLocal } from "../src/lib/view3d/world";
 import { buildingHeight, dedupeElements, joinRings, osmToScene, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
@@ -251,5 +252,34 @@ describe("osmToScene coastline", () => {
     const scene = osmToScene([coast(7, [pt(53.552, 9.94), pt(53.552, 9.965)])], route, 600, (m) => warnings.push(m));
     expect(scene.water).toEqual([]);
     expect(warnings.some((w) => w.includes("coastline") && w.includes("7"))).toBe(true);
+  });
+});
+
+describe("osmToScene building relations without outer", () => {
+  const near: LatLng[] = [[41.4105, 2.1785], [41.4105, 2.1795]];
+
+  it("takes members with an empty role as the outline (relation 20197870, Barcelona)", () => {
+    const rel = JSON.parse(readFileSync("tests/fixtures/osm-relation-20197870.json", "utf8")) as OverpassElement;
+    const warnings: string[] = [];
+    const scene = osmToScene([rel], near, 600, (m) => warnings.push(m));
+    expect(scene.buildings).toHaveLength(1);
+    expect(scene.buildings[0].ring).toHaveLength(22); // 11 points, closed
+    expect(warnings).toEqual([]);
+  });
+
+  it("reports a relation that still has no outline, with its id", () => {
+    const warnings: string[] = [];
+    const rel = { type: "relation", id: 4259123, tags: { building: "yes", type: "building" }, members: [way("part", square(41.4105, 2.179))] } as OverpassElement;
+    const scene = osmToScene([rel], near, 600, (m) => warnings.push(m));
+    expect(scene.buildings).toEqual([]);
+    expect(warnings).toEqual(["relation 4259123: no outer ring, dropped"]);
+  });
+
+  it("drops ways that do not close and reports them with their id", () => {
+    const warnings: string[] = [];
+    const open = { type: "way", id: 77, tags: { landuse: "grass" }, geometry: square(41.4105, 2.179).slice(0, 4) } as OverpassElement;
+    const scene = osmToScene([open], near, 600, (m) => warnings.push(m));
+    expect(scene.parks).toEqual([]);
+    expect(warnings).toEqual(["way 77: open ring dropped"]);
   });
 });

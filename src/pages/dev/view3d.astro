@@ -58,7 +58,7 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
   import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
   import { MapControls } from "three/examples/jsm/controls/MapControls.js";
   import type { CourseData } from "../../lib/course";
-  import type { SceneData } from "../../lib/osm";
+  import { unpackScene, type PackedScene } from "../../lib/osm";
   import { CITY_TOKENS, createCity, type CityColors } from "../../lib/view3d/scene";
   import { makeLocal, makeTrack, toThree } from "../../lib/view3d/world";
 
@@ -83,7 +83,7 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
     }
     renderer.setPixelRatio(Math.min(2, devicePixelRatio));
 
-    const data = (await (await fetch(`/data/${stage.dataset.slug}/scene.json`)).json()) as SceneData;
+    const data = unpackScene((await (await fetch(`/data/${stage.dataset.slug}/scene.json`)).json()) as PackedScene);
     const local = makeLocal(data.origin);
     const track = makeTrack(course, local);
 

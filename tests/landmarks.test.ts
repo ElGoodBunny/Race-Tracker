@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import type { SceneData } from "../src/lib/osm";
+import { unpackScene } from "../src/lib/osm";
 import { makeLocal } from "../src/lib/view3d/world";
 
 // Check "Gebäude sind aus OSM" (docs/VISION.md): the buildings stand where OSM has them and differ in height.
 // Positions are the centres of the OSM ways from the Overpass cache of 13.11.2026.
-const scene: SceneData = JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8"));
+const scene = unpackScene(JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8")));
 const local = makeLocal(scene.origin);
 
 function inside(ring: number[], x: number, y: number) {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import type { SceneData } from "../src/lib/osm";
+import { unpackScene } from "../src/lib/osm";
 import { TILE_M, areaMesh, buildingMesh, groupTiles, type Mesh } from "../src/lib/view3d/geometry";
 
-const scene: SceneData = JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8"));
+const scene = unpackScene(JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8")));
 
 // Closed rings like in scene.json (last point repeats the first), x east, y north.
 const square = (x: number, y: number, s: number) => [x, y, x + s, y, x + s, y + s, x, y + s, x, y];
