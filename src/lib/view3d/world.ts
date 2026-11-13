@@ -1,6 +1,6 @@
 // The one conversion from lat/lng to local metres (docs/decisions/2026-11-13-3d-konzept.md).
 // osm.ts, the route and the landmarks all use it, so buildings and route line up.
-// x points east, y points north, in metres from the origin. The 3D view maps y to -z.
+// x points east, y points north, in metres from the origin. toThree turns that into three.js axes.
 
 import type { CourseData, LatLng } from "../course";
 
@@ -19,6 +19,11 @@ export function makeLocal(origin: LatLng): Local {
   const kx = (Math.cos((origin[0] * Math.PI) / 180) * Math.PI * R) / 180;
   const ky = (Math.PI * R) / 180;
   return { origin, toXY: (lat, lng) => [(lng - origin[1]) * kx, (lat - origin[0]) * ky] };
+}
+
+/** Scene metres to three.js axes: x east, y up, z south. The only place where north becomes -z. */
+export function toThree(x: number, y: number, up = 0): [number, number, number] {
+  return [x, up, -y];
 }
 
 export interface TrackPoint {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import raceJson from "../src/content/races/hamburg-2026.json";
 import { latLngAt, type CourseData } from "../src/lib/course";
-import { HEADING_M, makeLocal, makeTrack } from "../src/lib/view3d/world";
+import { HEADING_M, makeLocal, makeTrack, toThree } from "../src/lib/view3d/world";
 
 const race = raceJson;
 const c = race.course as unknown as CourseData;
@@ -19,6 +19,13 @@ describe("makeLocal", () => {
     const [nx, ny] = local.toXY(lat + 0.01, lng);
     expect(nx).toBe(0);
     expect(ny).toBeCloseTo(1112, 0);
+  });
+});
+
+describe("toThree", () => {
+  it("turns scene metres into three.js axes: x east, y up, north is -z", () => {
+    expect(toThree(10, 20)).toEqual([10, 0, -20]);
+    expect(toThree(-5, -7, 14)).toEqual([-5, 14, 7]);
   });
 });
 
