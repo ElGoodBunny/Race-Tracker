@@ -36,6 +36,7 @@ Eine Seite pro Rennen. Nachfolger des Artifacts "Dima läuft Hamburg" (Code lieg
 - UI-Arbeit ist erst fertig nach der Sichtprüfung: lokal starten, Screenshots hell und dunkel, Desktop und Handy, gegen `docs/DESIGN.md` und die Referenzbilder in `docs/reference/munich-video/` prüfen, Abweichungen beheben, dann erst melden
 - Nichts erfinden: keine Fantasie-Zahlen, -Zitate, -Logos oder -Sponsoren auf der Seite. Daten kommen aus `src/content/`, `public/data/` oder Supabase
 - Design-Entscheidungen mit Begründung in `docs/decisions/` festhalten
+- Module in src/lib, die von scripts/ zur Laufzeit geladen werden, importieren mit .ts-Endung.
 
 ## Design und Texte (verbindlich)
 - Alle Regeln aus `docs/DESIGN.md`. Kurzfassung: Geist, Geist Mono nur für Zahlen, max. Gewicht 600, keine Kursive, nur Token-Abstände, nur transform/opacity animieren, eine Easing-Kurve

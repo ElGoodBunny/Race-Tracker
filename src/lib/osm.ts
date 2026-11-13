@@ -3,6 +3,7 @@
 // so the 3D scene needs no projection and the file stays small. Data © OpenStreetMap contributors, ODbL.
 
 import type { LatLng } from "./course";
+import { makeLocal } from "./view3d/world.ts";
 
 export interface OverpassElement {
   type: "node" | "way" | "relation";
@@ -149,10 +150,12 @@ export function buildingHeight(tags: Record<string, string> = {}): number {
 /** warn receives one line per dropped open ring or orphaned hole, so a broken outline never vanishes silently. */
 export function osmToScene(elements: OverpassElement[], route: LatLng[], corridorM: number, warn: (msg: string) => void = () => {}): SceneData {
   const origin = route[0];
-  const kx = (Math.cos((origin[0] * Math.PI) / 180) * Math.PI * 6371000) / 180;
-  const ky = (Math.PI * 6371000) / 180;
+  const local = makeLocal(origin);
   const q = (v: number) => Math.round(v * 2) / 2;
-  const toXY = (lat: number, lon: number): [number, number] => [q((lon - origin[1]) * kx), q((lat - origin[0]) * ky)];
+  const toXY = (lat: number, lon: number): [number, number] => {
+    const [x, y] = local.toXY(lat, lon);
+    return [q(x), q(y)];
+  };
   const routeXY = route.map((p) => toXY(p[0], p[1]));
 
   const distToRoute = (x: number, y: number) => {

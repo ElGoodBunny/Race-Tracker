@@ -4,15 +4,13 @@ import { readFileSync } from "node:fs";
 import { getEntry } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import type { SceneData } from "../../lib/osm";
+import { makeLocal } from "../../lib/view3d/world";
 
 const race = (await getEntry("races", "hamburg-2026"))!.data;
 const scene: SceneData = JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8"));
 
-// Same projection as osmToScene. Moves to src/lib/view3d/world.ts in Bauschritt 2.
-const [lat0, lng0] = scene.origin;
-const kx = (Math.cos((lat0 * Math.PI) / 180) * Math.PI * 6371000) / 180;
-const ky = (Math.PI * 6371000) / 180;
-const route = race.course.route.map(([lat, lng]) => [(lng - lng0) * kx, (lat - lat0) * ky]);
+const local = makeLocal(scene.origin);
+const route = race.course.route.map(([lat, lng]) => local.toXY(lat, lng));
 
 // SVG y points down, the scene's y points north: flip every y.
 const ringPath = (r: number[]) => {
