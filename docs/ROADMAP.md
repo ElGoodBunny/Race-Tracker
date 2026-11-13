@@ -71,7 +71,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 ## Phase 3: Neues Rennen in 10 Minuten
 - [ ] Landmarks und Wasserstellen per kleiner Konfig ergänzen
 - [ ] Performance-Budget an Barcelona prüfen
-- [ ] Strecke am Meer (km 26 bis 30) hervorheben (Sagrada Família siehe Schritt 14)
+- [ ] Strecke am Meer (km 27 bis 30, gemessen gegen OSM-Küstenlinie, Grenze 300 m) hervorheben (Sagrada Família siehe Schritt 14)
 
 ## Phase 4: Live gehen
 - [ ] Hosting festlegen (Vorschlag: Cloudflare Pages oder Vercel, beides kann statische Astro-Builds) und `site` in `astro.config.mjs` setzen
