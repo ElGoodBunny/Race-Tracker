@@ -24,7 +24,7 @@ Hauptaktion je Phase: vor dem Start "Spot setzen" (#spots), live "Live verfolgen
 - Größen nur aus der Tailwind-Skala, jede Textart als benannter Stil (`heading-1` bis `caption-5`)
 - Abstände nur 2/4/8/12/16/24/32/40/48/64/80/96 px (`--s25` bis `--s900`), Radien nur Tailwind-Werte (Karten 24, Buttons rund)
 - Dunkelmodus: Flächen nur #000000, #181818, #1F1F1F, #272727, #313131, #131209
-- Die Flächenregel gilt für UI-Flächen, nicht für 3D-Figuren. Haut und Haare der Figuren haben eine eigene Palette in `tokens.css` (`--figure-skin-1` bis `-3`, `--figure-hair-1` bis `-3`, hell und dunkel)
+- Die Flächenregel gilt für UI-Flächen, nicht für 3D-Figuren und die 3D-Stadt. Haut und Haare der Figuren haben eine eigene Palette in `tokens.css` (`--figure-skin-1` bis `-3`, `--figure-hair-1` bis `-3`, hell und dunkel), Boden und Gebäude der Stadt ebenso (`--ground`, `--building`)
 - Akzente: Blau für die Route, Orange als Signal. Hauptbutton in Textfarbe
 - Hintergründe flach, Verlauf nur im H1-Text
 - Bewegung: cubic-bezier(0.22,1,0.36,1), 500 ms für Position, 300 ms für Farbe, nur transform und opacity

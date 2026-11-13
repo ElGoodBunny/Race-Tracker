@@ -16,6 +16,8 @@
   --flag-1:#E2501B; --flag-2:#E9B517; --flag-3:#1F6FC0; --flag-4:#1D7F55; --flag-5:#8A3FB8; --flag-6:#C2185B;
   /* 3D figures only (src/lib/figures.ts), not for UI surfaces */
   --figure-skin-1:#F0C4A0; --figure-skin-2:#C98E62; --figure-skin-3:#8D5A3C; --figure-hair-1:#2B2118; --figure-hair-2:#8A5A2B; --figure-hair-3:#D9A441;
+  /* 3D city (src/lib/view3d/scene.ts), values from the legacy palette: ground, and roofs (walls come out darker from the light) */
+  --ground:#E4E4E3; --building:#FFFFFF;
 }
 /* dark: surfaces only #000000 #181818 #1F1F1F #272727 #313131 #131209 */
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -29,6 +31,7 @@
   --shadow:none;
   --flag-1:#FF6A33; --flag-2:#F2C53D; --flag-3:#4DA3EE; --flag-4:#3DBB84; --flag-5:#B57BE0; --flag-6:#F06292;
   --figure-skin-1:#F2C9A8; --figure-skin-2:#D09A70; --figure-skin-3:#9C6A4A; --figure-hair-1:#6B5645; --figure-hair-2:#A8713A; --figure-hair-3:#E6B95A;
+  --ground:#050505; --building:#434343;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#000000; --surface:#181818; --surface-2:#1F1F1F; --ink:#EDEDED; --muted:#A1A1A1; --line:#313131;
@@ -41,6 +44,7 @@
   --shadow:none;
   --flag-1:#FF6A33; --flag-2:#F2C53D; --flag-3:#4DA3EE; --flag-4:#3DBB84; --flag-5:#B57BE0; --flag-6:#F06292;
   --figure-skin-1:#F2C9A8; --figure-skin-2:#D09A70; --figure-skin-3:#9C6A4A; --figure-hair-1:#6B5645; --figure-hair-2:#A8713A; --figure-hair-3:#E6B95A;
+  --ground:#050505; --building:#434343;
   color-scheme:dark}
 
 *{box-sizing:border-box}

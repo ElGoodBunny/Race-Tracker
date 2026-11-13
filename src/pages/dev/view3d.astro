@@ -1,0 +1,239 @@
+---
+// Development only: the static 3D city with a free camera (Bauschritt 5, docs/decisions/2026-11-13-3d-konzept.md).
+import { getEntry } from "astro:content";
+import Base from "../../layouts/Base.astro";
+
+const race = (await getEntry("races", "hamburg-2026"))!.data;
+const course = { route: race.course.route, km: race.course.km, landmarks: race.course.landmarks };
+// Views close to the follow mode at these landmarks of the course.
+const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"];
+---
+
+<Base title="Szene in 3D" description="Statische 3D-Szene aus OpenStreetMap mit freier Kamera." noindex source={race.course.source}>
+  <section class="wrap page">
+    <h1 class="heading-3">Szene in 3D</h1>
+    <p class="body-3 muted lead">Boden, Parks, Wasser und Gebäude aus OpenStreetMap. Ziehen verschiebt die Karte, mit der rechten Maustaste oder zwei Fingern drehst und neigst du sie, mit dem Mausrad oder Spreizen zoomst du. Diese Seite ist nur für die Entwicklung.</p>
+
+    <div class="stage" id="stage" data-course={JSON.stringify(course)} data-slug={race.slug}>
+      <canvas id="view" aria-label="3D-Ansicht der Stadt entlang der Strecke"></canvas>
+      <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>
+      <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
+    </div>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Ansicht">
+        <button type="button" class="button-sm" data-view="overview" aria-pressed="true">Übersicht</button>
+        {spots.map((s) => <button type="button" class="button-sm" data-view={s} aria-pressed="false">{s}</button>)}
+      </div>
+      <div class="seg" role="group" aria-label="Farbschema">
+        <button type="button" class="button-sm" data-theme-btn="light">Hell</button>
+        <button type="button" class="button-sm" data-theme-btn="dark">Dunkel</button>
+      </div>
+      <p class="body-5 muted stats">
+        <span class="mono" id="tris">0</span> Dreiecke, <span class="mono" id="calls">0</span> Zeichenaufrufe, <span class="mono" id="ms">0</span> ms pro Bild
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page { padding-block: var(--s700) 0; display: flex; flex-direction: column; gap: var(--s300); }
+  .lead { max-width: 680px; }
+  .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
+  .fallback[hidden] { display: none; }
+  .credit { position: absolute; right: var(--s100); bottom: var(--s75); pointer-events: none; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
+  .seg { display: inline-flex; flex-wrap: wrap; padding: var(--s25); border-radius: 24px; background: var(--surface-2); }
+  .seg button { height: var(--s500); padding-inline: var(--s200); border: 0; border-radius: 9999px; cursor: pointer; background: transparent; color: var(--muted); transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+  @media (max-width: 640px) {
+    .page { padding-block: var(--s600) 0; }
+    .stage { aspect-ratio: 3 / 4; }
+  }
+</style>
+
+<script>
+  import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+  import { MapControls } from "three/examples/jsm/controls/MapControls.js";
+  import type { CourseData } from "../../lib/course";
+  import type { SceneData } from "../../lib/osm";
+  import { CITY_TOKENS, createCity, type CityColors } from "../../lib/view3d/scene";
+  import { makeLocal, makeTrack, toThree } from "../../lib/view3d/world";
+
+  const stage = document.getElementById("stage")!;
+  const canvas = document.getElementById("view") as HTMLCanvasElement;
+  const root = document.documentElement;
+  const course = JSON.parse(stage.dataset.course!) as Pick<CourseData, "route" | "km" | "landmarks">;
+  const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
+  const readColors = (): CityColors => {
+    const cs = getComputedStyle(root);
+    return Object.fromEntries(CITY_TOKENS.map((t) => [t, cs.getPropertyValue(`--${t}`).trim()])) as CityColors;
+  };
+
+  async function start() {
+    let renderer: WebGLRenderer;
+    try {
+      renderer = new WebGLRenderer({ canvas, antialias: true });
+    } catch {
+      canvas.hidden = true;
+      document.getElementById("fallback")!.hidden = false;
+      return;
+    }
+    renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+
+    const data = (await (await fetch(`/data/${stage.dataset.slug}/scene.json`)).json()) as SceneData;
+    const local = makeLocal(data.origin);
+    const track = makeTrack(course, local);
+
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(35, 1, 1, 10_000);
+    const t0 = performance.now();
+    const city = createCity(data);
+    const buildMs = performance.now() - t0;
+    scene.add(city.group);
+    city.setColors(readColors(), scene);
+
+    const controls = new MapControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.minDistance = 60;
+    controls.maxDistance = 20_000;
+    controls.maxPolarAngle = (80 * Math.PI) / 180;
+    controls.screenSpacePanning = false;
+    const syncDepth = () => city.setDistance(camera, scene, camera.position.distanceTo(controls.target));
+    controls.addEventListener("change", syncDepth);
+
+    /** Camera at `dist` from `target`, `tilt` above the ground, looking along `dir` (x east, y north). */
+    function place(target: Vector3, dist: number, tilt: number, dir: [number, number]) {
+      const [dx, , dz] = toThree(dir[0], dir[1]);
+      const flat = Math.hypot(dx, dz) || 1;
+      camera.position.set(
+        target.x - (dx / flat) * dist * Math.cos(tilt),
+        target.y + dist * Math.sin(tilt),
+        target.z - (dz / flat) * dist * Math.cos(tilt),
+      );
+      controls.target.copy(target);
+      camera.lookAt(target);
+      syncDepth();
+    }
+
+    const views: Record<string, () => void> = {
+      // Whole course, north up, 50° above the ground, 8 % margin.
+      overview() {
+        const pts = track.xy.map(([x, y]) => new Vector3(...toThree(x, y)));
+        const xs = pts.map((p) => p.x);
+        const zs = pts.map((p) => p.z);
+        const target = new Vector3((Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2);
+        const tilt = (50 * Math.PI) / 180;
+        // Move out until every route point sits inside the frame minus 8 % margin.
+        let dist = 5000;
+        for (let i = 0; i < 6; i++) {
+          place(target, dist, tilt, [0, 1]);
+          camera.updateMatrixWorld();
+          const reach = Math.max(...pts.map((p) => {
+            const s = p.clone().project(camera);
+            return Math.max(Math.abs(s.x), Math.abs(s.y));
+          }));
+          dist *= reach / 0.92;
+        }
+        place(target, dist, tilt, [0, 1]);
+      },
+    };
+    // Follow mode look: 140 m away, 30° above the ground, looking at a point 25 m ahead.
+    for (const l of course.landmarks) {
+      views[l.name] = () => {
+        const km = course.km[l.idx];
+        const p = track.at(km + 0.025);
+        const d = track.at(km);
+        place(new Vector3(...toThree(p.x, p.y)), 140, (30 * Math.PI) / 180, [d.dx, d.dy]);
+      };
+    }
+    let current = "overview";
+
+    function resize() {
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    resize();
+    views[current]();
+    new ResizeObserver(() => {
+      resize();
+      views[current]();
+    }).observe(stage);
+
+    for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-view]")) {
+      btn.addEventListener("click", () => {
+        current = btn.dataset.view!;
+        for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b === btn));
+        views[current]();
+      });
+    }
+    for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-theme-btn]")) {
+      btn.setAttribute("aria-pressed", String((btn.dataset.themeBtn === "dark") === isDark()));
+      btn.addEventListener("click", () => {
+        root.dataset.theme = btn.dataset.themeBtn;
+        for (const b of document.querySelectorAll("[data-theme-btn]")) b.setAttribute("aria-pressed", String(b === btn));
+        city.setColors(readColors(), scene);
+      });
+    }
+
+    const out = { tris: document.getElementById("tris")!, calls: document.getElementById("calls")!, ms: document.getElementById("ms")! };
+    const fmt = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
+    let shown = 0;
+    let frameMs = 0;
+    renderer.setAnimationLoop((now) => {
+      controls.update();
+      const a = performance.now();
+      renderer.render(scene, camera);
+      frameMs = 0.9 * frameMs + 0.1 * (performance.now() - a);
+      if (now - shown > 500) {
+        shown = now;
+        out.tris.textContent = fmt.format(renderer.info.render.triangles);
+        out.calls.textContent = fmt.format(renderer.info.render.calls);
+        out.ms.textContent = fmt.format(frameMs);
+      }
+    });
+
+    // Hooks for the measurement script (docs/decisions/2026-11-13-3d-konzept.md, step 5).
+    const gl = renderer.getContext();
+    const px = new Uint8Array(4);
+    Object.assign(window, {
+      __view3d: {
+        buildMs,
+        triangles: city.triangles,
+        tiles: city.tiles,
+        view(name: string) {
+          current = name;
+          views[name]();
+        },
+        /** Look at scene point x, y (m east, m north) from `dist` m, `tiltDeg` above the ground, facing north. */
+        focus(x: number, y: number, dist: number, tiltDeg: number) {
+          place(new Vector3(...toThree(x, y)), dist, (tiltDeg * Math.PI) / 180, [0, 1]);
+        },
+        /** Render n frames; js = time in render(), total = until the GPU is done (one pixel read back). */
+        measure(n: number) {
+          renderer.setAnimationLoop(null);
+          const js: number[] = [];
+          const total: number[] = [];
+          for (let i = 0; i < n; i++) {
+            const a = performance.now();
+            renderer.render(scene, camera);
+            const b = performance.now();
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+            js.push(b - a);
+            total.push(performance.now() - a);
+          }
+          const info = { triangles: renderer.info.render.triangles, calls: renderer.info.render.calls };
+          return { js, total, ...info };
+        },
+      },
+    });
+    stage.dataset.ready = "true";
+  }
+
+  start();
+</script>

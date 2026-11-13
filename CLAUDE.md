@@ -37,6 +37,7 @@ Eine Seite pro Rennen. Nachfolger des Artifacts "Dima läuft Hamburg" (Code lieg
 - Nichts erfinden: keine Fantasie-Zahlen, -Zitate, -Logos oder -Sponsoren auf der Seite. Daten kommen aus `src/content/`, `public/data/` oder Supabase
 - Design-Entscheidungen mit Begründung in `docs/decisions/` festhalten
 - Module in src/lib, die von scripts/ zur Laufzeit geladen werden, importieren mit .ts-Endung.
+- Screenshots für die Doku als JPEG, Qualität 80, höchstens 1200 px breit.
 
 ## Design und Texte (verbindlich)
 - Alle Regeln aus `docs/DESIGN.md`. Kurzfassung: Geist, Geist Mono nur für Zahlen, max. Gewicht 600, keine Kursive, nur Token-Abstände, nur transform/opacity animieren, eine Easing-Kurve
