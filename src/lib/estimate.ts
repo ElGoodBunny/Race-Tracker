@@ -1,6 +1,6 @@
 // Position estimate, ported 1:1 from estimate() in legacy/hamburg-2026.html.
-// Only change: race distance and config are parameters instead of globals.
-// Abweichung vom Legacy: Stale-Grenze skaliert mit der Distanz (Barcelona 2027).
+// Abweichungen vom Legacy: Renndistanz und Konfiguration sind Parameter statt Globals,
+// und die Stale-Grenze skaliert mit der Distanz (Barcelona 2027).
 // All times in epoch milliseconds, durations in seconds.
 
 export type CheckpointSource = "official" | "seen";
