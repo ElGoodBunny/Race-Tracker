@@ -44,10 +44,12 @@ export function projectOnCourse(course: CourseData, input: StreamInput, cadenceI
 
   for (let i = 0; i < input.time.length; i++) {
     const [x, y] = xy(input.location[i]);
-    // Nobody runs faster than 8 m/s, so a match further ahead is the other side of a loop.
+    // Nobody runs faster than 8 m/s. A match further ahead is capped at that, and every metre
+    // beyond it counts like a metre off the route. So at a turn, where out and back lie on top
+    // of each other, the way back only wins once the runner can really be there.
     const dt = i ? input.time[i] - input.time[i - 1] : 0;
     const maxKm = i === 0 ? Infinity : lastKm + (dt * MAX_SPEED) / 1000;
-    let best = { d: Infinity, km: lastKm, seg };
+    let best = { cost: Infinity, km: lastKm, seg };
     const from = Math.max(1, seg - 2);
     const to = Math.min(pts.length - 1, seg + 12);
     for (let s = from; s <= to; s++) {
@@ -58,9 +60,11 @@ export function projectOnCourse(course: CourseData, input: StreamInput, cadenceI
       const len = dx * dx + dy * dy || 1;
       const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / len));
       const d = Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy));
-      const km = Math.min(maxKm, course.km[s - 1] + t * (course.km[s] - course.km[s - 1]));
+      const raw = course.km[s - 1] + t * (course.km[s] - course.km[s - 1]);
+      const km = Math.min(maxKm, raw);
       if (km < lastKm - BACKTRACK_KM) continue;
-      if (d < best.d) best = { d, km, seg: s };
+      const cost = d + (raw - km) * 1000;
+      if (cost < best.cost) best = { cost, km, seg: s };
     }
     seg = best.seg;
     lastKm = Math.max(lastKm, best.km);
