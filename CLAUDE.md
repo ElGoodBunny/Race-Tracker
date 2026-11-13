@@ -23,7 +23,7 @@ Eine Seite pro Rennen. Nachfolger des Artifacts "Dima läuft Hamburg" (Code lieg
 - `supabase/migrations/` Schema und RLS. Jede Änderung braucht einen passenden Fall in `tests/rls.test.ts`
 - `legacy/hamburg-2026.html` Referenz für den Port. Nicht bearbeiten, nicht deployen
 - `docs/VISION.md` Zielbild (Video München) mit prüfbaren Kriterien, Standbilder in `docs/reference/munich-video/`
-- `scripts/` Datenwerkzeuge: `course-from-track.ts` (GPS-Spur wird Strecke), `streams-to-replay.ts` (Replay), `fetch-osm.ts` (3D-Szene, nur am Mac)
+- `scripts/` Datenwerkzeuge: `new-race.ts` (GPX und Konfig aus `scripts/races/` werden Rennseite), `course-from-track.ts` (GPS-Spur wird Strecke), `streams-to-replay.ts` (Replay), `fetch-osm.ts` (3D-Szene, nur am Mac)
 - `docs/ROADMAP.md` Phasen und aktueller Stand, `docs/ARCHITECTURE.md` Entscheidungen, `docs/ADVISOR.md` wann Fable 5.2 drüberschaut
 
 ## Arbeitsregeln
@@ -36,6 +36,9 @@ Eine Seite pro Rennen. Nachfolger des Artifacts "Dima läuft Hamburg" (Code lieg
 - UI-Arbeit ist erst fertig nach der Sichtprüfung: lokal starten, Screenshots hell und dunkel, Desktop und Handy, gegen `docs/DESIGN.md` und die Referenzbilder in `docs/reference/munich-video/` prüfen, Abweichungen beheben, dann erst melden
 - Nichts erfinden: keine Fantasie-Zahlen, -Zitate, -Logos oder -Sponsoren auf der Seite. Daten kommen aus `src/content/`, `public/data/` oder Supabase
 - Design-Entscheidungen mit Begründung in `docs/decisions/` festhalten
+- Module in src/lib, die von scripts/ zur Laufzeit geladen werden, importieren mit .ts-Endung.
+- Screenshots für die Doku als JPEG, Qualität 80, höchstens 1200 px breit.
+- Kein git add -A oder git add ., nur die eigenen Dateien gezielt stagen.
 
 ## Design und Texte (verbindlich)
 - Alle Regeln aus `docs/DESIGN.md`. Kurzfassung: Geist, Geist Mono nur für Zahlen, max. Gewicht 600, keine Kursive, nur Token-Abstände, nur transform/opacity animieren, eine Easing-Kurve

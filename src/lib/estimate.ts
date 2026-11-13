@@ -1,5 +1,6 @@
 // Position estimate, ported 1:1 from estimate() in legacy/hamburg-2026.html.
-// Only change: race distance and config are parameters instead of globals.
+// Abweichungen vom Legacy: Renndistanz und Konfiguration sind Parameter statt Globals,
+// und die Stale-Grenze skaliert mit der Distanz (Barcelona 2027).
 // All times in epoch milliseconds, durations in seconds.
 
 export type CheckpointSource = "official" | "seen";
@@ -48,7 +49,9 @@ export interface Estimate {
 
 const MIN_PACE = 160; // 2:40 /km
 const MAX_PACE = 600; // 10:00 /km
-const STALE_AFTER_MS = 4.5 * 3600 * 1000;
+// Without any checkpoint the estimate turns stale once even the slowest pace would have reached
+// the finish, but never earlier than 4.5 h (the old fixed value). Half marathon 4.5 h, marathon 7.03 h.
+const MIN_STALE_AFTER_MS = 4.5 * 3600 * 1000;
 
 export function estimate(state: RaceState, checkpoints: Checkpoint[], distanceKm: number, t: number): Estimate {
   const t0 = state.actualStart ?? state.plannedStart;
@@ -104,7 +107,8 @@ export function estimate(state: RaceState, checkpoints: Checkpoint[], distanceKm
     km = distanceKm - 0.05;
     phase = "arriving";
   }
-  if (t - t0 > STALE_AFTER_MS && !last) phase = "stale";
+  const staleAfterMs = Math.max(MIN_STALE_AFTER_MS, distanceKm * MAX_PACE * 1000);
+  if (t - t0 > staleAfterMs && !last) phase = "stale";
   return { phase, km, t0, pace, finishAt, netSec: (finishAt - t0) / 1000, last, kept, eta, elapsedSec: (t - t0) / 1000 };
 }
 

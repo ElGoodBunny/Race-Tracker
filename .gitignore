@@ -8,3 +8,5 @@ dist/
 coverage/
 supabase/.temp/
 .cache/
+*.gpx
+!tests/fixtures/**/*.gpx

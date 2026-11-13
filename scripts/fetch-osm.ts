@@ -1,10 +1,11 @@
 // Usage: node scripts/fetch-osm.ts <race-slug> [corridorMeters=600]
-// Downloads buildings, parks, water and trees along the course from the Overpass API and writes
-// public/data/<slug>/scene.json for the 3D view. Run once per race, commit the result.
+// Downloads buildings, parks, water, trees and coastline along the course from the Overpass API and writes
+// public/data/<slug>/scene.json (packed, see PackedScene in src/lib/osm.ts) and trees.json for the 3D view.
+// Run once per race, commit the result.
 // Data © OpenStreetMap contributors, ODbL. Be nice to the public Overpass servers: one run, not a loop.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dedupeElements, osmToScene, overpassTimedOut, routeBounds, type OverpassElement } from "../src/lib/osm.ts";
+import { dedupeElements, osmToScene, overpassTimedOut, packScene, routeBounds, type OverpassElement } from "../src/lib/osm.ts";
 import { OverpassError, loadOsmParts, withRetry } from "./lib/osm-fetch.ts";
 
 const [slug, corridorArg] = process.argv.slice(2);
@@ -60,9 +61,14 @@ if (result.missing.length) {
 const elements = dedupeElements(result.elements);
 console.log(`${result.elements.length} elements, ${result.elements.length - elements.length} duplicates removed`);
 
-const scene = osmToScene(elements, race.course.route, corridor);
+const warnings: string[] = [];
+const scene = osmToScene(elements, race.course.route, corridor, (msg) => warnings.push(msg));
+for (const w of warnings) console.warn(`  ${w}`);
 mkdirSync(`public/data/${slug}`, { recursive: true });
+const packed = packScene(scene);
 const out = `public/data/${slug}/scene.json`;
-writeFileSync(out, JSON.stringify(scene));
-const kb = Math.round(JSON.stringify(scene).length / 1024);
-console.log(`${scene.buildings.length} buildings, ${scene.parks.length} parks, ${scene.water.length} water, ${scene.trees.length / 2} trees -> ${out} (${kb} kB)`);
+writeFileSync(out, JSON.stringify(packed.scene));
+writeFileSync(`public/data/${slug}/trees.json`, JSON.stringify(packed.trees));
+const kb = Math.round(JSON.stringify(packed.scene).length / 1024);
+const holes = (items: { holes?: number[][] }[]) => items.reduce((n, i) => n + (i.holes?.length ?? 0), 0);
+console.log(`${scene.buildings.length} buildings (${holes(scene.buildings)} courtyards), ${scene.parks.length} parks, ${scene.water.length} water (${holes(scene.water)} islands), ${scene.trees.length / 2} trees -> ${out} (${kb} kB)`);
