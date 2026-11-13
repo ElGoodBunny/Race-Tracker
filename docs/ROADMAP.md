@@ -42,13 +42,15 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Fehlertexte aus dem Legacy übernehmen (Rate Limit, keine Rechte, offline)
 
 ## Phase 2: Video-Niveau (docs/VISION.md, Abschnitte 1 bis 5)
-Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decisions/2026-11-13-3d-konzept.md`), jeder ein eigener Commit. Entwickelt wird gegen das Hamburg-Replay, dafür braucht es kein laufendes Rennen.
+Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decisions/2026-11-13-3d-konzept.md`), jeder ein eigener Commit. Fokus ist Barcelona 2027: Bis Schritt 5 wurde gegen Hamburg entwickelt, ab Schritt 6 wird gegen Barcelona entwickelt und gemessen. Hamburg bleibt Testfall mit echten Replay-Daten und Archivseite.
 - [x] `node scripts/fetch-osm.ts hamburg-2026` auf dem Mac ausführen, `public/data/hamburg-2026/scene.json` committen
 - [x] 1. **Szenendaten reparieren.** Ringe verketten, Löcher für Wasser und Gebäude, `scene.json` aus dem Cache neu erzeugen. Prüfpunkt: Tests mit einer Relation aus mehreren Teilstücken und einer Insel. Außenalster ist eine Fläche mit einem Loch. Datei unter 5 MB. Kontrollbild der Szene von oben als SVG, Elbe und Alster haben die richtige Form
 - [x] 2. **Welt und Strecke** (`world.ts`). Gemeinsame Umrechnung, `osm.ts` nutzt sie. Prüfpunkt: Test: Start liegt bei 0/0, `at(km)` weicht höchstens 1 m von `latLngAt` ab, Richtung dreht an der Wende um. `scene.json` bleibt nach dem Umbau Byte für Byte gleich
 - [x] 3. **Uhr und Replay-Quelle** (`clock.ts`, `source.ts`). Die Kopie von `toLocal` in `replay.ts` wird durch `makeLocal` ersetzt. Prüfpunkt: Test "Puls ist echt": bei 1:00:00 liefert die Quelle 174. Test "Jeder Messwert kommt an": 30 s bei 10× ergeben für jeden Messpunkt einen neuen km
 - [x] 4. **Geometrie als reine Funktionen** (`geometry.ts`). Kacheln, Gebäude mit Löchern, Flächen. Prüfpunkt: Tests: Dreieckszahl einer bekannten Kontur, Höhe, Hof bleibt offen. Summe über alle Kacheln liegt bei 300.000 bis 320.000 Gebäude-Dreiecken
+- [ ] 4b. **Barcelona als Szene.** `npm run new-race`: GPX-Datei rein, JSON mit Route, kumulierten km und Bounds raus. Barcelona-Strecke aus der offiziellen GPX-Datei. OSM-Szene für Barcelona
 - [x] 5. **Statische Szene** auf `/dev/view3d` mit freier Kamera. Boden, Wasser, Parks, Gebäude, Nebel, Licht, hell und dunkel. Prüfpunkt: Sichtprüfung gegen `frame-03.jpg`. Check "Gebäude sind aus OSM": Elbphilharmonie, Hauptbahnhof und Alsterhäuser an der richtigen Stelle, unterschiedlich hoch. Erste Messung von Dreiecken, Zeichenaufrufen und Zeit pro Bild, Ergebnis in diese Notiz
+  - [ ] Nachtrag: mit Barcelona wiederholen
 - [ ] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000
 - [ ] 7. **Streckenband** mit fließender Textur, gelaufener Teil kräftiger. Prüfpunkt: Bei km 12 endet der kräftige Teil unter dem Läufer. Sichtprüfung gegen `frame-04.jpg`
 - [ ] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
@@ -57,7 +59,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] 11. **Spots:** Pins, Avatare als Grüppchen, Passieren, Konfetti, Meldung, Liste "Als Nächstes". Prüfpunkt: Check "Spots werden wirklich passiert" als Test: genau beim Überschreiten, nicht doppelt, auch beim Vorspulen über mehrere Spots
 - [ ] 12. **HUD und Panel** mit Replay-Daten, mobil als Bottom Sheet. Prüfpunkt: Sichtprüfung gegen `frame-01.jpg` und `frame-05.jpg`, hell und dunkel, Desktop und Handy. Zahlen in Geist Mono
 - [ ] 13. **Replay-Steuerung** ersetzt die Simulation. Mischquelle mit Rückfall auf die Schätzung. Prüfpunkt: Check "Rückfall ohne Sprung" als Test: Telemetrie 60 s abschneiden, km läuft stetig weiter, Qualität wechselt auf "geschätzt", beim Wiederkommen kein Rücksprung
-- [ ] 14. **Wahrzeichen:** Elbphilharmonie aus dem Legacy portieren, OSM-Klotz an der Stelle entfernen. Gebäude-Relationen mit den Rollen `outline`/`part` (u. a. Kunsthalle) übernehmen. Prüfpunkt: Sichtprüfung: ein Gebäude, kein doppeltes
+- [ ] 14. **Wahrzeichen:** Sagrada Família modellieren, OSM-Klotz an der Stelle entfernen. Prüfpunkt: Sichtprüfung: ein Gebäude, kein doppeltes
 - [ ] 15. **Einbau in die Rennseite.** Nachladen beim Sichtbarwerden, 2D-Karte als Platzhalter, Rückfall ohne WebGL und bei reduzierter Bewegung. Prüfpunkt: Bundle unter 250 kB gzip aus dem Build. Layout-Verschiebung 0 per Playwright. 60 Bilder pro Sekunde im Folgemodus auf Dimas Handy. Roadmap-Punkte von Phase 2 abhaken
 
 ## Phase 2b: Echte Live-Daten (VISION 6)
@@ -67,10 +69,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - Generalprobe: siehe Meilenstein oben, Anfang März 2027
 
 ## Phase 3: Neues Rennen in 10 Minuten
-- [ ] `npm run new-race`: GPX-Datei rein, JSON mit Route, kumulierten km und Bounds raus
 - [ ] Landmarks und Wasserstellen per kleiner Konfig ergänzen
-- [ ] Barcelona-Strecke aus der offiziellen GPX-Datei
-- [ ] OSM-Szene für Barcelona
 - [ ] Performance-Budget an Barcelona prüfen
 - [ ] Wahrzeichen Barcelona: Sagrada Família (km 14) und die Strecke am Meer (km 26 bis 30)
 
@@ -84,3 +83,4 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 ## Später
 - [ ] Echte Position: Garmin-LiveTrack-Link ist schon im Schema, optional eigene PWA, die GPS sendet
 - [ ] PWA mit Offline-Karte
+- [ ] Hamburg-Wahrzeichen (später, optional): Elbphilharmonie aus dem Legacy portieren, OSM-Klotz an der Stelle entfernen. Gebäude-Relationen mit den Rollen `outline`/`part` (u. a. Kunsthalle) übernehmen
