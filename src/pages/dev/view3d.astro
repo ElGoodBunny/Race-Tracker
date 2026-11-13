@@ -3,28 +3,51 @@
 import { getEntry } from "astro:content";
 import Base from "../../layouts/Base.astro";
 
-const race = (await getEntry("races", "hamburg-2026"))!.data;
-const course = { route: race.course.route, km: race.course.km, landmarks: race.course.landmarks };
-// Views close to the follow mode at these landmarks of the course.
-const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"];
+// Races with a scene, the first one opens by default (?race=<slug> picks another).
+// Views close to the follow mode: a landmark of the course or a km where no landmark is.
+const setup: { slug: string; spots: { label: string; landmark?: string; km?: number }[] }[] = [
+  {
+    slug: "barcelona-2027",
+    spots: [
+      { label: "Start Passeig de Gràcia", landmark: "Start Passeig de Gràcia" },
+      { label: "Sagrada Família", landmark: "Sagrada Família" },
+      { label: "Port Vell", km: 23.74 }, // at the Colom column, the route point closest to the harbour
+      { label: "Fòrum", landmark: "Fòrum am Meer" },
+    ],
+  },
+  { slug: "hamburg-2026", spots: ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"].map((l) => ({ label: l, landmark: l })) },
+];
+const races = await Promise.all(
+  setup.map(async ({ slug, spots }) => {
+    const { city, course: c } = (await getEntry("races", slug))!.data;
+    const km = (s: { landmark?: string; km?: number }) => s.km ?? c.km[c.landmarks.find((l) => l.name === s.landmark)!.idx];
+    return { slug, city, course: { route: c.route, km: c.km }, spots: spots.map((s) => ({ label: s.label, km: km(s) })) };
+  }),
+);
 ---
 
-<Base title="Szene in 3D" description="Statische 3D-Szene aus OpenStreetMap mit freier Kamera." noindex source={race.course.source}>
+<Base title="Szene in 3D" description="Statische 3D-Szene aus OpenStreetMap mit freier Kamera." noindex>
   <section class="wrap page">
     <h1 class="heading-3">Szene in 3D</h1>
     <p class="body-3 muted lead">Boden, Parks, Wasser und Gebäude aus OpenStreetMap. Ziehen verschiebt die Karte, mit der rechten Maustaste oder zwei Fingern drehst und neigst du sie, mit dem Mausrad oder Spreizen zoomst du. Diese Seite ist nur für die Entwicklung.</p>
 
-    <div class="stage" id="stage" data-course={JSON.stringify(course)} data-slug={race.slug}>
+    <div class="seg" role="group" aria-label="Rennen">
+      {races.map((r) => <a class="button-sm" href={`?race=${r.slug}`} data-race-link={r.slug}>{r.city}</a>)}
+    </div>
+
+    <div class="stage" id="stage" data-races={JSON.stringify(races)}>
       <canvas id="view" aria-label="3D-Ansicht der Stadt entlang der Strecke"></canvas>
       <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>
       <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
     </div>
 
     <div class="controls">
-      <div class="seg" role="group" aria-label="Ansicht">
-        <button type="button" class="button-sm" data-view="overview" aria-pressed="true">Übersicht</button>
-        {spots.map((s) => <button type="button" class="button-sm" data-view={s} aria-pressed="false">{s}</button>)}
-      </div>
+      {races.map((r) => (
+        <div class="seg" role="group" aria-label={`Ansicht ${r.city}`} data-views={r.slug} hidden>
+          <button type="button" class="button-sm" data-view="overview" aria-pressed="true">Übersicht</button>
+          {r.spots.map((s) => <button type="button" class="button-sm" data-view={s.label} aria-pressed="false">{s.label}</button>)}
+        </div>
+      ))}
       <div class="seg" role="group" aria-label="Farbschema">
         <button type="button" class="button-sm" data-theme-btn="light">Hell</button>
         <button type="button" class="button-sm" data-theme-btn="dark">Dunkel</button>
@@ -45,9 +68,11 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
   .fallback[hidden] { display: none; }
   .credit { position: absolute; right: var(--s100); bottom: var(--s75); pointer-events: none; }
   .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
+  .seg[hidden] { display: none; }
   .seg { display: inline-flex; flex-wrap: wrap; padding: var(--s25); border-radius: 24px; background: var(--surface-2); }
   .seg button { height: var(--s500); padding-inline: var(--s200); border: 0; border-radius: 9999px; cursor: pointer; background: transparent; color: var(--muted); transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
-  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+  .seg button[aria-pressed="true"], .seg a[aria-current="page"] { background: var(--surface); color: var(--ink); }
+  .seg a { display: inline-flex; align-items: center; height: var(--s500); padding-inline: var(--s200); border-radius: 9999px; color: var(--muted); text-decoration: none; transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
   @media (max-width: 640px) {
     .page { padding-block: var(--s600) 0; }
     .stage { aspect-ratio: 3 / 4; }
@@ -65,7 +90,13 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
   const stage = document.getElementById("stage")!;
   const canvas = document.getElementById("view") as HTMLCanvasElement;
   const root = document.documentElement;
-  const course = JSON.parse(stage.dataset.course!) as Pick<CourseData, "route" | "km" | "landmarks">;
+  type RaceView = { slug: string; course: Pick<CourseData, "route" | "km">; spots: { label: string; km: number }[] };
+  const races = JSON.parse(stage.dataset.races!) as RaceView[];
+  const race = races.find((r) => r.slug === new URLSearchParams(location.search).get("race")) ?? races[0];
+  const course = race.course;
+  for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-race-link]")) if (a.dataset.raceLink === race.slug) a.setAttribute("aria-current", "page");
+  const viewGroup = document.querySelector<HTMLElement>(`[data-views="${race.slug}"]`)!;
+  viewGroup.hidden = false;
   const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
   const readColors = (): CityColors => {
     const cs = getComputedStyle(root);
@@ -83,7 +114,7 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
     }
     renderer.setPixelRatio(Math.min(2, devicePixelRatio));
 
-    const data = unpackScene((await (await fetch(`/data/${stage.dataset.slug}/scene.json`)).json()) as PackedScene);
+    const data = unpackScene((await (await fetch(`/data/${race.slug}/scene.json`)).json()) as PackedScene);
     const local = makeLocal(data.origin);
     const track = makeTrack(course, local);
 
@@ -141,9 +172,8 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
       },
     };
     // Follow mode look: 140 m away, 30° above the ground, looking at a point 25 m ahead.
-    for (const l of course.landmarks) {
-      views[l.name] = () => {
-        const km = course.km[l.idx];
+    for (const { label, km } of race.spots) {
+      views[label] = () => {
         const p = track.at(km + 0.025);
         const d = track.at(km);
         place(new Vector3(...toThree(p.x, p.y)), 140, (30 * Math.PI) / 180, [d.dx, d.dy]);
@@ -165,10 +195,10 @@ const spots = ["Baumwall", "Hauptbahnhof", "Lombardsbrücke", "Schöne Aussicht"
       views[current]();
     }).observe(stage);
 
-    for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-view]")) {
+    for (const btn of viewGroup.querySelectorAll<HTMLButtonElement>("[data-view]")) {
       btn.addEventListener("click", () => {
         current = btn.dataset.view!;
-        for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b === btn));
+        for (const b of viewGroup.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b === btn));
         views[current]();
       });
     }

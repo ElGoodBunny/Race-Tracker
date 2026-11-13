@@ -52,7 +52,8 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
   - Budget Szene pro Rennen: `scene.json` höchstens 800 kB gzip, `trees.json` höchstens 200 kB gzip (`docs/decisions/2026-11-13-meer.md`)
   - [x] Längenunterschied geklärt: Die Strava-Route (`barcelona-strava.gpx`, 42,737 km) ist 408 m länger als die goandrace-Spur 2025 (`barcelona-2025.gpx`, 42,329 km). Der Unterschied wächst gleichmäßig um etwa 10 m pro km, größter Einzelsprung 17 m, kein doppelter Abschnitt. Ursache: Die Strava-Route folgt der OSM-Straßengeometrie, die goandrace-Spur hat 50 m Punktabstand und schneidet Kurven
 - [x] 5. **Statische Szene** auf `/dev/view3d` mit freier Kamera. Boden, Wasser, Parks, Gebäude, Nebel, Licht, hell und dunkel. Prüfpunkt: Sichtprüfung gegen `frame-03.jpg`. Check "Gebäude sind aus OSM": Elbphilharmonie, Hauptbahnhof und Alsterhäuser an der richtigen Stelle, unterschiedlich hoch. Erste Messung von Dreiecken, Zeichenaufrufen und Zeit pro Bild, Ergebnis in diese Notiz
-  - [ ] Nachtrag: mit Barcelona wiederholen
+  - [x] Nachtrag: mit Barcelona wiederholen
+- [ ] 5b. **Budget Barcelona:** Übersicht 926.000 statt höchstens 400.000 Dreiecke, Folgemodus 130.000 bis 143.000 statt höchstens 120.000
 - [ ] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000
 - [ ] 7. **Streckenband** mit fließender Textur, gelaufener Teil kräftiger. Prüfpunkt: Bei km 12 endet der kräftige Teil unter dem Läufer. Sichtprüfung gegen `frame-04.jpg`
 - [ ] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
@@ -62,6 +63,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] 12. **HUD und Panel** mit Replay-Daten, mobil als Bottom Sheet. Prüfpunkt: Sichtprüfung gegen `frame-01.jpg` und `frame-05.jpg`, hell und dunkel, Desktop und Handy. Zahlen in Geist Mono
 - [ ] 13. **Replay-Steuerung** ersetzt die Simulation. Mischquelle mit Rückfall auf die Schätzung. Prüfpunkt: Check "Rückfall ohne Sprung" als Test: Telemetrie 60 s abschneiden, km läuft stetig weiter, Qualität wechselt auf "geschätzt", beim Wiederkommen kein Rücksprung
 - [ ] 14. **Wahrzeichen:** Sagrada Família modellieren, OSM-Klotz an der Stelle entfernen. Prüfpunkt: Sichtprüfung: ein Gebäude, kein doppeltes
+  - [ ] Sagrada Família hat in OSM keine Höhe (30 m Pauschale)
 - [ ] 15. **Einbau in die Rennseite.** Nachladen beim Sichtbarwerden, 2D-Karte als Platzhalter, Rückfall ohne WebGL und bei reduzierter Bewegung. Prüfpunkt: Bundle unter 250 kB gzip aus dem Build. Layout-Verschiebung 0 per Playwright. 60 Bilder pro Sekunde im Folgemodus auf Dimas Handy. Roadmap-Punkte von Phase 2 abhaken
 
 ## Phase 2b: Echte Live-Daten (VISION 6)
