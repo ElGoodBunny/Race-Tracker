@@ -48,7 +48,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [x] 2. **Welt und Strecke** (`world.ts`). Gemeinsame Umrechnung, `osm.ts` nutzt sie. Prüfpunkt: Test: Start liegt bei 0/0, `at(km)` weicht höchstens 1 m von `latLngAt` ab, Richtung dreht an der Wende um. `scene.json` bleibt nach dem Umbau Byte für Byte gleich
 - [x] 3. **Uhr und Replay-Quelle** (`clock.ts`, `source.ts`). Die Kopie von `toLocal` in `replay.ts` wird durch `makeLocal` ersetzt. Prüfpunkt: Test "Puls ist echt": bei 1:00:00 liefert die Quelle 174. Test "Jeder Messwert kommt an": 30 s bei 10× ergeben für jeden Messpunkt einen neuen km
 - [x] 4. **Geometrie als reine Funktionen** (`geometry.ts`). Kacheln, Gebäude mit Löchern, Flächen. Prüfpunkt: Tests: Dreieckszahl einer bekannten Kontur, Höhe, Hof bleibt offen. Summe über alle Kacheln liegt bei 300.000 bis 320.000 Gebäude-Dreiecken
-- [ ] 4b. **Barcelona als Szene.** `npm run new-race`: GPX-Datei rein, JSON mit Route, kumulierten km und Bounds raus. Barcelona-Strecke aus der offiziellen GPX-Datei. OSM-Szene für Barcelona
+- [ ] 4b. **Barcelona als Szene.** `npm run new-race`: GPX-Datei rein, JSON mit Route, kumulierten km und Bounds raus. Barcelona-Strecke aus der offiziellen GPX-Datei. OSM-Szene für Barcelona. Prüfpunkt: Skalierung der GPX zwischen 0,98 und 0,99. Sagrada Família liegt bei km 13,9 ± 0,3. `/barcelona-2027` baut und zeigt die Strecke. OSM-Szene unter 5 MB und unter 800 kB gzip. Kontrollbild `/dev/scene` für Barcelona: Die Strecke liegt auf den Straßen, Hafen und Meer sind Wasserflächen, offene Ringe werden gemeldet
 - [x] 5. **Statische Szene** auf `/dev/view3d` mit freier Kamera. Boden, Wasser, Parks, Gebäude, Nebel, Licht, hell und dunkel. Prüfpunkt: Sichtprüfung gegen `frame-03.jpg`. Check "Gebäude sind aus OSM": Elbphilharmonie, Hauptbahnhof und Alsterhäuser an der richtigen Stelle, unterschiedlich hoch. Erste Messung von Dreiecken, Zeichenaufrufen und Zeit pro Bild, Ergebnis in diese Notiz
   - [ ] Nachtrag: mit Barcelona wiederholen
 - [ ] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000
@@ -71,7 +71,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 ## Phase 3: Neues Rennen in 10 Minuten
 - [ ] Landmarks und Wasserstellen per kleiner Konfig ergänzen
 - [ ] Performance-Budget an Barcelona prüfen
-- [ ] Wahrzeichen Barcelona: Sagrada Família (km 14) und die Strecke am Meer (km 26 bis 30)
+- [ ] Strecke am Meer (km 26 bis 30) hervorheben (Sagrada Família siehe Schritt 14)
 
 ## Phase 4: Live gehen
 - [ ] Hosting festlegen (Vorschlag: Cloudflare Pages oder Vercel, beides kann statische Astro-Builds) und `site` in `astro.config.mjs` setzen
