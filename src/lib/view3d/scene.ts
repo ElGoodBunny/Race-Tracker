@@ -2,11 +2,14 @@
 // Geometry comes from geometry.ts, colours from the CSS tokens. A theme change only sets colours, nothing is rebuilt.
 
 import {
-  BufferAttribute, BufferGeometry, Color, DirectionalLight, Fog, Group, HemisphereLight, Mesh, MeshBasicMaterial,
-  MeshLambertMaterial, PlaneGeometry, type Material, type PerspectiveCamera, type Scene,
+  BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, DynamicDrawUsage, Fog, Group, HemisphereLight, Mesh, MeshBasicMaterial,
+  MeshLambertMaterial, PlaneGeometry, RepeatWrapping, SRGBColorSpace, type Material, type PerspectiveCamera, type Scene,
 } from "three";
 import type { SceneData } from "../osm";
-import { areaMesh, buildingMesh, groupTiles, type Mesh as MeshData } from "./geometry";
+import { metresForPixels } from "./camera";
+import { areaMesh, buildingMesh, groupTiles, ribbonIndices, ribbonPositions, ribbonSections, ribbonSplit, ribbonUVs, type Mesh as MeshData } from "./geometry";
+import type { Layer } from "./layer";
+import type { Track } from "./world";
 
 export const CITY_TOKENS = ["bg", "ground", "park", "water", "building"] as const;
 export type CityColors = Record<(typeof CITY_TOKENS)[number], string>;
@@ -106,6 +109,127 @@ export function createCity(data: SceneData): City {
         o.geometry.dispose();
         (o.material as Material).dispose();
       });
+    },
+  };
+}
+
+/* ---------- course ribbon ---------- */
+
+/** Width on the ground in the follow mode, and the least width on screen from far away. */
+const RIBBON_M = 10;
+const RIBBON_MIN_PX = 5;
+/** Length of one arrow of the texture and how fast it flows along the course. */
+const PATTERN_M = 24;
+const FLOW_M_PER_S = 14;
+/** From this camera distance on the band is drawn over the buildings. Close up it lies on the ground between them. */
+const RIBBON_ON_TOP_M = 1500;
+
+/** Small arrow pointing along the course. The material colour tints it, so a theme change needs no new texture. */
+function arrowTexture(): CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 32;
+  c.height = 64;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#d6d6d6";
+  g.fillRect(0, 0, 32, 64);
+  g.strokeStyle = "#ffffff";
+  g.lineWidth = 5;
+  g.lineJoin = "round";
+  g.lineCap = "round";
+  g.beginPath();
+  g.moveTo(8, 40);
+  g.lineTo(16, 26);
+  g.lineTo(24, 40);
+  g.stroke();
+  const t = new CanvasTexture(c);
+  t.wrapS = t.wrapT = RepeatWrapping;
+  t.colorSpace = SRGBColorSpace;
+  return t;
+}
+
+/**
+ * The course as a flat band on the ground (step 7): the part already run in the route colour, the rest paler.
+ * One geometry with two draw ranges plus a small tip that ends exactly under the runner. Drawn after the water
+ * and before the buildings, without depth writes, like the other flat layers.
+ */
+export function createRibbon(track: Track, km: readonly number[]): Layer {
+  const sections = ribbonSections(track.xy, km);
+  const geometry = new BufferGeometry();
+  const position = new BufferAttribute(ribbonPositions(sections, RIBBON_M), 3).setUsage(DynamicDrawUsage);
+  geometry.setAttribute("position", position);
+  geometry.setAttribute("uv", new BufferAttribute(ribbonUVs(sections, PATTERN_M), 2));
+  geometry.setIndex(new BufferAttribute(ribbonIndices(sections.length), 1));
+  geometry.computeBoundingSphere();
+  const total = (sections.length - 1) * 6;
+
+  const map = arrowTexture();
+  const done = new MeshBasicMaterial({ map, depthWrite: false });
+  const todo = new MeshBasicMaterial({ map, depthWrite: false });
+  const band = new Mesh(geometry, [done, todo]);
+  band.renderOrder = 2.5;
+
+  const tipGeometry = new BufferGeometry();
+  const tipPosition = new BufferAttribute(new Float32Array(12), 3).setUsage(DynamicDrawUsage);
+  const tipUv = new BufferAttribute(new Float32Array(8), 2).setUsage(DynamicDrawUsage);
+  tipGeometry.setAttribute("position", tipPosition);
+  tipGeometry.setAttribute("uv", tipUv);
+  tipGeometry.setIndex([0, 1, 3, 0, 3, 2]);
+  const tip = new Mesh(tipGeometry, done);
+  tip.renderOrder = 2.6;
+  tip.frustumCulled = false;
+
+  const group = new Group();
+  group.add(band, tip);
+  let width = RIBBON_M;
+  let whole = -1;
+  let onTop = false;
+  const range = (n: number) => {
+    geometry.clearGroups();
+    geometry.addGroup(0, n * 6, 0);
+    geometry.addGroup(n * 6, total - n * 6, 1);
+  };
+  range(0);
+
+  return {
+    object: group,
+    frame(f) {
+      // Far away a 10 m band would be a hairline, so it keeps a least width on screen.
+      const w = Math.max(RIBBON_M, metresForPixels(RIBBON_MIN_PX, f.pose.dist, f.height));
+      if (Math.abs(w - width) > 0.04 * width) {
+        width = w;
+        ribbonPositions(sections, width, position.array as Float32Array);
+        position.needsUpdate = true;
+        geometry.computeBoundingSphere();
+      }
+      // From far away the houses would hide the course in every street, so there it goes on top like a line on a map.
+      if (f.pose.dist > RIBBON_ON_TOP_M !== onTop) {
+        onTop = !onTop;
+        done.depthTest = todo.depthTest = !onTop;
+        band.renderOrder = onTop ? 4.5 : 2.5;
+        tip.renderOrder = onTop ? 4.6 : 2.6;
+      }
+      if (f.animate) map.offset.y = -((f.now / 1000) * FLOW_M_PER_S) / PATTERN_M % 1;
+      if (!f.sample || !f.runner) {
+        tip.visible = false;
+        return;
+      }
+      const split = ribbonSplit(sections, f.sample.km, f.runner, width, PATTERN_M);
+      if (split.whole !== whole) range((whole = split.whole));
+      tipPosition.set(split.positions);
+      tipUv.set(split.uvs);
+      tipPosition.needsUpdate = tipUv.needsUpdate = true;
+      tip.visible = true;
+    },
+    setColors(t) {
+      done.color.set(t["route"]);
+      todo.color.set(t["route-todo"]);
+    },
+    dispose() {
+      geometry.dispose();
+      tipGeometry.dispose();
+      done.dispose();
+      todo.dispose();
+      map.dispose();
     },
   };
 }

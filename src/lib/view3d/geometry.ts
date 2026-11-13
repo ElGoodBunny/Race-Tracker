@@ -133,3 +133,108 @@ export function groupTiles<T extends Polygon>(buildings: T[], size = TILE_M): Ti
   }
   return [...tiles.values()].sort((a, b) => a.ix - b.ix || a.iy - b.iy);
 }
+
+/* ---------- course ribbon (step 7) ---------- */
+
+/** One cross-section of the ribbon at a route point. */
+export interface RibbonSection {
+  x: number;
+  y: number;
+  /** Unit vector to the left of the direction of travel, and how far the edge is pushed out along it at a bend (1 on a straight). */
+  nx: number;
+  ny: number;
+  miter: number;
+  km: number;
+  /** Metres along the ribbon, for the texture that flows along the course. */
+  m: number;
+}
+
+const MITER_MAX = 2;
+
+/** Cross-sections at the route points. At a bend the edges meet in a mitre, capped so a hairpin does not grow a spike. */
+export function ribbonSections(xy: readonly (readonly [number, number])[], km: readonly number[]): RibbonSection[] {
+  const left = (a: readonly [number, number], b: readonly [number, number]): [number, number] | null => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy);
+    return len < 1e-6 ? null : [-dy / len, dx / len];
+  };
+  const out: RibbonSection[] = [];
+  let m = 0;
+  for (let i = 0; i < xy.length; i++) {
+    if (i) m += Math.hypot(xy[i][0] - xy[i - 1][0], xy[i][1] - xy[i - 1][1]);
+    const before = i ? left(xy[i - 1], xy[i]) : null;
+    const after = i < xy.length - 1 ? left(xy[i], xy[i + 1]) : null;
+    const a = before ?? after ?? [0, 1];
+    const b = after ?? before ?? [0, 1];
+    let nx = a[0] + b[0];
+    let ny = a[1] + b[1];
+    const len = Math.hypot(nx, ny);
+    let miter = 1;
+    if (len < 1e-3) {
+      // Straight back the way it came: no mitre possible, keep the side of the way in.
+      [nx, ny] = a;
+    } else {
+      nx /= len;
+      ny /= len;
+      miter = Math.min(MITER_MAX, 1 / Math.max(1e-6, nx * a[0] + ny * a[1]));
+    }
+    out.push({ x: xy[i][0], y: xy[i][1], nx, ny, miter, km: km[i], m });
+  }
+  return out;
+}
+
+/** Left and right vertex per section, flat on the ground, in three.js axes. Cheap enough to call when the width changes. */
+export function ribbonPositions(sections: readonly RibbonSection[], width: number, out: Float32Array = new Float32Array(sections.length * 6)): Float32Array {
+  const h = width / 2;
+  sections.forEach((s, i) => {
+    out.set(toThree(s.x + s.nx * s.miter * h, s.y + s.ny * s.miter * h), i * 6);
+    out.set(toThree(s.x - s.nx * s.miter * h, s.y - s.ny * s.miter * h), i * 6 + 3);
+  });
+  return out;
+}
+
+/** u runs across the ribbon from 0 to 1, v along it, one unit per `patternM` metres. */
+export function ribbonUVs(sections: readonly RibbonSection[], patternM: number): Float32Array {
+  const out = new Float32Array(sections.length * 4);
+  sections.forEach((s, i) => out.set([0, s.m / patternM, 1, s.m / patternM], i * 4));
+  return out;
+}
+
+/** Two triangles per stretch between neighbouring sections, facing up. Six indices per stretch, in course order. */
+export function ribbonIndices(sectionCount: number): Uint32Array {
+  const out = new Uint32Array(Math.max(0, sectionCount - 1) * 6);
+  for (let i = 0; i + 1 < sectionCount; i++) {
+    const l0 = 2 * i;
+    out.set([l0, l0 + 1, l0 + 3, l0, l0 + 3, l0 + 2], i * 6);
+  }
+  return out;
+}
+
+/**
+ * Where the run part ends: `whole` stretches lie completely behind the runner (draw 6 × whole indices in the strong colour),
+ * the tip is the piece from the last section behind him to his position, as 4 vertices and their uv like the rest.
+ */
+export function ribbonSplit(sections: readonly RibbonSection[], km: number, at: { x: number; y: number }, width: number, patternM: number) {
+  let i = 0;
+  while (i + 1 < sections.length && sections[i + 1].km <= km) i++;
+  const s = sections[i];
+  const h = width / 2;
+  const dx = at.x - s.x;
+  const dy = at.y - s.y;
+  const len = Math.hypot(dx, dy);
+  // Side of the stretch the runner is on. Right at a section there is no stretch yet, take the section's own side.
+  const [nx, ny] = len < 1e-6 ? [s.nx, s.ny] : [-dy / len, dx / len];
+  const v0 = s.m / patternM;
+  const v1 = (s.m + len) / patternM;
+  return {
+    whole: i,
+    positions: new Float32Array([
+      ...toThree(s.x + s.nx * s.miter * h, s.y + s.ny * s.miter * h),
+      ...toThree(s.x - s.nx * s.miter * h, s.y - s.ny * s.miter * h),
+      ...toThree(at.x + nx * h, at.y + ny * h),
+      ...toThree(at.x - nx * h, at.y - ny * h),
+    ]),
+    uvs: new Float32Array([0, v0, 1, v0, 0, v1, 1, v1]),
+  };
+}

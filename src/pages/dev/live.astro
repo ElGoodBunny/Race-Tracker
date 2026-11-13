@@ -1,0 +1,248 @@
+---
+// Development only: the core of the live 3D view end to end (docs/decisions/2026-11-13-3d-konzept.md, "Durchstich").
+// This page is only the shell: clock, demo source, HUD and buttons. Everything about 3D lives in src/lib/view3d.
+import { getEntry } from "astro:content";
+import Base from "../../layouts/Base.astro";
+
+// Races with a scene, the first one opens by default (?race=<slug> picks another).
+// Demo spots: a landmark of the course or a km where no landmark is.
+const setup: { slug: string; note: string; spots: { name: string; landmark?: string; km?: number }[] }[] = [
+  {
+    slug: "barcelona-2027",
+    note: "Demo mit Daten aus Hamburg",
+    spots: [{ name: "Sagrada Família", landmark: "Sagrada Família" }, { name: "Port Vell", km: 23.74 }, { name: "Fòrum", landmark: "Fòrum am Meer" }],
+  },
+  {
+    slug: "hamburg-2026",
+    note: "Aufzeichnung vom Renntag",
+    spots: [{ name: "Baumwall", landmark: "Baumwall" }, { name: "Lombardsbrücke", landmark: "Lombardsbrücke" }, { name: "Krugkoppel", landmark: "Krugkoppel" }],
+  },
+];
+const races = await Promise.all(
+  setup.map(async ({ slug, note, spots }) => {
+    const { city, course: c } = (await getEntry("races", slug))!.data;
+    const km = (s: { landmark?: string; km?: number }) => s.km ?? c.km[c.landmarks.find((l) => l.name === s.landmark)!.idx];
+    return { slug, city, note, course: { route: c.route, km: c.km }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
+  }),
+);
+// The recording all demos run on. Its own course length decides how it is stretched onto another course.
+const recording = "hamburg-2026";
+---
+
+<Base title="Live in 3D" description="Durchstich der Live-Ansicht in 3D mit Demo-Daten." noindex>
+  <section class="wrap page">
+    <h1 class="heading-3">Live in 3D</h1>
+    <div class="seg" role="group" aria-label="Rennen">
+      {races.map((r) => <a class="button-sm" href={`?race=${r.slug}`} data-race-link={r.slug}>{r.city}</a>)}
+    </div>
+
+    <div class="stage" id="stage" data-races={JSON.stringify(races)} data-recording={recording}>
+      <canvas id="view" aria-label="3D-Ansicht der Strecke mit Läufer"></canvas>
+      <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>
+
+      <dl class="hud" id="hud" hidden>
+        <div class="card"><dt class="caption-4 muted">Strecke</dt><dd class="title-2 mono" id="hud-km">0,0 km</dd></div>
+        <div class="card"><dt class="caption-4 muted">Pace</dt><dd class="title-2 mono" id="hud-pace">k. A.</dd></div>
+        <div class="card"><dt class="caption-4 muted">Puls</dt><dd class="title-2 mono" id="hud-hr">k. A.</dd></div>
+        <div class="card"><dt class="caption-4 muted">Rennzeit</dt><dd class="title-2 mono" id="hud-time">0:00</dd></div>
+      </dl>
+      <p class="caption-4 note card" id="note" hidden></p>
+      <p class="body-5 toast" id="toast" role="status" aria-live="polite"></p>
+      <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
+    </div>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Kamera">
+        <button type="button" class="button-sm" data-mode="follow" aria-pressed="false">Folgen</button>
+        <button type="button" class="button-sm" data-mode="overview" aria-pressed="true">Übersicht</button>
+      </div>
+      <button type="button" class="button-sm solo" id="center">Zentrieren</button>
+      <div class="seg" role="group" aria-label="Uhr">
+        <button type="button" class="button-sm" id="play" aria-pressed="true">Pause</button>
+        <button type="button" class="button-sm" data-speed="1" aria-pressed="false">1×</button>
+        <button type="button" class="button-sm" data-speed="10" aria-pressed="true">10×</button>
+        <button type="button" class="button-sm" data-speed="60" aria-pressed="false">60×</button>
+      </div>
+    </div>
+    <p class="body-6 muted lead">Diese Seite ist nur für die Entwicklung. Ziehen verschiebt die Karte, mit der rechten Maustaste oder zwei Fingern drehst und neigst du sie. Danach bringt dich "Zentrieren" zurück zum Läufer.</p>
+  </section>
+</Base>
+
+<style>
+  .page { padding-block: var(--s700) 0; display: flex; flex-direction: column; gap: var(--s300); }
+  .lead { max-width: 680px; }
+  .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
+  .fallback[hidden], .hud[hidden], .note[hidden] { display: none; }
+  /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
+  .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .hud { position: absolute; left: var(--s200); top: var(--s200); margin: 0; display: flex; flex-wrap: wrap; gap: var(--s100); pointer-events: none; }
+  .hud dd { margin: 0; }
+  .note { position: absolute; right: var(--s200); top: var(--s200); pointer-events: none; }
+  .toast { position: absolute; left: 50%; bottom: var(--s500); margin: 0; padding: var(--s100) var(--s200); border-radius: 9999px; background: var(--toast); color: var(--toast-ink); opacity: 0; transform: translate(-50%, var(--s100)); transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease); pointer-events: none; white-space: nowrap; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .credit { position: absolute; right: var(--s100); bottom: var(--s75); pointer-events: none; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
+  .seg { display: inline-flex; flex-wrap: wrap; align-self: flex-start; padding: var(--s25); border-radius: 24px; background: var(--surface-2); }
+  .seg button, .seg a, .solo { height: var(--s500); padding-inline: var(--s200); border: 0; border-radius: 9999px; cursor: pointer; background: transparent; color: var(--muted); transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
+  .seg a { display: inline-flex; align-items: center; text-decoration: none; }
+  .seg button[aria-pressed="true"], .seg a[aria-current="page"] { background: var(--surface); color: var(--ink); }
+  .solo { background: var(--surface-2); }
+  /* The camera is free: this button is the way back. */
+  .solo.on { background: var(--pressed); color: var(--pressed-ink); }
+  @media (max-width: 640px) {
+    .page { padding-block: var(--s600) 0; }
+    .stage { aspect-ratio: 3 / 4; }
+    .note { top: auto; right: auto; left: var(--s200); bottom: var(--s400); }
+    .toast { bottom: var(--s800); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transition: none; }
+  }
+</style>
+
+<script>
+  import type { CourseData } from "../../lib/course";
+  import { fmtDur, fmtKm, fmtPace } from "../../lib/format";
+  import { createClock, type Speed } from "../../lib/live/clock";
+  import { createSpotTracker, type Spot } from "../../lib/live/events";
+  import { replaySource, rescaleSource, type ReplayFile, type Sample } from "../../lib/live/source";
+  import { unpackScene, type PackedScene } from "../../lib/osm";
+  import type { Mode } from "../../lib/view3d/camera";
+  import { VIEW_TOKENS, createView } from "../../lib/view3d/view";
+
+  type Race = { slug: string; city: string; note: string; course: Pick<CourseData, "route" | "km">; spots: Spot[] };
+  const stage = document.getElementById("stage")!;
+  const canvas = document.getElementById("view") as HTMLCanvasElement;
+  const root = document.documentElement;
+  const races = JSON.parse(stage.dataset.races!) as Race[];
+  const race = races.find((r) => r.slug === new URLSearchParams(location.search).get("race")) ?? races[0];
+  for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-race-link]")) if (a.dataset.raceLink === race.slug) a.setAttribute("aria-current", "page");
+  const el = (id: string) => document.getElementById(id)!;
+  const json = async <T,>(url: string) => (await (await fetch(url)).json()) as T;
+
+  async function start() {
+    const [packed, replay] = await Promise.all([
+      json<PackedScene>(`/data/${race.slug}/scene.json`),
+      json<ReplayFile>(`/data/${stage.dataset.recording}/replay.json`),
+    ]);
+    // The recording runs on its own course as it is. On another course it is a demo, stretched by share of the distance.
+    const recorded = replaySource(replay);
+    const source = race.slug === stage.dataset.recording ? recorded : rescaleSource(recorded, replay.km[replay.km.length - 1], race.course);
+    const clock = createClock(source.duration);
+    const tracker = createSpotTracker();
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
+
+    const hud = { km: el("hud-km"), pace: el("hud-pace"), hr: el("hud-hr"), time: el("hud-time") };
+    let shown = "";
+    function showHud(s: Sample) {
+      // Text only changes a few times per second, so the DOM is touched only then.
+      const text = [`${fmtKm(s.km)} km`, s.pace ? `${fmtPace(s.pace)} /km` : "k. A.", s.hr ? `${Math.round(s.hr)} bpm` : "k. A.", fmtDur(s.t)];
+      if (text.join() === shown) return;
+      shown = text.join();
+      [hud.km, hud.pace, hud.hr, hud.time].forEach((node, i) => (node.textContent = text[i]));
+    }
+
+    const toast = el("toast");
+    let toastTimer = 0;
+    function announce(spots: Spot[]) {
+      if (!spots.length) return;
+      toast.textContent = `${spots.map((s) => s.name).join(", ")} passiert`;
+      toast.classList.add("on");
+      clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove("on"), 4000);
+    }
+
+    const sceneData = unpackScene(packed);
+    const mount = () => createView(canvas, {
+      scene: sceneData,
+      course: race.course,
+      tokens: () => {
+        const cs = getComputedStyle(root);
+        return Object.fromEntries(VIEW_TOKENS.map((t) => [t, cs.getPropertyValue(`--${t}`).trim()]));
+      },
+      dark: isDark,
+      reducedMotion: reduced,
+      // One measurement per frame: clock, source, events, then the view and the HUD get the same sample.
+      tick(now) {
+        const sample = source.sampleAt(clock.time(now));
+        announce(tracker.update(sample.km, race.spots));
+        view.update(sample, race.spots.map((s) => ({ ...s, passed: tracker.passed(s.id) })));
+        showHud(sample);
+        if (clock.playing && sample.t >= source.duration) setPlaying(false, now);
+      },
+      onState({ mode, free }) {
+        for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) b.setAttribute("aria-pressed", String(!free && b.dataset.mode === mode));
+        el("center").classList.toggle("on", free);
+      },
+    });
+    const first = mount();
+    if (!first) {
+      canvas.hidden = true;
+      el("fallback").hidden = false;
+      return;
+    }
+    let view = first;
+    el("hud").hidden = false;
+    el("note").textContent = race.note;
+    el("note").hidden = false;
+
+    const play = el("play");
+    function setPlaying(on: boolean, now = performance.now()) {
+      if (on && clock.time(now) >= source.duration) {
+        // "Noch einmal": back to the start, all spots armed again.
+        clock.seek(0, now);
+        tracker.reset(0);
+      }
+      if (on) clock.play(now);
+      else clock.pause(now);
+      play.textContent = on ? "Pause" : clock.time(now) >= source.duration ? "Noch einmal" : "Weiter";
+      play.setAttribute("aria-pressed", String(on));
+    }
+    play.addEventListener("click", () => setPlaying(!clock.playing));
+    for (const b of document.querySelectorAll<HTMLButtonElement>("[data-speed]")) {
+      b.addEventListener("click", () => {
+        clock.setSpeed(Number(b.dataset.speed) as Speed, performance.now());
+        for (const x of document.querySelectorAll("[data-speed]")) x.setAttribute("aria-pressed", String(x === b));
+      });
+    }
+    for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) b.addEventListener("click", () => view.setMode(b.dataset.mode as Mode));
+    el("center").addEventListener("click", () => view.setMode(view.mode));
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => view.setColors());
+
+    clock.setSpeed(10, performance.now());
+    setPlaying(true);
+    // Opening: a moment of overview, then the flight to the runner.
+    const opening = window.setTimeout(() => view.setMode("follow"), 1500);
+
+    // Hooks for measurement and screenshots, like /dev/view3d.
+    Object.assign(window, {
+      __live: {
+        get view() {
+          return view;
+        },
+        clock,
+        source,
+        /** Throw the view away and build it again, to check that dispose() frees everything. */
+        remount() {
+          view.dispose();
+          view = mount()!;
+        },
+        /** Jump to race time t (seconds), spots behind count as passed without an event. */
+        seek(t: number) {
+          clearTimeout(opening);
+          const now = performance.now();
+          clock.seek(t, now);
+          tracker.reset(source.sampleAt(t).km);
+        },
+        pause: () => setPlaying(false),
+        play: () => setPlaying(true),
+      },
+    });
+    stage.dataset.ready = "true";
+  }
+
+  start();
+</script>

@@ -34,6 +34,11 @@ export interface TrackPoint {
   dy: number;
 }
 
+/** Direction of travel as an angle, atan2(north, east). Also the yaw (rotation about three.js y) of a figure that faces +x. */
+export function headingOf(p: Pick<TrackPoint, "dx" | "dy">): number {
+  return Math.atan2(p.dy, p.dx);
+}
+
 export interface Track {
   /** Route points in metres. */
   xy: [number, number][];
