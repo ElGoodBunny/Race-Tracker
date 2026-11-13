@@ -1,16 +1,10 @@
 ---
 // Development only: scene.json from above, to check outlines, islands and courtyards (Bauschritt 1, docs/decisions/2026-11-13-3d-konzept.md).
-import { readFileSync } from "node:fs";
-import { getEntry } from "astro:content";
+import { existsSync, readFileSync } from "node:fs";
+import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import type { SceneData } from "../../lib/osm";
 import { makeLocal } from "../../lib/view3d/world";
-
-const race = (await getEntry("races", "hamburg-2026"))!.data;
-const scene: SceneData = JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8"));
-
-const local = makeLocal(scene.origin);
-const route = race.course.route.map(([lat, lng]) => local.toXY(lat, lng));
 
 // SVG y points down, the scene's y points north: flip every y.
 const ringPath = (r: number[]) => {
@@ -19,31 +13,47 @@ const ringPath = (r: number[]) => {
   return d + "Z";
 };
 const polyPath = (p: { ring: number[]; holes?: number[][] }) => ringPath(p.ring) + (p.holes ?? []).map(ringPath).join("");
-const routePath = "M" + route.map(([x, y]) => `${x.toFixed(1)} ${(-y).toFixed(1)}`).join("L");
 
-const pad = 600;
-const xs = route.map((p) => p[0]);
-const ys = route.map((p) => -p[1]);
-const minX = Math.min(...xs) - pad;
-const minY = Math.min(...ys) - pad;
-const viewBox = `${minX.toFixed(0)} ${minY.toFixed(0)} ${(Math.max(...xs) + pad - minX).toFixed(0)} ${(Math.max(...ys) + pad - minY).toFixed(0)}`;
-
-const islands = scene.water.reduce((n, w) => n + (w.holes?.length ?? 0), 0);
-const courtyards = scene.buildings.reduce((n, b) => n + (b.holes?.length ?? 0), 0);
+// One control image per race that has a scene.json.
+const views = (await getCollection("races"))
+  .filter((r) => existsSync(`public/data/${r.id}/scene.json`))
+  .map(({ id, data: race }) => {
+    const scene: SceneData = JSON.parse(readFileSync(`public/data/${id}/scene.json`, "utf8"));
+    const local = makeLocal(scene.origin);
+    const route = race.course.route.map(([lat, lng]) => local.toXY(lat, lng));
+    const pad = 600;
+    const xs = route.map((p) => p[0]);
+    const ys = route.map((p) => -p[1]);
+    const minX = Math.min(...xs) - pad;
+    const minY = Math.min(...ys) - pad;
+    return {
+      city: race.city,
+      scene,
+      routePath: "M" + route.map(([x, y]) => `${x.toFixed(1)} ${(-y).toFixed(1)}`).join("L"),
+      viewBox: `${minX.toFixed(0)} ${minY.toFixed(0)} ${(Math.max(...xs) + pad - minX).toFixed(0)} ${(Math.max(...ys) + pad - minY).toFixed(0)}`,
+      islands: scene.water.reduce((n, w) => n + (w.holes?.length ?? 0), 0),
+      courtyards: scene.buildings.reduce((n, b) => n + (b.holes?.length ?? 0), 0),
+    };
+  });
 ---
 
 <Base title="Szene von oben" description="Kontrollbild der 3D-Szene aus OpenStreetMap." noindex>
   <section class="wrap page">
     <h1 class="heading-3">Szene von oben</h1>
-    <p class="body-3 muted">
-      <span class="mono">{scene.buildings.length}</span> Gebäude mit <span class="mono">{courtyards}</span> Höfen, <span class="mono">{scene.water.length}</span> Wasserflächen mit <span class="mono">{islands}</span> Inseln, <span class="mono">{scene.parks.length}</span> Grünflächen. Bäume sind hier nicht gezeichnet.
-    </p>
-    <svg class="map" viewBox={viewBox} role="img" aria-label="Szene Hamburg von oben">
-      <g class="park">{scene.parks.map((r) => <path d={ringPath(r)} />)}</g>
-      <g class="water">{scene.water.map((w) => <path d={polyPath(w)} />)}</g>
-      <g class="bld">{scene.buildings.map((b) => <path d={polyPath(b)} />)}</g>
-      <path class="route" d={routePath} />
-    </svg>
+    {views.map(({ city, scene, routePath, viewBox, islands, courtyards }) => (
+      <>
+        <h2 class="heading-5">{city}</h2>
+        <p class="body-3 muted">
+          <span class="mono">{scene.buildings.length}</span> Gebäude mit <span class="mono">{courtyards}</span> Höfen, <span class="mono">{scene.water.length}</span> Wasserflächen mit <span class="mono">{islands}</span> Inseln, <span class="mono">{scene.parks.length}</span> Grünflächen. Bäume sind hier nicht gezeichnet.
+        </p>
+        <svg class="map" viewBox={viewBox} role="img" aria-label={`Szene ${city} von oben`}>
+          <g class="park">{scene.parks.map((r) => <path d={ringPath(r)} />)}</g>
+          <g class="water">{scene.water.map((w) => <path d={polyPath(w)} />)}</g>
+          <g class="bld">{scene.buildings.map((b) => <path d={polyPath(b)} />)}</g>
+          <path class="route" d={routePath} />
+        </svg>
+      </>
+    ))}
   </section>
 </Base>
 

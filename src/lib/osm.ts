@@ -1,4 +1,4 @@
-// OpenStreetMap to compact 3D scene data (buildings with heights, parks, water, trees).
+// OpenStreetMap to compact 3D scene data (buildings with heights, parks, water, trees; the coastline becomes sea in water).
 // Geometry is stored in local metres around the start, x east, y north, rounded to 0.5 m,
 // so the 3D scene needs no projection and the file stays small. Data © OpenStreetMap contributors, ODbL.
 
@@ -74,7 +74,7 @@ function containsPoint(ring: GeoPoint[], p: GeoPoint): boolean {
 }
 
 export type Bounds = { s: number; w: number; n: number; e: number };
-export type OsmCategory = "buildings" | "parks" | "water" | "trees";
+export type OsmCategory = "buildings" | "parks" | "water" | "trees" | "coastline";
 
 /** One query per category, so no single request runs into the public servers' timeout. */
 export function overpassQueries(b: Bounds): { category: OsmCategory; query: string }[] {
@@ -93,6 +93,7 @@ out geom;`;
   relation["natural"="water"](${bbox});
   way["waterway"="riverbank"](${bbox});`) },
     { category: "trees", query: q(`  node["natural"="tree"](${bbox});`) },
+    { category: "coastline", query: q(`  way["natural"="coastline"](${bbox});`) },
   ];
 }
 
@@ -207,8 +208,13 @@ export function osmToScene(elements: OverpassElement[], route: LatLng[], corrido
   const withHoles = <T extends object>(base: T, holes: number[][]): T & { holes?: number[][] } => (holes.length ? { ...base, holes } : base);
 
   const scene: SceneData = { origin, buildings: [], parks: [], water: [], trees: [] };
+  const coast: { id: number; g: GeoPoint[] }[] = [];
   for (const el of elements) {
     const t = el.tags ?? {};
+    if (t.natural === "coastline") {
+      if (el.type === "way" && el.geometry) coast.push({ id: el.id, g: el.geometry });
+      continue;
+    }
     if (el.type === "node") {
       if (t.natural === "tree" && el.lat != null && el.lon != null) {
         const [x, y] = toXY(el.lat, el.lon);
@@ -230,5 +236,162 @@ export function osmToScene(elements: OverpassElement[], route: LatLng[], corrido
       }
     }
   }
+  if (coast.length) {
+    const b = routeBounds(route, corridorM);
+    const [x0, y0] = local.toXY(b.s, b.w);
+    const [x1, y1] = local.toXY(b.n, b.e);
+    const sea = seaAreas(coast, { x0, y0, x1, y1 }, (p) => local.toXY(p.lat, p.lon), warn);
+    scene.water.push(...sea.map((w) => withHoles({ ring: w.ring.map(q) }, w.holes.map((h) => h.map(q)).filter((h) => area(h) >= MIN_HOLE_M2))));
+  }
   return scene;
+}
+
+type Box = { x0: number; y0: number; x1: number; y1: number };
+
+/** Joins coastline ways head to tail. OSM keeps the direction of the coast (land on the left), so ways are never reversed. */
+function chainCoast(ways: { id: number; g: GeoPoint[] }[]): { ids: number[]; g: GeoPoint[] }[] {
+  const pool = ways.filter((w) => w.g.length >= 2).map((w) => ({ ids: [w.id], g: w.g.slice() }));
+  const chains: { ids: number[]; g: GeoPoint[] }[] = [];
+  while (pool.length) {
+    const c = pool.shift()!;
+    for (;;) {
+      if (c.g.length >= 4 && samePoint(c.g[0], c.g[c.g.length - 1])) break;
+      const i = pool.findIndex((s) => samePoint(s.g[0], c.g[c.g.length - 1]));
+      if (i >= 0) {
+        const next = pool.splice(i, 1)[0];
+        c.g.push(...next.g.slice(1));
+        c.ids.push(...next.ids);
+        continue;
+      }
+      const j = pool.findIndex((s) => samePoint(s.g[s.g.length - 1], c.g[0]));
+      if (j < 0) break;
+      const prev = pool.splice(j, 1)[0];
+      c.g.unshift(...prev.g.slice(0, -1));
+      c.ids.unshift(...prev.ids);
+    }
+    chains.push(c);
+  }
+  return chains;
+}
+
+/**
+ * The sea as water areas. OSM draws the coast as lines (natural=coastline) with the land on the left.
+ * The lines are joined, clipped to the download box and closed along the box edge, so the sea stays on the right.
+ * A coast ring inside the box is an island. A coast that ends inside the box cannot be closed and is reported.
+ */
+function seaAreas(ways: { id: number; g: GeoPoint[] }[], box: Box, toXY: (p: GeoPoint) => [number, number], warn: (msg: string) => void) {
+  const { x0, y0, x1, y1 } = box;
+  const W = x1 - x0;
+  const H = y1 - y0;
+  const P = 2 * W + 2 * H;
+  const inBox = ([x, y]: [number, number]) => x > x0 && x < x1 && y > y0 && y < y1;
+  // Position on the box edge, clockwise from the north-west corner (x east, y north).
+  const edgePos = ([x, y]: [number, number]) => {
+    const d = [y1 - y, x1 - x, y - y0, x - x0].map(Math.abs);
+    const e = d.indexOf(Math.min(...d));
+    return [x - x0, W + (y1 - y), W + H + (x1 - x), 2 * W + H + (y - y0)][e];
+  };
+  const corners: { pos: number; p: [number, number] }[] = [
+    { pos: 0, p: [x0, y1] },
+    { pos: W, p: [x1, y1] },
+    { pos: W + H, p: [x1, y0] },
+    { pos: 2 * W + H, p: [x0, y0] },
+  ];
+
+  // Liang-Barsky: the part of a-b inside the box as [t0, t1], or null.
+  const clip = ([ax, ay]: [number, number], [bx, by]: [number, number]): [number, number] | null => {
+    let t0 = 0;
+    let t1 = 1;
+    const dx = bx - ax;
+    const dy = by - ay;
+    for (const [p, qv] of [[-dx, ax - x0], [dx, x1 - ax], [-dy, ay - y0], [dy, y1 - ay]]) {
+      if (p === 0) {
+        if (qv < 0) return null;
+        continue;
+      }
+      const r = qv / p;
+      if (p < 0) t0 = Math.max(t0, r);
+      else t1 = Math.min(t1, r);
+      if (t0 > t1) return null;
+    }
+    return [t0, t1];
+  };
+
+  const runs: [number, number][][] = [];
+  const islands: [number, number][][] = [];
+  for (const c of chainCoast(ways)) {
+    let pts = c.g.map(toXY);
+    const closed = samePoint(c.g[0], c.g[c.g.length - 1]);
+    if (closed && pts.every(inBox)) {
+      islands.push(pts);
+      continue;
+    }
+    if (!closed) {
+      if (inBox(pts[0]) || inBox(pts[pts.length - 1])) {
+        warn(`coastline way ${c.ids.join(", ")}: ends inside the box, dropped`);
+        continue;
+      }
+    } else {
+      // Start a ring that crosses the box at a point outside, so no run wraps around the start.
+      const k = pts.findIndex((p) => !inBox(p));
+      pts = [...pts.slice(k, -1), ...pts.slice(0, k + 1)];
+    }
+    let run: [number, number][] | null = null;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const t = clip(a, b);
+      if (!t) continue;
+      const at = (s: number): [number, number] => [a[0] + s * (b[0] - a[0]), a[1] + s * (b[1] - a[1])];
+      if (!run || t[0] > 0) run = [at(t[0])];
+      run.push(at(t[1]));
+      if (t[1] < 1) {
+        if (run.length >= 2) runs.push(run);
+        run = null;
+      }
+    }
+  }
+
+  // Walk: along a coast run to where it leaves the box, then clockwise along the edge to the next run that enters.
+  const sea: { ring: number[]; holes: number[][] }[] = [];
+  const used = new Set<number>();
+  const entry = runs.map((r) => edgePos(r[0]));
+  const exit = runs.map((r) => edgePos(r[r.length - 1]));
+  for (let first = 0; first < runs.length; first++) {
+    if (used.has(first)) continue;
+    used.add(first);
+    const ring: [number, number][] = [...runs[first]];
+    let cur = first;
+    for (let guard = 0; guard <= runs.length; guard++) {
+      const from = exit[cur];
+      const ahead = (pos: number) => (pos - from + P) % P;
+      let next = -1;
+      for (let i = 0; i < runs.length; i++) {
+        if ((used.has(i) && i !== first) || (next >= 0 && ahead(entry[i]) >= ahead(entry[next]))) continue;
+        next = i;
+      }
+      for (const c of corners.filter((c) => ahead(c.pos) > 0 && ahead(c.pos) < ahead(entry[next])).sort((a, b) => ahead(a.pos) - ahead(b.pos))) ring.push(c.p);
+      if (next === first) break;
+      used.add(next);
+      ring.push(...runs[next]);
+      cur = next;
+    }
+    ring.push(ring[0]);
+    sea.push({ ring: ring.flat(), holes: [] });
+  }
+
+  for (const isl of islands) {
+    const home = sea.find((s) => insideXY(s.ring, isl[0]));
+    if (home) home.holes.push(isl.flat());
+    else warn("coastline: island outside the sea dropped");
+  }
+  return sea;
+}
+
+function insideXY(r: number[], [x, y]: [number, number]): boolean {
+  let hit = false;
+  for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+    if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) hit = !hit;
+  }
+  return hit;
 }

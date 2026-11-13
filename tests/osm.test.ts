@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LatLng } from "../src/lib/course";
+import { makeLocal } from "../src/lib/view3d/world";
 import { buildingHeight, dedupeElements, joinRings, osmToScene, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
 
 const route: LatLng[] = [[53.55, 9.96], [53.55, 9.97]]; // ~660 m west to east
@@ -55,10 +56,10 @@ describe("overpassQueries", () => {
     for (const q of overpassQueries(b)) expect(q.query).toContain(`${b.s},${b.w},${b.n},${b.e}`);
   });
 
-  it("splits buildings, parks, water and trees into separate queries with timeout 180", () => {
+  it("splits buildings, parks, water, trees and coastline into separate queries with timeout 180", () => {
     const qs = overpassQueries(routeBounds(route, 600));
-    expect(qs.map((q) => q.category)).toEqual(["buildings", "parks", "water", "trees"]);
-    for (const key of ['"building"', '"leisure"', '"natural"="water"', '"natural"="tree"']) {
+    expect(qs.map((q) => q.category)).toEqual(["buildings", "parks", "water", "trees", "coastline"]);
+    for (const key of ['"building"', '"leisure"', '"natural"="water"', '"natural"="tree"', '"natural"="coastline"']) {
       expect(qs.filter((q) => q.query.includes(key))).toHaveLength(1);
     }
     for (const q of qs) expect(q.query).toContain("[timeout:180]");
@@ -197,5 +198,58 @@ describe("osmToScene multipolygons", () => {
   it("drops outlines that do not close and reports them", () => {
     expect(warnings.some((w) => w.includes("13"))).toBe(true);
     expect(scene.water.every((w) => closed(w.ring))).toBe(true);
+  });
+});
+
+describe("osmToScene coastline", () => {
+  // Box of routeBounds(route, 600) around a 660 m route: about 53.5446 to 53.5554 and 9.951 to 9.979.
+  const coast = (id: number, geometry: P[]) => ({ type: "way", id, tags: { natural: "coastline" }, geometry }) as OverpassElement;
+  const local = makeLocal(route[0]);
+  const inside = (r: number[], [x, y]: number[]) => {
+    let hit = false;
+    for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+      if (r[i + 1] > y !== r[j + 1] > y && x < ((r[j] - r[i]) * (y - r[i + 1])) / (r[j + 1] - r[i + 1]) + r[i]) hit = !hit;
+    }
+    return hit;
+  };
+  const isWater = (scene: ReturnType<typeof osmToScene>, lat: number, lon: number) => {
+    const p = local.toXY(lat, lon);
+    return scene.water.some((w) => inside(w.ring, p) && !(w.holes ?? []).some((h) => inside(h, p)));
+  };
+
+  it("fills the sea on the right of the coastline, clipped to the box, from ways out of order", () => {
+    // Coast runs west to east across the box, land on the left (north), split into two ways.
+    const scene = osmToScene([coast(2, [pt(53.552, 9.965), pt(53.552, 9.99)]), coast(1, [pt(53.552, 9.94), pt(53.552, 9.965)])], route, 600);
+    expect(scene.water).toHaveLength(1);
+    expect(closed(scene.water[0].ring)).toBe(true);
+    expect(isWater(scene, 53.546, 9.955)).toBe(true);
+    expect(isWater(scene, 53.546, 9.975)).toBe(true);
+    expect(isWater(scene, 53.554, 9.965)).toBe(false);
+    const ys = scene.water[0].ring.filter((_, i) => i % 2 === 1);
+    expect(Math.min(...ys)).toBeCloseTo(local.toXY(routeBounds(route, 600).s, 9.96)[1], 0); // clipped, not the whole way
+  });
+
+  it("closes along the box edge round the corner the sea is in", () => {
+    // Coast enters at the bottom and leaves at the right, land north-west, sea in the south-east corner.
+    const scene = osmToScene([coast(1, [pt(53.540, 9.970), pt(53.560, 9.990)])], route, 600);
+    expect(isWater(scene, 53.546, 9.977)).toBe(true);
+    expect(isWater(scene, 53.553, 9.975)).toBe(false);
+    expect(isWater(scene, 53.546, 9.955)).toBe(false);
+  });
+
+  it("makes a coast ring inside the box an island in the sea", () => {
+    const [a, b, c, d] = corners(53.546, 9.962, 0.001); // counter-clockwise, land on the left
+    const scene = osmToScene([coast(1, [pt(53.552, 9.94), pt(53.552, 9.99)]), coast(2, [a, b, c, d, a])], route, 600);
+    expect(scene.water).toHaveLength(1);
+    expect(scene.water[0].holes).toHaveLength(1);
+    expect(isWater(scene, 53.5465, 9.9625)).toBe(false);
+    expect(isWater(scene, 53.5465, 9.958)).toBe(true);
+  });
+
+  it("reports a coast that ends inside the box and adds no sea for it", () => {
+    const warnings: string[] = [];
+    const scene = osmToScene([coast(7, [pt(53.552, 9.94), pt(53.552, 9.965)])], route, 600, (m) => warnings.push(m));
+    expect(scene.water).toEqual([]);
+    expect(warnings.some((w) => w.includes("coastline") && w.includes("7"))).toBe(true);
   });
 });

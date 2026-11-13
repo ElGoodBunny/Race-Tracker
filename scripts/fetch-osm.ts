@@ -1,5 +1,5 @@
 // Usage: node scripts/fetch-osm.ts <race-slug> [corridorMeters=600]
-// Downloads buildings, parks, water and trees along the course from the Overpass API and writes
+// Downloads buildings, parks, water, trees and coastline along the course from the Overpass API and writes
 // public/data/<slug>/scene.json for the 3D view. Run once per race, commit the result.
 // Data © OpenStreetMap contributors, ODbL. Be nice to the public Overpass servers: one run, not a loop.
 
