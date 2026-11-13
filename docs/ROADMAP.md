@@ -2,6 +2,15 @@
 
 Stand: 12.11.2026. Zielbild ist das Video aus München, Details und Kriterien in `docs/VISION.md`. Fable 5.2 steht bis 16.11. als Advisor zur Verfügung, deshalb liegen die Entscheidungen mit dem größten Hebel (Architektur, 3D-Konzept, Security) vorne. Wann genau Fable gefragt wird: `docs/ADVISOR.md`.
 
+## Meilenstein: Zurich Marató Barcelona, 14.03.2027
+Marathon, 42,195 km, Start 8:30 an der Plaça de Catalunya. Erster echter Live-Einsatz mit Leuten an der Strecke.
+- Für den Live-Einsatz müssen Phase 1, 2, 2b, 3 und 4 fertig sein
+- Zwischenziele: Phase 2 bis Mitte Dezember 2026, Phase 1 bis Mitte Januar 2027, Phase 2b und 3 bis Mitte Februar 2027, Phase 4 bis Ende Februar 2027
+- Generalprobe mit Live-Daten bei einem langen Trainingslauf Anfang März 2027
+
+## Offene Fehler
+- [ ] `STALE_AFTER_MS` in `src/lib/estimate.ts` ist fest 4,5 h und passt nicht zum Marathon
+
 ## Phase 0: Fundament (erledigt 12.11.)
 - [x] Astro 7 + TypeScript strict + three.js + Supabase-Client
 - [x] Hamburg 2026 als erstes Rennen, Strecke maschinell aus dem Legacy-Code extrahiert (188 Punkte)
@@ -55,12 +64,15 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] Auf dem Mac prüfen, was ein geteilter Garmin-LiveTrack-Link liefert (Felder, Takt, Verzögerung), Ergebnis in `docs/decisions/`
 - [ ] Poller als Supabase Edge Function oder kleiner Worker, schreibt `telemetry`
 - [ ] Client: frische Telemetrie vor Schätzung, nahtloser Rückfall, Quelle und Alter im HUD
-- [ ] Generalprobe bei einem Trainingslauf
+- Generalprobe: siehe Meilenstein oben, Anfang März 2027
 
 ## Phase 3: Neues Rennen in 10 Minuten
 - [ ] `npm run new-race`: GPX-Datei rein, JSON mit Route, kumulierten km und Bounds raus
 - [ ] Landmarks und Wasserstellen per kleiner Konfig ergänzen
-- [ ] Nächstes Rennen anlegen
+- [ ] Barcelona-Strecke aus der offiziellen GPX-Datei
+- [ ] OSM-Szene für Barcelona
+- [ ] Performance-Budget an Barcelona prüfen
+- [ ] Wahrzeichen Barcelona: Sagrada Família (km 14) und die Strecke am Meer (km 26 bis 30)
 
 ## Phase 4: Live gehen
 - [ ] Hosting festlegen (Vorschlag: Cloudflare Pages oder Vercel, beides kann statische Astro-Builds) und `site` in `astro.config.mjs` setzen
