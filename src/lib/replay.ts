@@ -3,6 +3,7 @@
 // onto the route to get the course km the rest of the app works with.
 
 import type { CourseData, LatLng } from "./course";
+import { makeLocal } from "./view3d/world.ts";
 
 export interface ReplaySample {
   /** Seconds since start. */
@@ -26,22 +27,16 @@ export interface StreamInput {
   altitude?: number[];
 }
 
-const R = 6371000;
 const MAX_SPEED = 8; // m/s
 const BACKTRACK_KM = 0.2;
-
-function toLocal(origin: LatLng) {
-  const kx = (Math.cos((origin[0] * Math.PI) / 180) * Math.PI * R) / 180;
-  const ky = (Math.PI * R) / 180;
-  return (p: LatLng): [number, number] => [(p[1] - origin[1]) * kx, (p[0] - origin[0]) * ky];
-}
 
 /**
  * Project every sample onto the route. The search window follows the previous match,
  * so out-and-back sections and crossings resolve to the right side of the course.
  */
 export function projectOnCourse(course: CourseData, input: StreamInput, cadenceIsPerLeg = true): ReplaySample[] {
-  const xy = toLocal(course.route[0]);
+  const local = makeLocal(course.route[0]);
+  const xy = (p: LatLng) => local.toXY(p[0], p[1]);
   const pts = course.route.map(xy);
   const out: ReplaySample[] = [];
   let seg = 1;

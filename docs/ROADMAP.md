@@ -27,7 +27,7 @@ Marathon, 42,195 km, Start 8:30 an der Plaça de Catalunya. Erster echter Live-E
 Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar über die Checkliste.
 - [ ] Supabase-Projekt anlegen, Migration einspielen, Anonymous Sign-in + CAPTCHA aktivieren, Dima als Admin plus Anzeigenamen eintragen
 - [x] Migration: sieben Schema-Lücken aus Checkpoint A plus diese drei Entscheidungen, jede mit RLS-Test, beim LiveTrack-Link inklusive der Fälle fremder Host, Subdomain-Trick, `http`, Port und Zugangsdaten in der URL (`docs/decisions/2026-11-12-architektur.md`)
-- [ ] Datenschicht `src/lib/live.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
+- [ ] Datenschicht `src/lib/live/supabase.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
 - [ ] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile)
 - [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil
 - [ ] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion
@@ -46,7 +46,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [x] `node scripts/fetch-osm.ts hamburg-2026` auf dem Mac ausführen, `public/data/hamburg-2026/scene.json` committen
 - [x] 1. **Szenendaten reparieren.** Ringe verketten, Löcher für Wasser und Gebäude, `scene.json` aus dem Cache neu erzeugen. Prüfpunkt: Tests mit einer Relation aus mehreren Teilstücken und einer Insel. Außenalster ist eine Fläche mit einem Loch. Datei unter 5 MB. Kontrollbild der Szene von oben als SVG, Elbe und Alster haben die richtige Form
 - [x] 2. **Welt und Strecke** (`world.ts`). Gemeinsame Umrechnung, `osm.ts` nutzt sie. Prüfpunkt: Test: Start liegt bei 0/0, `at(km)` weicht höchstens 1 m von `latLngAt` ab, Richtung dreht an der Wende um. `scene.json` bleibt nach dem Umbau Byte für Byte gleich
-- [ ] 3. **Uhr und Replay-Quelle** (`clock.ts`, `source.ts`). Die Kopie von `toLocal` in `replay.ts` wird durch `makeLocal` ersetzt. Prüfpunkt: Test "Puls ist echt": bei 1:00:00 liefert die Quelle 174. Test "Jeder Messwert kommt an": 30 s bei 10× ergeben für jeden Messpunkt einen neuen km
+- [x] 3. **Uhr und Replay-Quelle** (`clock.ts`, `source.ts`). Die Kopie von `toLocal` in `replay.ts` wird durch `makeLocal` ersetzt. Prüfpunkt: Test "Puls ist echt": bei 1:00:00 liefert die Quelle 174. Test "Jeder Messwert kommt an": 30 s bei 10× ergeben für jeden Messpunkt einen neuen km
 - [ ] 4. **Geometrie als reine Funktionen** (`geometry.ts`). Kacheln, Gebäude mit Löchern, Flächen. Prüfpunkt: Tests: Dreieckszahl einer bekannten Kontur, Höhe, Hof bleibt offen. Summe über alle Kacheln liegt bei rund 350.000
 - [ ] 5. **Statische Szene** auf `/dev/view3d` mit freier Kamera. Boden, Wasser, Parks, Gebäude, Nebel, Licht, hell und dunkel. Prüfpunkt: Sichtprüfung gegen `frame-03.jpg`. Check "Gebäude sind aus OSM": Elbphilharmonie, Hauptbahnhof und Alsterhäuser an der richtigen Stelle, unterschiedlich hoch. Erste Messung von Dreiecken, Zeichenaufrufen und Zeit pro Bild, Ergebnis in diese Notiz
 - [ ] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000
