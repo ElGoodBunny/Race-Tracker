@@ -6,6 +6,7 @@ stages:
 
 variables:
   npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  GIT_DEPTH: "0"
 
 cache:
   key:
