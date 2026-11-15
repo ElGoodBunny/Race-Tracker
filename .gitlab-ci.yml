@@ -1,0 +1,40 @@
+
+image: node:22.18.0
+
+stages:
+  - quality
+  - build
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+before_script:
+  - npm ci
+
+code_check:
+  stage: quality
+  script:
+    - npm run check
+
+unit_tests:
+  stage: quality
+  script:
+    - npm test
+
+production_build:
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+
