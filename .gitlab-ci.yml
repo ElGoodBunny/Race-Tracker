@@ -49,3 +49,11 @@ secret_detection:
   before_script: []
   script:
     - gitleaks git . --no-banner
+sast:
+  stage: quality
+  image:
+    name: semgrep/semgrep:latest
+    entrypoint: [""]
+  before_script: []
+  script:
+    - semgrep scan --config auto --error .
