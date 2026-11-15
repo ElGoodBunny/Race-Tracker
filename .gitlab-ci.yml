@@ -27,6 +27,11 @@ unit_tests:
   script:
     - npm test
 
+dependency_audit:
+  stage: quality
+  script:
+    - npm audit --audit-level=high
+
 production_build:
   stage: build
   script:
@@ -35,5 +40,3 @@ production_build:
     paths:
       - dist/
     expire_in: 1 week
-
-
