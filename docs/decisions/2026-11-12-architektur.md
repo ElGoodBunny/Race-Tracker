@@ -172,3 +172,6 @@ Beantwortet am 12.11., siehe nächster Abschnitt.
 - Entscheidung 3: `race_secrets`, `set_livetrack_link`, `livetrack_link_status`, `races.live_track_url` entfernt.
 
 Noch offen: Seed in der ersten Migration nur auf den Slug reduzieren (Frage 1), Statusfelder für den Poller (Frage 5), Regeln aus Frage 3 in `src/lib/live.ts`.
+
+## Nachtrag 13.11.
+Die Datenschicht liegt jetzt in `src/lib/live/supabase.ts` statt `src/lib/live.ts`.

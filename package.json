@@ -8,6 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "new-race": "node scripts/new-race.ts",
+    "fetch-osm": "node scripts/fetch-osm.ts",
     "test": "vitest run",
     "astro": "astro"
   },

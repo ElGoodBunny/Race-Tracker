@@ -3,6 +3,7 @@
 // onto the route to get the course km the rest of the app works with.
 
 import type { CourseData, LatLng } from "./course";
+import { makeLocal } from "./view3d/world.ts";
 
 export interface ReplaySample {
   /** Seconds since start. */
@@ -26,22 +27,16 @@ export interface StreamInput {
   altitude?: number[];
 }
 
-const R = 6371000;
 const MAX_SPEED = 8; // m/s
 const BACKTRACK_KM = 0.2;
-
-function toLocal(origin: LatLng) {
-  const kx = (Math.cos((origin[0] * Math.PI) / 180) * Math.PI * R) / 180;
-  const ky = (Math.PI * R) / 180;
-  return (p: LatLng): [number, number] => [(p[1] - origin[1]) * kx, (p[0] - origin[0]) * ky];
-}
 
 /**
  * Project every sample onto the route. The search window follows the previous match,
  * so out-and-back sections and crossings resolve to the right side of the course.
  */
 export function projectOnCourse(course: CourseData, input: StreamInput, cadenceIsPerLeg = true): ReplaySample[] {
-  const xy = toLocal(course.route[0]);
+  const local = makeLocal(course.route[0]);
+  const xy = (p: LatLng) => local.toXY(p[0], p[1]);
   const pts = course.route.map(xy);
   const out: ReplaySample[] = [];
   let seg = 1;
@@ -49,10 +44,12 @@ export function projectOnCourse(course: CourseData, input: StreamInput, cadenceI
 
   for (let i = 0; i < input.time.length; i++) {
     const [x, y] = xy(input.location[i]);
-    // Nobody runs faster than 8 m/s, so a match further ahead is the other side of a loop.
+    // Nobody runs faster than 8 m/s. A match further ahead is capped at that, and every metre
+    // beyond it counts like a metre off the route. So at a turn, where out and back lie on top
+    // of each other, the way back only wins once the runner can really be there.
     const dt = i ? input.time[i] - input.time[i - 1] : 0;
     const maxKm = i === 0 ? Infinity : lastKm + (dt * MAX_SPEED) / 1000;
-    let best = { d: Infinity, km: lastKm, seg };
+    let best = { cost: Infinity, km: lastKm, seg };
     const from = Math.max(1, seg - 2);
     const to = Math.min(pts.length - 1, seg + 12);
     for (let s = from; s <= to; s++) {
@@ -63,9 +60,11 @@ export function projectOnCourse(course: CourseData, input: StreamInput, cadenceI
       const len = dx * dx + dy * dy || 1;
       const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / len));
       const d = Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy));
-      const km = Math.min(maxKm, course.km[s - 1] + t * (course.km[s] - course.km[s - 1]));
+      const raw = course.km[s - 1] + t * (course.km[s] - course.km[s - 1]);
+      const km = Math.min(maxKm, raw);
       if (km < lastKm - BACKTRACK_KM) continue;
-      if (d < best.d) best = { d, km, seg: s };
+      const cost = d + (raw - km) * 1000;
+      if (cost < best.cost) best = { cost, km, seg: s };
     }
     seg = best.seg;
     lastKm = Math.max(lastKm, best.km);

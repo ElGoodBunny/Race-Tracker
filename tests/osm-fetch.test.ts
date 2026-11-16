@@ -72,11 +72,11 @@ describe("loadOsmParts", () => {
       asked.push(label);
       return [el(label === "water" ? 3 : 4)];
     });
-    expect(asked).toEqual(["water", "trees"]);
+    expect(asked).toEqual(["water", "trees", "coastline"]);
     expect(r.fromCache).toEqual(["buildings", "parks"]);
-    expect(r.fetched).toEqual(["water", "trees"]);
+    expect(r.fetched).toEqual(["water", "trees", "coastline"]);
     expect(r.missing).toEqual([]);
-    expect(r.elements.map((e) => e.id)).toEqual([1, 2, 3, 4]);
+    expect(r.elements.map((e) => e.id)).toEqual([1, 2, 3, 4, 4]);
     expect(readCache(dir, "trees", bounds)).toEqual([el(4)]);
   });
 
@@ -85,7 +85,7 @@ describe("loadOsmParts", () => {
       if (label === "buildings" || label === "buildings-tile-3") throw new OverpassError("HTTP 504", 504);
       return [el(Number(label.at(-1)) || 9)];
     });
-    expect(r.fetched).toEqual(["buildings-tile-1", "buildings-tile-2", "buildings-tile-4", "parks", "water", "trees"]);
+    expect(r.fetched).toEqual(["buildings-tile-1", "buildings-tile-2", "buildings-tile-4", "parks", "water", "trees", "coastline"]);
     expect(r.missing).toEqual(["buildings-tile-3"]);
     expect(readCache(dir, "buildings-tile-2", splitTile(1))).toEqual([el(2)]);
   });

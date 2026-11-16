@@ -41,7 +41,7 @@ Je ein Test, der die typische Abkürzung entlarvt. Erst wenn alle bestehen, gilt
 - [ ] **Jeder Messwert kommt an.** 30 s Replay in 10×: Jeder neue Messpunkt verändert km, Pace und Fortschrittsbalken, nichts bleibt stehen
 - [ ] **Spots werden wirklich passiert.** Konfetti und Meldung kommen genau, wenn der Läufer den Spot-km überschreitet, nicht vorher und nicht doppelt, auch beim Vorspulen
 - [ ] **Rückfall ohne Sprung.** Telemetrie mitten im Replay 60 s abschneiden: Der Läufer läuft geschätzt weiter, das HUD wechselt auf "geschätzt", beim Wiederkommen kein Rücksprung
-- [ ] **Gebäude sind aus OSM.** Elbphilharmonie, Hauptbahnhof und Alsterhäuser stehen an der richtigen Stelle und haben unterschiedliche Höhen
+- [x] **Gebäude sind aus OSM.** Elbphilharmonie, Hauptbahnhof und Alsterhäuser stehen an der richtigen Stelle und haben unterschiedliche Höhen (Hamburg, für Barcelona erneut prüfen)
 
 ## 6. Woher die Live-Daten kommen
 Jede Quelle schreibt in dieselbe Tabelle `telemetry` (Zeit, km, Position, Puls, Kadenz, Höhe, Quelle). Die Seite liest nur diese Tabelle und weiß nicht, welche Uhr dahintersteht.
