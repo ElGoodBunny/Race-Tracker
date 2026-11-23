@@ -62,6 +62,9 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] 11. **Spots:** Pins, Avatare als Grüppchen, Passieren, Konfetti, Meldung, Liste "Als Nächstes". Prüfpunkt: Check "Spots werden wirklich passiert" als Test: genau beim Überschreiten, nicht doppelt, auch beim Vorspulen über mehrere Spots
 - [ ] 12. **HUD und Panel** mit Replay-Daten, mobil als Bottom Sheet. Prüfpunkt: Sichtprüfung gegen `frame-01.jpg` und `frame-05.jpg`, hell und dunkel, Desktop und Handy. Zahlen in Geist Mono
 - [ ] 13. **Replay-Steuerung** ersetzt die Simulation. Mischquelle mit Rückfall auf die Schätzung. Prüfpunkt: Check "Rückfall ohne Sprung" als Test: Telemetrie 60 s abschneiden, km läuft stetig weiter, Qualität wechselt auf "geschätzt", beim Wiederkommen kein Rücksprung
+  - [x] Mischquelle mit Rückfall und Check "Rückfall ohne Sprung" als Test (`mixedSource`, `tests/mixed-source.test.ts`)
+  - [ ] Schwelle für "geschätzt" nach der LiveTrack-Messung festlegen (Vorschlag 90 s, Check und Demo nehmen 30 s)
+  - [ ] Replay-Steuerung auf der Rennseite
 - [ ] 14. **Wahrzeichen:** Sagrada Família modellieren, OSM-Klotz an der Stelle entfernen. Prüfpunkt: Sichtprüfung: ein Gebäude, kein doppeltes
   - [ ] Sagrada Família hat in OSM keine Höhe (30 m Pauschale)
 - [ ] 15. **Einbau in die Rennseite.** Nachladen beim Sichtbarwerden, 2D-Karte als Platzhalter, Rückfall ohne WebGL und bei reduzierter Bewegung. Prüfpunkt: Bundle unter 250 kB gzip aus dem Build. Layout-Verschiebung 0 per Playwright. 60 Bilder pro Sekunde im Folgemodus auf Dimas Handy. Roadmap-Punkte von Phase 2 abhaken

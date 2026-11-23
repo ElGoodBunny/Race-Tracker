@@ -20,9 +20,9 @@ const setup: { slug: string; note: string; spots: { name: string; landmark?: str
 ];
 const races = await Promise.all(
   setup.map(async ({ slug, note, spots }) => {
-    const { city, course: c } = (await getEntry("races", slug))!.data;
+    const { city, course: c, targetSec } = (await getEntry("races", slug))!.data;
     const km = (s: { landmark?: string; km?: number }) => s.km ?? c.km[c.landmarks.find((l) => l.name === s.landmark)!.idx];
-    return { slug, city, note, course: { route: c.route, km: c.km }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
+    return { slug, city, note, targetSec, course: { route: c.route, km: c.km }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
   }),
 );
 // The recording all demos run on. Its own course length decides how it is stretched onto another course.
@@ -46,7 +46,10 @@ const recording = "hamburg-2026";
         <div class="card"><dt class="caption-4 muted">Puls</dt><dd class="title-2 mono" id="hud-hr">k. A.</dd></div>
         <div class="card"><dt class="caption-4 muted">Rennzeit</dt><dd class="title-2 mono" id="hud-time">0:00</dd></div>
       </dl>
-      <p class="caption-4 note card" id="note" hidden></p>
+      <div class="side">
+        <p class="caption-4 note card" id="note" hidden></p>
+        <dl class="card quality" id="quality" hidden><dt class="caption-4 muted">Daten</dt><dd class="title-2" id="hud-quality">gemessen</dd></dl>
+      </div>
       <p class="body-5 toast" id="toast" role="status" aria-live="polite"></p>
       <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
     </div>
@@ -57,6 +60,7 @@ const recording = "hamburg-2026";
         <button type="button" class="button-sm" data-mode="overview" aria-pressed="true">Übersicht</button>
       </div>
       <button type="button" class="button-sm solo" id="center">Zentrieren</button>
+      <button type="button" class="button-sm solo" id="outage">Ausfall 60 s</button>
       <div class="seg" role="group" aria-label="Uhr">
         <button type="button" class="button-sm" id="play" aria-pressed="true">Pause</button>
         <button type="button" class="button-sm" data-speed="1" aria-pressed="false">1×</button>
@@ -64,7 +68,7 @@ const recording = "hamburg-2026";
         <button type="button" class="button-sm" data-speed="60" aria-pressed="false">60×</button>
       </div>
     </div>
-    <p class="body-6 muted lead">Diese Seite ist nur für die Entwicklung. Ziehen verschiebt die Karte, mit der rechten Maustaste oder zwei Fingern drehst und neigst du sie. Danach bringt dich "Zentrieren" zurück zum Läufer.</p>
+    <p class="body-6 muted lead">Diese Seite ist nur für die Entwicklung. Ziehen verschiebt die Karte, mit der rechten Maustaste oder zwei Fingern drehst und neigst du sie. Danach bringt dich "Zentrieren" zurück zum Läufer. "Ausfall 60 s" lässt ab der aktuellen Rennzeit eine Minute Messwerte weg, dann läuft die Schätzung.</p>
   </section>
 </Base>
 
@@ -74,12 +78,14 @@ const recording = "hamburg-2026";
   .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
   .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
-  .fallback[hidden], .hud[hidden], .note[hidden] { display: none; }
+  .fallback[hidden], .hud[hidden], .note[hidden], .quality[hidden] { display: none; }
   /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
   .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .hud { position: absolute; left: var(--s200); top: var(--s200); margin: 0; display: flex; flex-wrap: wrap; gap: var(--s100); pointer-events: none; }
   .hud dd { margin: 0; }
-  .note { position: absolute; right: var(--s200); top: var(--s200); pointer-events: none; }
+  .side { position: absolute; right: var(--s200); top: var(--s200); display: flex; flex-direction: column; align-items: flex-end; gap: var(--s100); pointer-events: none; }
+  .note { margin: 0; }
+  .quality dd { margin: 0; }
   .toast { position: absolute; left: 50%; bottom: var(--s500); margin: 0; padding: var(--s100) var(--s200); border-radius: 9999px; background: var(--toast); color: var(--toast-ink); opacity: 0; transform: translate(-50%, var(--s100)); transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease); pointer-events: none; white-space: nowrap; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
   .credit { position: absolute; right: var(--s100); bottom: var(--s75); pointer-events: none; }
@@ -94,7 +100,7 @@ const recording = "hamburg-2026";
   @media (max-width: 640px) {
     .page { padding-block: var(--s600) 0; }
     .stage { aspect-ratio: 3 / 4; }
-    .note { top: auto; right: auto; left: var(--s200); bottom: var(--s400); }
+    .side { top: auto; right: auto; left: var(--s200); bottom: var(--s400); flex-direction: column-reverse; align-items: flex-start; }
     .toast { bottom: var(--s800); }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -107,12 +113,12 @@ const recording = "hamburg-2026";
   import { fmtDur, fmtKm, fmtPace } from "../../lib/format";
   import { createClock, type Speed } from "../../lib/live/clock";
   import { createSpotTracker, type Spot } from "../../lib/live/events";
-  import { replaySource, rescaleSource, type ReplayFile, type Sample } from "../../lib/live/source";
+  import { mixedSource, replaySource, rescaleSource, type ReplayFile, type Sample } from "../../lib/live/source";
   import { unpackScene, type PackedScene } from "../../lib/osm";
   import type { Mode } from "../../lib/view3d/camera";
   import { VIEW_TOKENS, createView } from "../../lib/view3d/view";
 
-  type Race = { slug: string; city: string; note: string; course: Pick<CourseData, "route" | "km">; spots: Spot[] };
+  type Race = { slug: string; city: string; note: string; targetSec: number; course: Pick<CourseData, "route" | "km">; spots: Spot[] };
   const stage = document.getElementById("stage")!;
   const canvas = document.getElementById("view") as HTMLCanvasElement;
   const root = document.documentElement;
@@ -130,20 +136,31 @@ const recording = "hamburg-2026";
     ]);
     // The recording runs on its own course as it is. On another course it is a demo, stretched by share of the distance.
     const recorded = replaySource(replay);
-    const source = race.slug === stage.dataset.recording ? recorded : rescaleSource(recorded, replay.km[replay.km.length - 1], race.course);
+    const demo = race.slug === stage.dataset.recording ? recorded : rescaleSource(recorded, replay.km[replay.km.length - 1], race.course);
+    // The demo as telemetry points in race time, then the mixed source on top (step 13). "Ausfall 60 s" drops points.
+    const stretch = demo.duration / recorded.duration;
+    const points = replay.t.map((t) => {
+      const { pace: _p, quality: _q, ...p } = demo.sampleAt(t * stretch);
+      return p;
+    });
+    /** Threshold of the demo. Live it is set after the LiveTrack measurement (phase 2b), proposal 90 s. */
+    const STALE_S = 30;
+    const outages: [number, number][] = [];
+    const build = () => mixedSource(points.filter((p) => !outages.some(([a, b]) => p.t >= a && p.t < b)), { staleS: STALE_S, course: race.course, targetSec: race.targetSec });
+    let source = build();
     const clock = createClock(source.duration);
     const tracker = createSpotTracker();
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
 
-    const hud = { km: el("hud-km"), pace: el("hud-pace"), hr: el("hud-hr"), time: el("hud-time") };
+    const hud = { km: el("hud-km"), pace: el("hud-pace"), hr: el("hud-hr"), time: el("hud-time"), quality: el("hud-quality") };
     let shown = "";
     function showHud(s: Sample) {
       // Text only changes a few times per second, so the DOM is touched only then.
-      const text = [`${fmtKm(s.km)} km`, s.pace ? `${fmtPace(s.pace)} /km` : "k. A.", s.hr ? `${Math.round(s.hr)} bpm` : "k. A.", fmtDur(s.t)];
+      const text = [`${fmtKm(s.km)} km`, s.pace ? `${fmtPace(s.pace)} /km` : "k. A.", s.hr ? `${Math.round(s.hr)} bpm` : "k. A.", fmtDur(s.t), s.quality === "measured" ? "gemessen" : "geschätzt"];
       if (text.join() === shown) return;
       shown = text.join();
-      [hud.km, hud.pace, hud.hr, hud.time].forEach((node, i) => (node.textContent = text[i]));
+      [hud.km, hud.pace, hud.hr, hud.time, hud.quality].forEach((node, i) => (node.textContent = text[i]));
     }
 
     const toast = el("toast");
@@ -189,6 +206,7 @@ const recording = "hamburg-2026";
     el("hud").hidden = false;
     el("note").textContent = race.note;
     el("note").hidden = false;
+    el("quality").hidden = false;
 
     const play = el("play");
     function setPlaying(on: boolean, now = performance.now()) {
@@ -211,6 +229,11 @@ const recording = "hamburg-2026";
     }
     for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) b.addEventListener("click", () => view.setMode(b.dataset.mode as Mode));
     el("center").addEventListener("click", () => view.setMode(view.mode));
+    el("outage").addEventListener("click", () => {
+      const t = clock.time(performance.now());
+      outages.push([t, t + 60]);
+      source = build();
+    });
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => view.setColors());
 
     clock.setSpeed(10, performance.now());
@@ -225,7 +248,14 @@ const recording = "hamburg-2026";
           return view;
         },
         clock,
-        source,
+        get source() {
+          return source;
+        },
+        /** Drop the telemetry from race time a to b, like the button. */
+        outage(a: number, b: number) {
+          outages.push([a, b]);
+          source = build();
+        },
         /** Throw the view away and build it again, to check that dispose() frees everything. */
         remount() {
           view.dispose();
