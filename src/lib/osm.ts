@@ -31,6 +31,64 @@ type GeoPoint = { lat: number; lon: number };
 /** Holes smaller than this (m²) are dropped: light wells and tiny islets only cost triangles. */
 const MIN_HOLE_M2 = 30;
 
+/** Building outlines and courtyards are simplified with this tolerance (step 5b). Cadastre outlines carry many points on straight edges. */
+const BUILDING_TOL_M = 2;
+/** Towers from this height (m) keep their full outline: they are seen from far away and few (Torre Glòries would turn from 55 into 9 corners). */
+const KEEP_OUTLINE_FROM_M = 50;
+
+/**
+ * Douglas-Peucker on a closed ring [x, y, ..., x0, y0] in metres. Starts at the point farthest from the centre, which is
+ * always a real corner, and also keeps the point farthest from that one. Returns the ring unchanged when fewer than
+ * 3 corners would remain or the area would change by more than 10 %, so no building vanishes or changes its size.
+ */
+export function simplifyRing(r: number[], tolM: number): number[] {
+  const n = r.length / 2 - 1;
+  if (n <= 3) return r;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < n; i++) {
+    cx += r[2 * i] / n;
+    cy += r[2 * i + 1] / n;
+  }
+  let s = 0;
+  for (let i = 1; i < n; i++) if (Math.hypot(r[2 * i] - cx, r[2 * i + 1] - cy) > Math.hypot(r[2 * s] - cx, r[2 * s + 1] - cy)) s = i;
+  const x = (k: number) => r[2 * ((s + k) % n)];
+  const y = (k: number) => r[2 * ((s + k) % n) + 1];
+  let f = 1;
+  for (let k = 2; k < n; k++) if (Math.hypot(x(k) - x(0), y(k) - y(0)) > Math.hypot(x(f) - x(0), y(f) - y(0))) f = k;
+  const keep = new Uint8Array(n + 1);
+  keep[0] = keep[f] = keep[n] = 1;
+  const stack: [number, number][] = [[0, f], [f, n]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const len = Math.hypot(x(b) - x(a), y(b) - y(a)) || 1;
+    let far = -1;
+    let dmax = tolM;
+    for (let k = a + 1; k < b; k++) {
+      const d = Math.abs((x(b) - x(a)) * (y(a) - y(k)) - (x(a) - x(k)) * (y(b) - y(a))) / len;
+      if (d > dmax) {
+        dmax = d;
+        far = k;
+      }
+    }
+    if (far > 0) {
+      keep[far] = 1;
+      stack.push([a, far], [far, b]);
+    }
+  }
+  const out: number[] = [];
+  for (let k = 0; k <= n; k++) if (keep[k]) out.push(x(k), y(k));
+  if (out.length / 2 - 1 < 3) return r;
+  const a0 = ringArea(r);
+  return Math.abs(ringArea(out) - a0) > 0.1 * a0 ? r : out;
+}
+
+function ringArea(r: number[]): number {
+  let a = 0;
+  for (let i = 0; i + 3 < r.length; i += 2) a += r[i] * r[i + 3] - r[i + 2] * r[i + 1];
+  return Math.abs(a / 2);
+}
+
 const samePoint = (a: GeoPoint, b: GeoPoint) => a.lat === b.lat && a.lon === b.lon;
 
 /**
@@ -242,7 +300,9 @@ export function osmToScene(elements: OverpassElement[], route: LatLng[], corrido
       const r = ring(g);
       if (t.building) {
         const [cx, cy] = centre(r);
-        if (distToRoute(cx, cy) <= corridorM) scene.buildings.push(withHoles({ ring: r, h: Math.round(buildingHeight(t) * 2) / 2 }, holes));
+        const h = Math.round(buildingHeight(t) * 2) / 2;
+        const simple = (q: number[]) => (h >= KEEP_OUTLINE_FROM_M ? q : simplifyRing(q, BUILDING_TOL_M));
+        if (distToRoute(cx, cy) <= corridorM) scene.buildings.push(withHoles({ ring: simple(r), h }, holes.map(simple)));
       } else if (t.natural === "water" || t.waterway === "riverbank") {
         scene.water.push(withHoles({ ring: r }, holes)); // water is kept whole, the Alster and Elbe are landmarks
       } else {

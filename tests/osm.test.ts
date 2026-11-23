@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import type { LatLng } from "../src/lib/course";
 import { makeLocal } from "../src/lib/view3d/world";
-import { buildingHeight, dedupeElements, joinRings, osmToScene, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
+import { buildingHeight, dedupeElements, joinRings, osmToScene, simplifyRing, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
 
 const route: LatLng[] = [[53.55, 9.96], [53.55, 9.97]]; // ~660 m west to east
 const square = (lat: number, lon: number, d = 0.0001) => [
@@ -281,5 +281,79 @@ describe("osmToScene building relations without outer", () => {
     const scene = osmToScene([open], near, 600, (m) => warnings.push(m));
     expect(scene.parks).toEqual([]);
     expect(warnings).toEqual(["way 77: open ring dropped"]);
+  });
+});
+
+describe("simplifyRing (building outlines, 2 m)", () => {
+  const ringArea = (r: number[]) => {
+    let a = 0;
+    for (let i = 0; i + 3 < r.length; i += 2) a += r[i] * r[i + 3] - r[i + 2] * r[i + 1];
+    return Math.abs(a / 2);
+  };
+  const corners = (r: number[]) => r.length / 2 - 1;
+
+  it("turns a rectangle with points on its edges into its 4 corners, wherever the ring starts", () => {
+    // 40 x 20 m, starting in the middle of the bottom edge, extra points on every edge (cadastre style).
+    const r = [20, 0, 30, 0, 40, 0, 40, 7.5, 40, 20, 25, 20, 10, 20, 0, 20, 0, 10, 0, 0, 10, 0, 20, 0];
+    const s = simplifyRing(r, 2);
+    expect(corners(s)).toBe(4);
+    expect(ringArea(s)).toBe(800);
+    expect(s.slice(-2)).toEqual(s.slice(0, 2));
+  });
+
+  it("keeps the 5 m chamfered corner of an Eixample block", () => {
+    // 60 x 60 m block, north-east corner cut at 45° over 5 m (legs of 3.5 m), points also along the edges.
+    const r = [0, 0, 30, 0, 60, 0, 60, 30, 60, 56.5, 56.5, 60, 30, 60, 0, 60, 0, 30, 0, 0];
+    const s = simplifyRing(r, 2);
+    expect(corners(s)).toBe(5);
+    for (const p of [[60, 56.5], [56.5, 60]]) expect(s.some((v, i) => i % 2 === 0 && v === p[0] && s[i + 1] === p[1])).toBe(true);
+  });
+
+  it("keeps the outline when simplifying would change the area by more than 10 %", () => {
+    // 6 x 3 m building with a 1.5 m deep notch: 2 m would cut it off and add 25 % area.
+    const r = [0, 0, 6, 0, 6, 3, 4, 3, 4, 1.5, 2, 1.5, 2, 3, 0, 3, 0, 0];
+    expect(simplifyRing(r, 2)).toEqual(r);
+  });
+
+  it("never drops below 3 corners, so no building vanishes", () => {
+    const tiny = [0, 0, 1.5, 0, 1.5, 0.5, 1.5, 1.5, 0, 1.5, 0, 0];
+    const s = simplifyRing(tiny, 2);
+    expect(corners(s)).toBeGreaterThanOrEqual(3);
+    expect(Math.abs(ringArea(s) - ringArea(tiny))).toBeLessThanOrEqual(0.1 * ringArea(tiny));
+  });
+});
+
+describe("osmToScene simplifies building outlines and courtyards", () => {
+  const near: LatLng[] = [[41.4105, 2.1785], [41.4105, 2.1795]];
+  // Building of about 66 x 55 m with points along its edges and a courtyard of about 26 x 22 m, also with edge points.
+  const edge = (lat: number, lon: number, d: number) => [pt(lat, lon), pt(lat, lon + d / 2), pt(lat, lon + d), pt(lat + d / 2, lon + d), pt(lat + d, lon + d), pt(lat + d, lon + d / 2), pt(lat + d, lon), pt(lat + d / 2, lon), pt(lat, lon)];
+  const scene = osmToScene(
+    [
+      { type: "relation", id: 1, tags: { building: "yes", type: "multipolygon" }, members: [way("outer", edge(41.4105, 2.179, 0.0005)), way("inner", edge(41.4106, 2.1791, 0.0002))] },
+      { type: "way", id: 2, tags: { building: "yes" }, geometry: edge(41.4104, 2.1785, 0.00002) }, // about 1.7 x 2.2 m
+    ] as OverpassElement[],
+    near,
+    600,
+  );
+
+  it("keeps every building and its courtyard, with 4 corners each where the edges are straight", () => {
+    expect(scene.buildings).toHaveLength(2);
+    expect(scene.buildings[0].ring).toHaveLength(10);
+    expect(scene.buildings[0].holes).toHaveLength(1);
+    expect(scene.buildings[0].holes![0]).toHaveLength(10);
+    expect(scene.buildings[1].ring.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("keeps the full outline of towers from 50 m, they are seen from far away", () => {
+    const towers = osmToScene(
+      [
+        { type: "way", id: 3, tags: { building: "yes", height: "50" }, geometry: edge(41.4105, 2.179, 0.0005) },
+        { type: "way", id: 4, tags: { building: "yes", height: "49.5" }, geometry: edge(41.4105, 2.179, 0.0005) },
+      ] as OverpassElement[],
+      near,
+      600,
+    );
+    expect(towers.buildings[0].ring).toHaveLength(18);
+    expect(towers.buildings[1].ring).toHaveLength(10);
   });
 });

@@ -37,13 +37,13 @@ describe("packScene and unpackScene", () => {
     expect(() => packScene({ ...tiny, parks: [[0, 0, 10.25, 0, 10, 10, 0, 0]] })).toThrow(/grid/);
   });
 
-  it("Hamburg decodes to exactly the geometry of the old scene.json (commit 882603c)", () => {
+  it("Hamburg decodes to exactly the pinned geometry (outlines simplified in step 5b)", () => {
     const scene = unpackScene(
       JSON.parse(readFileSync("public/data/hamburg-2026/scene.json", "utf8")),
       JSON.parse(readFileSync("public/data/hamburg-2026/trees.json", "utf8")),
     );
     const sha = createHash("sha256").update(JSON.stringify(scene)).digest("hex");
-    expect(sha).toBe("dd08e27d33b24a5d77ed81f46e5645d779da7ed079e37fe2c62e9ef088ff9bdd");
+    expect(sha).toBe("4d65f9836352b569a2bfe8fd53bfa52b72f0a8640cf245f4be66955fe15ad334");
   });
 
   it("Hamburg on disk decodes and encodes to the same data", () => {
