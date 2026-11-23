@@ -123,8 +123,9 @@ const recording = "hamburg-2026";
   const json = async <T,>(url: string) => (await (await fetch(url)).json()) as T;
 
   async function start() {
-    const [packed, replay] = await Promise.all([
+    const [packed, trees, replay] = await Promise.all([
       json<PackedScene>(`/data/${race.slug}/scene.json`),
+      json<number[]>(`/data/${race.slug}/trees.json`),
       json<ReplayFile>(`/data/${stage.dataset.recording}/replay.json`),
     ]);
     // The recording runs on its own course as it is. On another course it is a demo, stretched by share of the distance.
@@ -155,7 +156,7 @@ const recording = "hamburg-2026";
       toastTimer = window.setTimeout(() => toast.classList.remove("on"), 4000);
     }
 
-    const sceneData = unpackScene(packed);
+    const sceneData = unpackScene(packed, trees);
     const mount = () => createView(canvas, {
       scene: sceneData,
       course: race.course,

@@ -13,11 +13,12 @@ import { createActors } from "./actors";
 import { FOV_DEG, LOOK_AHEAD_M, cameraPosition, createRig, figureScale, fitOverview, turnToward, type Mode, type Pose } from "./camera";
 import type { Frame, Layer, SpotState, Tokens } from "./layer";
 import { createCity, createRibbon, CITY_TOKENS, type CityColors } from "./scene";
+import { createTrees } from "./trees";
 import { headingOf, makeLocal, makeTrack, toThree } from "./world";
 
 /** Token names the view needs, without the leading "--". The page reads them from CSS and passes them in. */
 export const VIEW_TOKENS = [
-  ...CITY_TOKENS, "route", "route-todo", "ink", "pressed-ink", "muted", "toast", "signal",
+  ...CITY_TOKENS, "tree", "trunk", "route", "route-todo", "ink", "pressed-ink", "muted", "toast", "signal",
   ...[1, 2, 3, 4, 5, 6].map((i) => `flag-${i}`),
   ...[1, 2, 3].flatMap((i) => [`figure-skin-${i}`, `figure-hair-${i}`]),
 ] as const;
@@ -222,6 +223,7 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
 
   let ready = false;
   add(createRibbon(track, o.course.km));
+  add(createTrees(o.scene.trees));
   add(createActors(track));
   setColors();
   ready = true;

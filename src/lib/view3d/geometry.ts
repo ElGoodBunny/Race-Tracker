@@ -134,6 +134,61 @@ export function groupTiles<T extends Polygon>(buildings: T[], size = TILE_M): Ti
   return [...tiles.values()].sort((a, b) => a.ix - b.ix || a.iy - b.iy);
 }
 
+/* ---------- trees (step 6) ---------- */
+
+/** Trees are drawn around the camera target up to this distance (m), at most TREE_MAX of them, the nearest first. */
+export const TREE_RADIUS_M = 400;
+export const TREE_MAX = 1600;
+const TREE_CELL_M = 100;
+
+/** Trees in cells of 100 m, so the ones near a point are found without looking at all of them. */
+export interface TreeGrid {
+  cells: Map<string, number[]>;
+}
+
+export function treeGrid(trees: readonly number[]): TreeGrid {
+  const cells = new Map<string, number[]>();
+  for (let i = 0; i + 1 < trees.length; i += 2) {
+    const key = `${Math.floor(trees[i] / TREE_CELL_M)},${Math.floor(trees[i + 1] / TREE_CELL_M)}`;
+    let c = cells.get(key);
+    if (!c) cells.set(key, (c = []));
+    c.push(trees[i], trees[i + 1]);
+  }
+  return { cells };
+}
+
+/** Up to max trees within r of (x, y), nearest first, flat [x, y, ...]. */
+export function nearestTrees(grid: TreeGrid, x: number, y: number, r: number, max: number): number[] {
+  const near: [number, number, number][] = [];
+  const [x0, x1, y0, y1] = [x - r, x + r, y - r, y + r].map((v) => Math.floor(v / TREE_CELL_M));
+  for (let ix = x0; ix <= x1; ix++) {
+    for (let iy = y0; iy <= y1; iy++) {
+      const c = grid.cells.get(`${ix},${iy}`);
+      if (!c) continue;
+      for (let i = 0; i < c.length; i += 2) {
+        const d = Math.hypot(c[i] - x, c[i + 1] - y);
+        if (d <= r) near.push([d, c[i], c[i + 1]]);
+      }
+    }
+  }
+  near.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  const out: number[] = [];
+  for (let i = 0; i < near.length && i < max; i++) out.push(near[i][1], near[i][2]);
+  return out;
+}
+
+/** Size, turn and shade of the tree at (x, y). OSM has no tree sizes, so they vary by position, the same tree looks the same on every visit. */
+export function treeLook(x: number, y: number): { scale: number; turn: number; shade: number } {
+  let h = Math.imul(Math.round(x * 2), 73856093) ^ Math.imul(Math.round(y * 2), 19349663);
+  const next = () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+  return { scale: 0.8 + 0.5 * next(), turn: 2 * Math.PI * next(), shade: 0.85 + 0.2 * next() };
+}
+
 /* ---------- course ribbon (step 7) ---------- */
 
 /** One cross-section of the ribbon at a route point. */
