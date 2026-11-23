@@ -43,7 +43,7 @@ describe("packScene and unpackScene", () => {
       JSON.parse(readFileSync("public/data/hamburg-2026/trees.json", "utf8")),
     );
     const sha = createHash("sha256").update(JSON.stringify(scene)).digest("hex");
-    expect(sha).toBe("4d65f9836352b569a2bfe8fd53bfa52b72f0a8640cf245f4be66955fe15ad334");
+    expect(sha).toBe("03c8ad045d96e37e76eb1488860b61145fc5b8cc877f8e40a1f9bdb87123db08");
   });
 
   it("Hamburg on disk decodes and encodes to the same data", () => {

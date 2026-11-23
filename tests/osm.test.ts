@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import type { LatLng } from "../src/lib/course";
 import { makeLocal } from "../src/lib/view3d/world";
-import { buildingHeight, dedupeElements, joinRings, osmToScene, simplifyRing, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
+import { buildingHeight, dedupeElements, joinRings, osmToScene, ringsCross, simplifyRing, overpassQueries, overpassTimedOut, routeBounds, splitBounds, type OverpassElement } from "../src/lib/osm";
 
 const route: LatLng[] = [[53.55, 9.96], [53.55, 9.97]]; // ~660 m west to east
 const square = (lat: number, lon: number, d = 0.0001) => [
@@ -355,5 +355,18 @@ describe("osmToScene simplifies building outlines and courtyards", () => {
     );
     expect(towers.buildings[0].ring).toHaveLength(18);
     expect(towers.buildings[1].ring).toHaveLength(10);
+  });
+});
+
+describe("ringsCross", () => {
+  it("finds a courtyard that crosses its outline and ignores one that only touches it", () => {
+    const outline = [0, 0, 10, 0, 10, 10, 0, 10, 0, 0];
+    expect(ringsCross([outline, [8, 4, 12, 4, 12, 6, 8, 6, 8, 4]])).toBe(true);
+    expect(ringsCross([outline, [2, 2, 4, 2, 4, 4, 2, 4, 2, 2]])).toBe(false);
+    expect(ringsCross([outline, [10, 4, 8, 4, 8, 6, 10, 6, 10, 4]])).toBe(false);
+  });
+
+  it("finds a ring that crosses itself", () => {
+    expect(ringsCross([[0, 0, 10, 10, 10, 0, 0, 10, 0, 0]])).toBe(true);
   });
 });

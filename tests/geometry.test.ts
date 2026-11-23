@@ -140,7 +140,7 @@ describe("hamburg-2026 scene", () => {
     const max = 2 * points + points + 2 * holes - 2 * B;
     expect(total).toBeLessThanOrEqual(max);
     expect(total).toBeGreaterThan(0.99 * max);
-    // 313,251 before step 5b; simplifying the outlines with 2 m tolerance (towers from 50 m kept) leaves 178,284.
+    // 313,251 before step 5b; simplifying the outlines with 2 m tolerance (towers from 50 m kept) leaves 178,374.
     expect(total).toBeGreaterThan(170_000);
     expect(total).toBeLessThan(185_000);
   });
@@ -165,10 +165,27 @@ describe("barcelona-2027 scene (step 5b budget)", () => {
   const bcn = unpackScene(JSON.parse(readFileSync("public/data/barcelona-2027/scene.json", "utf8")));
 
   it("keeps the whole city with buildings, water and green under 380,000 triangles, leaving room for the live layers below 400,000", () => {
-    // 928,910 before step 5b; outlines simplified with 2 m (towers from 50 m kept) leave 354,880 for the buildings.
+    // 928,910 before step 5b; outlines simplified with 2 m (towers from 50 m kept) leave 358,756 for the buildings.
     const buildings = groupTiles(bcn.buildings).reduce((n, t) => n + tris(buildingMesh(t.buildings)), 0);
     const areas = tris(areaMesh(bcn.water)) + tris(areaMesh(bcn.parks.map((ring) => ({ ring }))));
     expect(bcn.buildings).toHaveLength(22_489);
     expect(buildings + areas).toBeLessThan(380_000);
+  });
+
+  it("gives every simplified building a roof as large as its outline minus its courtyards", () => {
+    // Outline and courtyards are simplified separately, a courtyard crossing its outline would break the roof.
+    const area = (r: number[]) => {
+      let a = 0;
+      for (let i = 0; i + 3 < r.length; i += 2) a += r[i] * r[i + 3] - r[i + 2] * r[i + 1];
+      return Math.abs(a / 2);
+    };
+    let missing = 0;
+    for (const b of bcn.buildings) {
+      const m = buildingMesh([b]);
+      const want = area(b.ring) - (b.holes ?? []).reduce((s, h) => s + area(h), 0);
+      if (Math.abs(flatArea(m, roofTris(m, b.h)) - want) > 0.01 * want + 0.5) missing++;
+    }
+    // One building (around x 3529, y 2387) has a courtyard partly outside its outline in OSM itself. Before step 5b there were 6 such roofs.
+    expect(missing).toBeLessThanOrEqual(1);
   });
 });

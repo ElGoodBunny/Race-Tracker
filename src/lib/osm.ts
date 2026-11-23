@@ -89,6 +89,21 @@ function ringArea(r: number[]): number {
   return Math.abs(a / 2);
 }
 
+/** True if any two edges of these closed rings cross (touching does not count). Simplifying outline and courtyards separately can make them cross. */
+export function ringsCross(rings: number[][]): boolean {
+  const edges: number[][] = [];
+  for (const r of rings) for (let i = 0; i + 3 < r.length; i += 2) edges.push([r[i], r[i + 1], r[i + 2], r[i + 3]]);
+  const side = (ax: number, ay: number, bx: number, by: number, px: number, py: number) => Math.sign((bx - ax) * (py - ay) - (by - ay) * (px - ax));
+  for (let i = 0; i < edges.length; i++) {
+    const [ax, ay, bx, by] = edges[i];
+    for (let j = i + 1; j < edges.length; j++) {
+      const [cx, cy, dx, dy] = edges[j];
+      if (side(ax, ay, bx, by, cx, cy) * side(ax, ay, bx, by, dx, dy) < 0 && side(cx, cy, dx, dy, ax, ay) * side(cx, cy, dx, dy, bx, by) < 0) return true;
+    }
+  }
+  return false;
+}
+
 const samePoint = (a: GeoPoint, b: GeoPoint) => a.lat === b.lat && a.lon === b.lon;
 
 /**
@@ -301,8 +316,12 @@ export function osmToScene(elements: OverpassElement[], route: LatLng[], corrido
       if (t.building) {
         const [cx, cy] = centre(r);
         const h = Math.round(buildingHeight(t) * 2) / 2;
-        const simple = (q: number[]) => (h >= KEEP_OUTLINE_FROM_M ? q : simplifyRing(q, BUILDING_TOL_M));
-        if (distToRoute(cx, cy) <= corridorM) scene.buildings.push(withHoles({ ring: simple(r), h }, holes.map(simple)));
+        if (distToRoute(cx, cy) <= corridorM) {
+          const sr = h >= KEEP_OUTLINE_FROM_M ? r : simplifyRing(r, BUILDING_TOL_M);
+          const sh = holes.map((q) => (h >= KEEP_OUTLINE_FROM_M ? q : simplifyRing(q, BUILDING_TOL_M)));
+          const ok = sr === r || !ringsCross([sr, ...sh]);
+          scene.buildings.push(withHoles({ ring: ok ? sr : r, h }, ok ? sh : holes));
+        }
       } else if (t.natural === "water" || t.waterway === "riverbank") {
         scene.water.push(withHoles({ ring: r }, holes)); // water is kept whole, the Alster and Elbe are landmarks
       } else {
