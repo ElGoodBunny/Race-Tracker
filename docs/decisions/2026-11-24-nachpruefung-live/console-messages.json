@@ -1,0 +1,50 @@
+[
+  {
+    "device": "desktop",
+    "theme": "hell",
+    "type": "debug",
+    "text": "[vite] connecting..."
+  },
+  {
+    "device": "desktop",
+    "theme": "hell",
+    "type": "debug",
+    "text": "[vite] connected."
+  },
+  {
+    "device": "desktop",
+    "theme": "dunkel",
+    "type": "debug",
+    "text": "[vite] connecting..."
+  },
+  {
+    "device": "desktop",
+    "theme": "dunkel",
+    "type": "debug",
+    "text": "[vite] connected."
+  },
+  {
+    "device": "-handy",
+    "theme": "hell",
+    "type": "debug",
+    "text": "[vite] connecting..."
+  },
+  {
+    "device": "-handy",
+    "theme": "hell",
+    "type": "debug",
+    "text": "[vite] connected."
+  },
+  {
+    "device": "-handy",
+    "theme": "dunkel",
+    "type": "debug",
+    "text": "[vite] connecting..."
+  },
+  {
+    "device": "-handy",
+    "theme": "dunkel",
+    "type": "debug",
+    "text": "[vite] connected."
+  }
+]
