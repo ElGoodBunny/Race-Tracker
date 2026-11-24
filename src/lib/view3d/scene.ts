@@ -124,26 +124,47 @@ const FLOW_M_PER_S = 14;
 /** From this camera distance on the band is drawn over the buildings. Close up it lies on the ground between them. */
 const RIBBON_ON_TOP_M = 1500;
 
-/** Small arrow pointing along the course. The material colour tints it, so a theme change needs no new texture. */
-function arrowTexture(): CanvasTexture {
+/** How far the arrows on the part still to run lean from the band colour towards the arrow colour. */
+const TODO_ARROW_MIX = 0.35;
+
+function mixHex(a: string, b: string, k: number): string {
+  return `#${new Color(a).lerp(new Color(b), k).getHexString()}`;
+}
+
+/**
+ * Band and arrow colours from the route tokens (docs/DESIGN.md): the part already run in --route with arrows in
+ * --route-ink, as in frame-04.jpg, the rest in --route-todo with arrows only a little set off.
+ */
+export function ribbonInk(t: Record<string, string>): { done: { band: string; arrow: string }; todo: { band: string; arrow: string } } {
+  return {
+    done: { band: t["route"], arrow: t["route-ink"] },
+    todo: { band: t["route-todo"], arrow: mixHex(t["route-todo"], t["route-ink"], TODO_ARROW_MIX) },
+  };
+}
+
+/** Double chevron pointing along the course, almost across the whole band. One tile is PATTERN_M long. */
+function arrowTexture(band: string, arrow: string): CanvasTexture {
   const c = document.createElement("canvas");
-  c.width = 32;
-  c.height = 64;
+  c.width = 64;
+  c.height = 128;
   const g = c.getContext("2d")!;
-  g.fillStyle = "#d6d6d6";
-  g.fillRect(0, 0, 32, 64);
-  g.strokeStyle = "#ffffff";
-  g.lineWidth = 5;
+  g.fillStyle = band;
+  g.fillRect(0, 0, 64, 128);
+  g.strokeStyle = arrow;
+  g.lineWidth = 9;
   g.lineJoin = "round";
   g.lineCap = "round";
-  g.beginPath();
-  g.moveTo(8, 40);
-  g.lineTo(16, 26);
-  g.lineTo(24, 40);
-  g.stroke();
+  for (const top of [40, 64]) {
+    g.beginPath();
+    g.moveTo(10, top + 18);
+    g.lineTo(32, top);
+    g.lineTo(54, top + 18);
+    g.stroke();
+  }
   const t = new CanvasTexture(c);
   t.wrapS = t.wrapT = RepeatWrapping;
   t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 4;
   return t;
 }
 
@@ -162,9 +183,9 @@ export function createRibbon(track: Track, km: readonly number[]): Layer {
   geometry.computeBoundingSphere();
   const total = (sections.length - 1) * 6;
 
-  const map = arrowTexture();
-  const done = new MeshBasicMaterial({ map, depthWrite: false });
-  const todo = new MeshBasicMaterial({ map, depthWrite: false });
+  // The colours sit in the textures, built by setColors. The materials stay white so they do not tint them.
+  const done = new MeshBasicMaterial({ depthWrite: false });
+  const todo = new MeshBasicMaterial({ depthWrite: false });
   const band = new Mesh(geometry, [done, todo]);
   band.renderOrder = 2.5;
 
@@ -208,7 +229,10 @@ export function createRibbon(track: Track, km: readonly number[]): Layer {
         band.renderOrder = onTop ? 4.5 : 2.5;
         tip.renderOrder = onTop ? 4.6 : 2.6;
       }
-      if (f.animate) map.offset.y = -((f.now / 1000) * FLOW_M_PER_S) / PATTERN_M % 1;
+      if (f.animate) {
+        const y = -((f.now / 1000) * FLOW_M_PER_S) / PATTERN_M % 1;
+        for (const m of [done.map, todo.map]) if (m) m.offset.y = y;
+      }
       if (!f.sample || !f.runner) {
         tip.visible = false;
         return;
@@ -221,15 +245,20 @@ export function createRibbon(track: Track, km: readonly number[]): Layer {
       tip.visible = true;
     },
     setColors(t) {
-      done.color.set(t["route"]);
-      todo.color.set(t["route-todo"]);
+      const ink = ribbonInk(t);
+      for (const [m, c] of [[done, ink.done], [todo, ink.todo]] as const) {
+        m.map?.dispose();
+        m.map = arrowTexture(c.band, c.arrow);
+        m.needsUpdate = true;
+      }
     },
     dispose() {
       geometry.dispose();
       tipGeometry.dispose();
-      done.dispose();
-      todo.dispose();
-      map.dispose();
+      for (const m of [done, todo]) {
+        m.map?.dispose();
+        m.dispose();
+      }
     },
   };
 }

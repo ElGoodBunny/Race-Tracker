@@ -16,6 +16,7 @@ Der Prüfpunkt von Schritt 7 selbst ("bei km 12 endet der kräftige Teil unter d
 
 ## Erlaubte Dateien
 - `src/lib/view3d/scene.ts`
+- `src/lib/view3d/view.ts`: nur `route-ink` in der Liste der gelesenen Tokens (beim Umsetzen nachgetragen)
 - `tests/scene.test.ts`
 - `docs/decisions/2026-11-13-3d-konzept.md`: Nachtrag
 - `docs/tasks/010-claude-streckenband.md`
