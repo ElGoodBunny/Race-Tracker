@@ -1,9 +1,12 @@
 ---
-// One page per race. Phase 0: static hero + course map.
-// Phase 1 ports the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits, 3D).
+// One page per race: hero and the live view. The 3D view loads when it comes into view, the 2D map holds its place
+// until then and stays for good without WebGL (docs/tasks/017-claude-einbau-rennseite.md).
+// Phase 1 ports the rest of the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits).
+import { existsSync } from "node:fs";
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import CourseMap from "../components/CourseMap.astro";
+import LiveStage, { type LiveRace } from "../components/LiveStage.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
 
 export async function getStaticPaths() {
@@ -16,6 +19,22 @@ const dateFmt = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digi
 const startFmt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: race.timezone });
 const planned = new Date(race.plannedStart);
 const net = race.result?.netSec;
+
+// The recording every replay runs on. On its own course it is the race day, on any other a test run (decided 24.11.).
+const recording = "hamburg-2026";
+const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
+  ? {
+      slug: race.slug,
+      city: race.city,
+      note: race.slug === recording ? "Aufzeichnung vom Renntag" : "Probelauf mit Dimas Daten aus Hamburg",
+      targetSec: race.targetSec,
+      bib: race.bib,
+      block: race.block,
+      course: { route: race.course.route, km: race.course.km, landmarks: race.course.landmarks },
+      // Spots come from Supabase in phase 1.
+      spots: [],
+    }
+  : null;
 ---
 
 <Base title={`Dima läuft in ${race.city}`} description={`${race.title}: geschätzte Position, Zwischenzeiten, Cheering Spots und Pinnwand.`} source={race.course.source}>
@@ -39,9 +58,33 @@ const net = race.result?.netSec;
 
   <section class="wrap" id="live" aria-labelledby="live-h">
     <h2 id="live-h" class="heading-2 section-title">Die Strecke</h2>
-    <CourseMap race={race} />
+    {live ? (
+      <div class="live">
+        <LiveStage races={[live]} recording={recording}>
+          <CourseMap slot="placeholder" race={race} fill />
+        </LiveStage>
+      </div>
+    ) : (
+      <CourseMap race={race} />
+    )}
   </section>
 </Base>
+
+<script>
+  // three.js and the scene load only when the view comes into sight. Until then, and without WebGL, the 2D map shows.
+  const stage = document.getElementById("stage");
+  if (stage) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        import("../components/live-stage").then(({ startLive }) => startLive(stage));
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(stage);
+  }
+</script>
 
 <style>
   .hero { padding-block: var(--s900) var(--s600); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s300); }
@@ -52,6 +95,7 @@ const net = race.result?.netSec;
   .facts { display: flex; flex-wrap: wrap; gap: var(--s300) var(--s400); margin: 0; }
   .facts dd { margin: 0; }
   .section-title { margin-bottom: var(--s400); }
+  .live { display: flex; flex-direction: column; gap: var(--s300); }
   @media (max-width: 640px) {
     .hero { padding-block: var(--s800) var(--s400); }
     .grad { font-size: 48px; line-height: 48px; }

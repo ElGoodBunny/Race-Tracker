@@ -81,3 +81,4 @@ Roadmap: <Phase und Schritt>
 - 013 Ansicht auf die freie Fläche (Phase 2, Schritt 12): claude, erledigt
 - 014 Zoom mit zwei Fingern beim Folgen (Phase 2, Schritt 8): claude, erledigt
 - 015 Konfetti in der richtigen Größe (Phase 2, Schritt 11): claude, erledigt
+- 017 3D-Ansicht in der Rennseite (Phase 2, Schritte 15 und 13): claude, review

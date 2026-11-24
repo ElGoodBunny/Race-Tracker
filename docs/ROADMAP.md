@@ -89,10 +89,12 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] 13. **Replay-Steuerung** ersetzt die Simulation. Mischquelle mit Rückfall auf die Schätzung. Prüfpunkt: Check "Rückfall ohne Sprung" als Test: Telemetrie 60 s abschneiden, km läuft stetig weiter, Qualität wechselt auf "geschätzt", beim Wiederkommen kein Rücksprung
   - [x] Mischquelle mit Rückfall und Check "Rückfall ohne Sprung" als Test (`mixedSource`, `tests/mixed-source.test.ts`)
   - [ ] Schwelle für "geschätzt" nach der LiveTrack-Messung festlegen (Vorschlag 90 s, Check und Demo nehmen 30 s)
-  - [ ] Replay-Steuerung auf der Rennseite
+  - [x] Replay-Steuerung auf der Rennseite (Paket 017)
 - [ ] 14. **Wahrzeichen:** Sagrada Família modellieren, OSM-Klotz an der Stelle entfernen. Prüfpunkt: Sichtprüfung: ein Gebäude, kein doppeltes
   - [ ] Sagrada Família hat in OSM keine Höhe (30 m Pauschale)
 - [ ] 15. **Einbau in die Rennseite.** Nachladen beim Sichtbarwerden, 2D-Karte als Platzhalter, Rückfall ohne WebGL und bei reduzierter Bewegung. Prüfpunkt: Bundle unter 250 kB gzip aus dem Build. Layout-Verschiebung 0 per Playwright. 60 Bilder pro Sekunde im Folgemodus auf Dimas Handy. Roadmap-Punkte von Phase 2 abhaken
+  - [x] Einbau mit Nachladen, 2D-Karte als Platzhalter, Rückfall ohne WebGL. 3D-Bundle 165 kB gzip, Skript der Rennseite 1,2 kB. Layout-Verschiebung 0 per Playwright (Paket 017)
+  - [ ] 60 Bilder pro Sekunde im Folgemodus auf Dimas Handy, sobald eine Vorschau online ist
 
 ## Phase 2b: Echte Live-Daten (VISION 6)
 - [ ] Auf dem Mac prüfen, was ein geteilter Garmin-LiveTrack-Link liefert (Felder, Takt, Verzögerung), Ergebnis in `docs/decisions/`
