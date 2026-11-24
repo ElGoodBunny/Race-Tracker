@@ -1,6 +1,6 @@
 # 012 "Als Nächstes" im Panel
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/012-als-naechstes-panel
 Roadmap: Phase 2, Schritt 11 (Spots), Teil "Liste Als Nächstes"
 

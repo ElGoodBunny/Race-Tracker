@@ -1,6 +1,6 @@
 # 013 Ansicht auf die freie Fläche
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/013-freie-flaeche
 Roadmap: Phase 2, Schritt 12 (HUD und Panel), Nachtrag aus der Sichtprüfung
 
