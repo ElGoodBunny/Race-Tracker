@@ -1,19 +1,17 @@
 # Teamregeln für Agenten
 
-An diesem Repo arbeiten drei Agenten, alle auf Dimas Mac. Dima vergibt die Pakete, entscheidet bei Rückfragen und merged. Lies diese Datei ganz, bevor du etwas tust.
+An diesem Repo arbeiten zwei Agenten, beide auf Dimas Mac. Dima vergibt die Pakete, entscheidet bei Rückfragen und merged. Lies diese Datei ganz, bevor du etwas tust.
 
 ## Wer was macht
 - **Claude** (Claude Code): Lead. Plant, schreibt die Pakete in `docs/tasks/`, entscheidet Architektur und Design. Besitzt die Kernmodule in `src/lib/`, Supabase, RLS und Security sowie die schwierigen 3D-Teile. Reviewt jedes Paket, bevor es gemerged wird.
-- **Codex** (Codex CLI oder ChatGPT-Desktop-App, Free-Plan): kleine Logik-Pakete mit Tests, die in einer Sitzung fertig werden. Typisch: reine Funktionen in `src/lib/` mit Vitest-Tests, Port einfacher Bausteine aus `legacy/`.
 - **Gemini** (Gemini 3.8 Flash in Antigravity): Sichtprüfungen im Browser, Messungen, Skripte am Mac laufen lassen (OSM, Garmin LiveTrack). Ändert keinen Code in `src/`, außer das Paket erlaubt es ausdrücklich. Zusätzliche Regeln in `GEMINI.md`.
-- Codex und Gemini treffen keine Architektur- oder Designentscheidungen und haben höchstens ein Paket gleichzeitig.
+- Gemini trifft keine Architektur- oder Designentscheidungen und hat höchstens ein Paket gleichzeitig.
 - **Dima**: einziger, der Keys, Logins, das Supabase-Dashboard, GitLab, GitHub und Zahlungen anfasst.
 
 ## Wo du arbeitest
 - Basis ist der Branch `phase-2`. `main` ist veraltet: nie davon abzweigen, nie dorthin mergen.
 - Jeder Agent hat einen eigenen Ordner (Git-Worktree). Alle Ordner teilen dasselbe Repo, Commits in einem Ordner sind in den anderen sofort sichtbar.
   - Claude: `~/Desktop/Dev/Race Tracker` (Hauptordner)
-  - Codex: `~/Desktop/Dev/race-tracker-codex`
   - Gemini: `~/Desktop/Dev/race-tracker-gemini`
 - Dima legt deinen Ordner mit deinem Branch an. Arbeite nur dort, wechsle dort nicht den Branch und fass die anderen Ordner nicht an.
 - `Claude outputs/` und `brag-output/` im Hauptordner gehören nicht zum Projekt. Ignorieren.
@@ -52,7 +50,7 @@ Deine Befehle wirken auf seinen Rechner, nicht auf eine Sandbox.
 ## Vorlage für ein Paket
 ```
 # <nr> <Titel>
-Besitzer: claude | codex | gemini
+Besitzer: claude | gemini
 Status: offen | in Arbeit | blockiert | review | erledigt
 Branch: <agent>/<nr>-<kurzname>
 Roadmap: <Phase und Schritt>
@@ -68,7 +66,7 @@ Roadmap: <Phase und Schritt>
 ```
 
 ## Pakete
-- 001 Liste "Als Nächstes" (Phase 2, Schritt 11): codex, offen, `docs/tasks/001-codex-als-naechstes.md`
+- 001 Liste "Als Nächstes" (Phase 2, Schritt 11): claude, offen, `docs/tasks/001-claude-als-naechstes.md`
 - 002 Sichtprüfung Streckenband und Läufer auf `/dev/live` (Phase 2, Schritte 7 und 9): gemini, offen, `docs/tasks/002-gemini-sichtpruefung-live.md`
 - 003 Budget Barcelona, Detailstufe der Stadt (Phase 2, Schritt 5b): claude, review
 - 004 Bäume (Phase 2, Schritt 6): claude, review, Branch `claude/004-baeume` (baut auf 003 auf)

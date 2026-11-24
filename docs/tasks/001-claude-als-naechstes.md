@@ -1,7 +1,7 @@
 # 001 Liste "Als Nächstes"
-Besitzer: codex
+Besitzer: claude
 Status: offen
-Branch: codex/001-als-naechstes
+Branch: claude/001-als-naechstes
 Roadmap: Phase 2, Schritt 11 (Spots), Teil "Liste Als Nächstes"
 
 ## Worum es geht
@@ -52,7 +52,7 @@ Kommentare im Stil der Nachbardateien (Englisch, knapp), Kopfkommentar mit Verwe
 ## Erlaubte Dateien
 - `src/lib/live/upcoming.ts` (neu)
 - `tests/upcoming.test.ts` (neu)
-- `docs/tasks/001-codex-als-naechstes.md`: Status und Ergebnis
+- `docs/tasks/001-claude-als-naechstes.md`: Status und Ergebnis
 
 ## Prüfpunkt
 Tests in `tests/upcoming.test.ts`, jeder Punkt ein eigener Fall:

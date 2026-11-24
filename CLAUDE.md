@@ -25,7 +25,7 @@ Eine Seite pro Rennen. Nachfolger des Artifacts "Dima läuft Hamburg" (Code lieg
 - `legacy/hamburg-2026.html` Referenz für den Port. Nicht bearbeiten, nicht deployen
 - `docs/VISION.md` Zielbild (Video München) mit prüfbaren Kriterien, Standbilder in `docs/reference/munich-video/`
 - `scripts/` Datenwerkzeuge: `new-race.ts` (GPX und Konfig aus `scripts/races/` werden Rennseite), `course-from-track.ts` (GPS-Spur wird Strecke), `streams-to-replay.ts` (Replay), `fetch-osm.ts` (3D-Szene, nur am Mac)
-- `AGENTS.md` Teamregeln für Claude, Codex und Gemini, Arbeitspakete in `docs/tasks/`
+- `AGENTS.md` Teamregeln für Claude und Gemini, Arbeitspakete in `docs/tasks/`
 - `docs/ROADMAP.md` Phasen und aktueller Stand, `docs/ARCHITECTURE.md` Entscheidungen, `docs/ADVISOR.md` wann Fable 5.2 drüberschaut
 
 ## Arbeitsregeln
