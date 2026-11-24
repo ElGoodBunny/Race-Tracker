@@ -112,10 +112,10 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] Strecke am Meer (km 27 bis 30, gemessen gegen OSM-Küstenlinie, Grenze 300 m) hervorheben (Sagrada Família siehe Schritt 14)
 
 ## Phase 4: Live gehen
-- [ ] Hosting festlegen (Vorschlag: Cloudflare Pages oder Vercel, beides kann statische Astro-Builds) und `site` in `astro.config.mjs` setzen
+- [x] Hosting festlegen und `site` in `astro.config.mjs` setzen: Cloudflare Worker `race-tracker` mit statischen Assets (`wrangler.jsonc`), Production aus `main`, andere Branches als Preview unter `<branch>-race-tracker.dmitrij-helmer.workers.dev`
 - [ ] Eigene Domain
 - [x] CI: check, test, build, Audit, Secret- und SAST-Scan in `.gitlab-ci.yml` (GitLab statt GitHub Actions)
-- [ ] Env-Variablen im Hosting setzen
+- [x] Env-Variablen im Hosting setzen (Build-Variablen am Worker: `NODE_VERSION`, `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`)
 - [ ] OG-Bild pro Rennen
 
 ## Später
