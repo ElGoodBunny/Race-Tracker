@@ -13,3 +13,4 @@ supabase/.temp/
 !Zurich Marató Barcelona1792749708470.gpx
 test-results/
 playwright-report/
+.wrangler/
