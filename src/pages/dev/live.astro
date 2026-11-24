@@ -20,9 +20,9 @@ const setup: { slug: string; note: string; spots: { name: string; landmark?: str
 ];
 const races = await Promise.all(
   setup.map(async ({ slug, note, spots }) => {
-    const { city, course: c, targetSec } = (await getEntry("races", slug))!.data;
+    const { city, course: c, targetSec, bib, block } = (await getEntry("races", slug))!.data;
     const km = (s: { landmark?: string; km?: number }) => s.km ?? c.km[c.landmarks.find((l) => l.name === s.landmark)!.idx];
-    return { slug, city, note, targetSec, course: { route: c.route, km: c.km }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
+    return { slug, city, note, targetSec, bib, block, course: { route: c.route, km: c.km, landmarks: c.landmarks }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
   }),
 );
 // The recording all demos run on. Its own course length decides how it is stretched onto another course.
@@ -40,16 +40,45 @@ const recording = "hamburg-2026";
       <canvas id="view" aria-label="3D-Ansicht der Strecke mit Läufer"></canvas>
       <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>
 
-      <dl class="hud" id="hud" hidden>
-        <div class="card"><dt class="caption-4 muted">Strecke</dt><dd class="title-2 mono" id="hud-km">0,0 km</dd></div>
-        <div class="card"><dt class="caption-4 muted">Pace</dt><dd class="title-2 mono" id="hud-pace">k. A.</dd></div>
-        <div class="card"><dt class="caption-4 muted">Puls</dt><dd class="title-2 mono" id="hud-hr">k. A.</dd></div>
-        <div class="card"><dt class="caption-4 muted">Rennzeit</dt><dd class="title-2 mono" id="hud-time">0:00</dd></div>
-      </dl>
-      <div class="side">
-        <p class="caption-4 note card" id="note" hidden></p>
-        <dl class="card quality" id="quality" hidden><dt class="caption-4 muted">Daten</dt><dd class="title-2" id="hud-quality">gemessen</dd></dl>
+      <!-- Top bar like the video (frame-01.jpg): pulse with its curve, race time with the finish forecast -->
+      <div class="top" id="hud" hidden>
+        <div class="card stat">
+          <span class="caption-4 muted">Puls</span>
+          <span class="row"><span class="title-2 mono" id="hud-hr">k. A.</span><svg class="trail" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"><polyline id="hud-trail" points=""></polyline></svg></span>
+          <span class="caption-5 muted mono" id="hud-hr-stats"></span>
+        </div>
+        <div class="card stat">
+          <span class="caption-4 muted">Rennzeit</span>
+          <span class="title-2 mono" id="hud-time">0:00</span>
+          <span class="caption-5 muted" id="hud-finish"></span>
+        </div>
       </div>
+      <!-- Panel on the right, a bottom sheet on the phone -->
+      <aside class="panel card" id="panel" aria-label="Läufer" hidden>
+        <button type="button" class="grip" id="grip" aria-expanded="false" aria-controls="panel-more" aria-label="Details zeigen"><span></span></button>
+        <div class="head">
+          <p class="title-3">Dima</p>
+          <p class="caption-4 muted" id="hud-who" hidden></p>
+          <p class="body-6 muted" id="hud-place"></p>
+        </div>
+        <div class="progress">
+          <div class="track"><div class="fill" id="hud-progress"></div></div>
+          <p class="body-5"><span class="mono" id="hud-km">0,0</span> <span class="muted mono" id="hud-total"></span></p>
+        </div>
+        <dl class="values">
+          <div><dt class="body-6 muted">Pace jetzt</dt><dd class="body-5 mono" id="hud-pace">k. A.</dd></div>
+          <div class="more"><dt class="body-6 muted">Schnitt</dt><dd class="body-5 mono" id="hud-avg">k. A.</dd></div>
+          <div class="more"><dt class="body-6 muted">Kadenz</dt><dd class="body-5 mono" id="hud-cad">k. A.</dd></div>
+          <div class="more"><dt class="body-6 muted">Höhe</dt><dd class="body-5 mono" id="hud-alt">k. A.</dd></div>
+          <div><dt class="body-6 muted">Daten</dt><dd class="body-5" id="hud-quality"><span class="dot" id="hud-dot"></span><span id="hud-quality-text">gemessen</span></dd></div>
+        </dl>
+        <div class="more" id="panel-more">
+          <p class="caption-4 muted">Splits</p>
+          <ol class="splits" id="hud-splits"></ol>
+          <p class="caption-5 muted" id="note"></p>
+        </div>
+        <p class="caption-5 muted sheet-credit">© OpenStreetMap-Mitwirkende</p>
+      </aside>
       <div class="bar card" id="bar" role="group" aria-label="Kamera" hidden>
         <button type="button" class="title-2" id="zoom-in" aria-label="Näher heran">+</button>
         <button type="button" class="title-2" id="zoom-out" aria-label="Weiter weg">−</button>
@@ -83,21 +112,38 @@ const recording = "hamburg-2026";
   .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
   .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
-  .fallback[hidden], .hud[hidden], .note[hidden], .quality[hidden], .bar[hidden] { display: none; }
+  .fallback[hidden], .top[hidden], .panel[hidden], .bar[hidden], [hidden] { display: none; }
   /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
   .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-  .hud { position: absolute; left: var(--s200); top: var(--s200); margin: 0; display: flex; flex-wrap: wrap; gap: var(--s100); pointer-events: none; }
-  .hud dd { margin: 0; }
-  .side { position: absolute; right: var(--s200); top: var(--s200); display: flex; flex-direction: column; align-items: flex-end; gap: var(--s100); pointer-events: none; }
-  .note { margin: 0; }
-  .quality dd { margin: 0; }
+  .top { position: absolute; left: var(--s200); top: var(--s200); display: flex; gap: var(--s100); pointer-events: none; }
+  .stat { display: flex; flex-direction: column; gap: var(--s25); }
+  .stat .row { display: flex; align-items: center; gap: var(--s100); }
+  .trail { width: 120px; height: var(--s400); }
+  .trail polyline { fill: none; stroke: var(--signal); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .panel { position: absolute; right: var(--s200); top: var(--s200); bottom: var(--s200); width: 300px; padding: var(--s200); display: flex; flex-direction: column; gap: var(--s200); overflow-y: auto; }
+  .panel p, .panel dl, .panel dd, .panel ol { margin: 0; }
+  .grip, .sheet-credit { display: none; }
+  .head { display: flex; flex-direction: column; gap: var(--s25); }
+  .progress { display: flex; flex-direction: column; gap: var(--s75); }
+  .track { height: var(--s75); border-radius: 9999px; background: var(--surface-2); overflow: hidden; }
+  .fill { height: 100%; background: var(--route); transform-origin: left; transform: scaleX(0); }
+  .values { display: flex; flex-direction: column; gap: var(--s75); }
+  .values div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s200); }
+  #hud-quality { display: inline-flex; align-items: center; gap: var(--s75); }
+  .dot { width: var(--s75); height: var(--s75); border-radius: 9999px; background: var(--good); }
+  .dot.estimated { background: var(--warn); }
+  #panel-more { display: flex; flex-direction: column; gap: var(--s75); }
+  .splits { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s50); }
+  /* Rows are built in the script, so they need :global to get these styles. */
+  .splits :global(li) { display: grid; grid-template-columns: var(--s400) 1fr auto; align-items: center; gap: var(--s100); }
+  .splits :global(.split-bar) { height: var(--s75); border-radius: 9999px; background: var(--route); transform-origin: left; }
   /* Camera buttons on the map, like the bar in the video (frame-05.jpg) */
-  .bar { position: absolute; right: var(--s200); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--s25); padding: var(--s25); border-radius: 24px; }
+  .bar { position: absolute; right: calc(300px + 2 * var(--s200)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--s25); padding: var(--s25); border-radius: 24px; }
   .bar button { width: var(--s500); height: var(--s500); border: 0; border-radius: 9999px; background: transparent; color: var(--ink); cursor: pointer; transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
   .bar button[aria-pressed="true"] { background: var(--pressed); color: var(--pressed-ink); }
   .toast { position: absolute; left: 50%; bottom: var(--s500); margin: 0; padding: var(--s100) var(--s200); border-radius: 9999px; background: var(--toast); color: var(--toast-ink); opacity: 0; transform: translate(-50%, var(--s100)); transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease); pointer-events: none; white-space: nowrap; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
-  .credit { position: absolute; right: var(--s100); bottom: var(--s75); pointer-events: none; }
+  .credit { position: absolute; right: calc(300px + 2 * var(--s200)); bottom: var(--s75); pointer-events: none; }
   .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
   .seg { display: inline-flex; flex-wrap: wrap; align-self: flex-start; padding: var(--s25); border-radius: 24px; background: var(--surface-2); }
   .seg button, .seg a, .solo { height: var(--s500); padding-inline: var(--s200); border: 0; border-radius: 9999px; cursor: pointer; background: transparent; color: var(--muted); transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
@@ -108,9 +154,25 @@ const recording = "hamburg-2026";
   .solo.on { background: var(--pressed); color: var(--pressed-ink); }
   @media (max-width: 640px) {
     .page { padding-block: var(--s600) 0; }
-    .stage { aspect-ratio: 3 / 4; }
-    .side { top: auto; right: auto; left: var(--s200); bottom: var(--s400); flex-direction: column-reverse; align-items: flex-start; }
-    .toast { bottom: var(--s800); }
+    /* Taller on the phone, so the runner stays above the collapsed sheet. */
+    .stage { aspect-ratio: 9 / 16; }
+    .top { left: var(--s100); right: var(--s100); top: var(--s100); }
+    .top .card { flex: 1; padding: var(--s75) var(--s100); }
+    .trail { display: none; }
+    .bar { right: var(--s100); top: calc(var(--s800) + var(--s300)); transform: none; }
+    .toast { bottom: auto; top: calc(var(--s900) + var(--s400)); }
+    /* The sheet covers the bottom of the map, so the credit moves into it. */
+    .credit { display: none; }
+    .sheet-credit { display: block; }
+    /* Bottom sheet: collapsed shows place, progress, pace and data; the grip opens the rest. */
+    .panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 75%; gap: var(--s100); border-radius: 24px 24px 0 0; border-bottom: 0; padding: 0 var(--s200) var(--s100); }
+    .head { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: var(--s25) var(--s100); }
+    .grip { display: flex; justify-content: center; align-self: stretch; height: var(--s300); border: 0; background: transparent; cursor: pointer; }
+    .grip span { width: var(--s500); height: var(--s50); border-radius: 9999px; background: var(--line); }
+    .panel:not(.open) .more, .panel:not(.open) #panel-more { display: none; }
+    /* The open sheet reaches up to the bar, so the bar steps aside until it closes. */
+    .panel.open ~ .bar { display: none; }
+    .values { flex-direction: row; flex-wrap: wrap; gap: var(--s75) var(--s300); }
   }
   @media (prefers-reduced-motion: reduce) {
     .toast { transition: none; }
@@ -119,15 +181,16 @@ const recording = "hamburg-2026";
 
 <script>
   import type { CourseData } from "../../lib/course";
-  import { fmtDur, fmtKm, fmtPace } from "../../lib/format";
+  import { fmtAgo, fmtDur, fmtKm, fmtPace } from "../../lib/format";
   import { createClock, type Speed } from "../../lib/live/clock";
   import { createSpotTracker, type Spot } from "../../lib/live/events";
   import { mixedSource, replaySource, rescaleSource, type ReplayFile, type Sample } from "../../lib/live/source";
+  import { createStats, finishForecast, passedLandmark } from "../../lib/live/stats";
   import { unpackScene, type PackedScene } from "../../lib/osm";
   import type { Mode } from "../../lib/view3d/camera";
   import { VIEW_TOKENS, createView } from "../../lib/view3d/view";
 
-  type Race = { slug: string; city: string; note: string; targetSec: number; course: Pick<CourseData, "route" | "km">; spots: Spot[] };
+  type Race = { slug: string; city: string; note: string; targetSec: number; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
   const stage = document.getElementById("stage")!;
   const canvas = document.getElementById("view") as HTMLCanvasElement;
   const root = document.documentElement;
@@ -155,21 +218,91 @@ const recording = "hamburg-2026";
     /** Threshold of the demo. Live it is set after the LiveTrack measurement (phase 2b), proposal 90 s. */
     const STALE_S = 30;
     const outages: [number, number][] = [];
-    const build = () => mixedSource(points.filter((p) => !outages.some(([a, b]) => p.t >= a && p.t < b)), { staleS: STALE_S, course: race.course, targetSec: race.targetSec });
+    const known = () => points.filter((p) => !outages.some(([a, b]) => p.t >= a && p.t < b));
+    const build = () => mixedSource(known(), { staleS: STALE_S, course: race.course, targetSec: race.targetSec });
     let source = build();
+    let stats = createStats(known());
     const clock = createClock(source.duration);
     const tracker = createSpotTracker();
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
 
-    const hud = { km: el("hud-km"), pace: el("hud-pace"), hr: el("hud-hr"), time: el("hud-time"), quality: el("hud-quality") };
-    let shown = "";
+    const total = race.course.km[race.course.km.length - 1];
+    el("hud-total").textContent = `/ ${fmtKm(total)} km`;
+    if (race.bib || race.block) {
+      el("hud-who").textContent = [race.bib && `Startnummer ${race.bib}`, race.block && `Block ${race.block}`].filter(Boolean).join(", ");
+      el("hud-who").hidden = false;
+    }
+    /** Text of a node, set only when it changed: the HUD runs every frame, the DOM changes a few times per second. */
+    const put = (id: string, text: string) => {
+      const node = el(id);
+      if (node.textContent !== text) node.textContent = text;
+    };
+    const ago = (age: number) => (age < 60 ? `vor ${Math.round(age)} s` : fmtAgo(age * 1000));
+    let splitCount = -1;
+    let trailAt = -Infinity;
     function showHud(s: Sample) {
-      // Text only changes a few times per second, so the DOM is touched only then.
-      const text = [`${fmtKm(s.km)} km`, s.pace ? `${fmtPace(s.pace)} /km` : "k. A.", s.hr ? `${Math.round(s.hr)} bpm` : "k. A.", fmtDur(s.t), s.quality === "measured" ? "gemessen" : "geschätzt"];
-      if (text.join() === shown) return;
-      shown = text.join();
-      [hud.km, hud.pace, hud.hr, hud.time, hud.quality].forEach((node, i) => (node.textContent = text[i]));
+      const done = s.km >= total - 0.05;
+      put("hud-km", fmtKm(s.km));
+      el("hud-progress").style.transform = `scaleX(${Math.min(1, s.km / total)})`;
+      const place = passedLandmark(race.course, s.km);
+      put("hud-place", [done ? "im Ziel" : s.t <= 0 ? "vor dem Start" : "läuft", !done && s.t > 0 && place ? `hinter ${place}` : ""].filter(Boolean).join(", "));
+      put("hud-pace", s.pace ? `${fmtPace(s.pace)} /km` : "k. A.");
+      put("hud-avg", s.km >= 0.2 ? `${fmtPace(s.t / s.km)} /km` : "k. A.");
+      put("hud-cad", s.cad ? `${Math.round(s.cad)} spm` : "k. A.");
+      put("hud-alt", s.alt != null ? `${Math.round(s.alt)} m` : "k. A.");
+      put("hud-hr", s.hr ? `${Math.round(s.hr)} bpm` : "k. A.");
+      const hr = stats.hr(s.t);
+      put("hud-hr-stats", hr ? `Ø ${Math.round(hr.avg)}, max ${hr.max}` : "");
+      put("hud-time", fmtDur(s.t));
+      const finish = done ? null : finishForecast(s.t, s.km, total);
+      put("hud-finish", finish ? `Ziel etwa ${fmtDur(finish)}` : "");
+      const measured = s.quality === "measured";
+      put("hud-quality-text", measured ? (s.age != null ? `gemessen, ${ago(s.age)}` : "gemessen") : s.age != null ? `geschätzt, letzte Messung ${ago(s.age)}` : "geschätzt");
+      el("hud-dot").classList.toggle("estimated", !measured);
+      // Pulse curve of the last 10 minutes, redrawn once per 2 s of race time.
+      if (Math.abs(s.t - trailAt) >= 2) {
+        trailAt = s.t;
+        const values = stats.hrTrail(s.t, 600);
+        const lo = Math.min(...values) - 2;
+        const hi = Math.max(...values) + 2;
+        el("hud-trail").setAttribute("points", values.length > 1 ? values.map((v, i) => `${((i / (values.length - 1)) * 120).toFixed(1)},${(30 - ((v - lo) / (hi - lo)) * 28).toFixed(1)}`).join(" ") : "");
+      }
+      const splits = stats.splits(s.t);
+      if (splits.length !== splitCount) showSplits(splits);
+    }
+    /**
+     * The last 8 km as bars: the fastest full length, the slowest at 30 %.
+     * Proportional to speed, all bars would be 90 to 100 % long and look the same.
+     */
+    function showSplits(splits: number[]) {
+      splitCount = splits.length;
+      const list = el("hud-splits");
+      const last = splits.slice(-8);
+      const fastest = Math.min(...last);
+      const slowest = Math.max(...last);
+      const length = (sec: number) => (slowest > fastest ? 0.3 + (0.7 * (slowest - sec)) / (slowest - fastest) : 1);
+      const items = last.map((sec, i) => {
+        const li = document.createElement("li");
+        const k = document.createElement("span");
+        k.className = "caption-5 muted mono";
+        k.textContent = String(splits.length - last.length + i + 1);
+        const bar = document.createElement("span");
+        bar.className = "split-bar";
+        bar.style.transform = `scaleX(${length(sec)})`;
+        const v = document.createElement("span");
+        v.className = "caption-5 mono";
+        v.textContent = fmtPace(sec);
+        li.append(k, bar, v);
+        return li;
+      });
+      list.replaceChildren(...items);
+      if (!items.length) {
+        const li = document.createElement("li");
+        li.className = "caption-5 muted";
+        li.textContent = "Nach dem ersten km";
+        list.replaceChildren(li);
+      }
     }
 
     const toast = el("toast");
@@ -213,9 +346,13 @@ const recording = "hamburg-2026";
     }
     let view = first;
     el("hud").hidden = false;
+    el("panel").hidden = false;
     el("note").textContent = race.note;
-    el("note").hidden = false;
-    el("quality").hidden = false;
+    el("grip").addEventListener("click", () => {
+      const open = el("panel").classList.toggle("open");
+      el("grip").setAttribute("aria-expanded", String(open));
+      el("grip").setAttribute("aria-label", open ? "Details ausblenden" : "Details zeigen");
+    });
     el("bar").hidden = false;
 
     const play = el("play");
@@ -249,6 +386,7 @@ const recording = "hamburg-2026";
       const t = clock.time(performance.now());
       outages.push([t, t + 60]);
       source = build();
+      stats = createStats(known());
     });
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => view.setColors());
 
@@ -278,6 +416,7 @@ const recording = "hamburg-2026";
         outage(a: number, b: number) {
           outages.push([a, b]);
           source = build();
+          stats = createStats(known());
         },
         /** Throw the view away and build it again, to check that dispose() frees everything. */
         remount() {

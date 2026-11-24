@@ -73,4 +73,11 @@ describe("passedLandmark", () => {
     expect(passedLandmark(hamburg, mid.km + 0.01)).toBe(mid.name);
     expect(passedLandmark(hamburg, -1)).toBeNull();
   });
+
+  it("says nothing when the last landmark is more than 2 km behind", () => {
+    const course = { km: [0, 5, 10], landmarks: [{ name: "Start Rathaus", idx: 0 }, { name: "Hafen", idx: 1 }] } as unknown as CourseData;
+    expect(passedLandmark(course, 6.9)).toBe("Hafen");
+    expect(passedLandmark(course, 7.1)).toBeNull();
+    expect(passedLandmark(course, 1)).toBe("Rathaus");
+  });
 });

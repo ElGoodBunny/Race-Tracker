@@ -78,12 +78,15 @@ export function finishForecast(t: number, km: number, distanceKm: number): numbe
   return km < 1 ? null : (t / km) * distanceKm;
 }
 
-/** Name of the last landmark the runner has passed, without "Start" and "Ziel" in front. */
-export function passedLandmark(c: Pick<CourseData, "km" | "landmarks">, km: number): string | null {
+/**
+ * Name of the last landmark the runner has passed, without "Start" and "Ziel" in front.
+ * null when it lies more than withinKm behind: "hinter Sagrada Família" 13 km later would say nothing.
+ */
+export function passedLandmark(c: Pick<CourseData, "km" | "landmarks">, km: number, withinKm = 2): string | null {
   let best: { km: number; name: string } | null = null;
   for (const l of c.landmarks) {
     const at = c.km[l.idx];
-    if (at <= km && (!best || at > best.km)) best = { km: at, name: l.name };
+    if (at <= km && km - at <= withinKm && (!best || at > best.km)) best = { km: at, name: l.name };
   }
   return best ? best.name.replace(/^Start |^Ziel /, "") : null;
 }
