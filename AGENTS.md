@@ -13,7 +13,7 @@ An diesem Repo arbeiten zwei Agenten, beide auf Dimas Mac. Dima vergibt die Pake
 - Jeder Agent hat einen eigenen Ordner (Git-Worktree). Alle Ordner teilen dasselbe Repo, Commits in einem Ordner sind in den anderen sofort sichtbar.
   - Claude: `~/Desktop/Dev/Race Tracker` (Hauptordner)
   - Gemini: `~/Desktop/Dev/race-tracker-gemini`
-- Dima legt deinen Ordner mit deinem Branch an. Arbeite nur dort, wechsle dort nicht den Branch und fass die anderen Ordner nicht an.
+- Dima legt deinen Ordner an. Den Branch für ein neues Paket legt Claude dort an, auf Basis von `phase-2` und nur, wenn der Ordner keine offenen Änderungen hat. Sonst arbeite nur in deinem Ordner, wechsle dort nicht den Branch und fass die anderen Ordner nicht an.
 - `Claude outputs/` und `brag-output/` im Hauptordner gehören nicht zum Projekt. Ignorieren.
 
 ## Bevor du anfängst
