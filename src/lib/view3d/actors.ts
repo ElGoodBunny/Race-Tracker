@@ -14,6 +14,12 @@ const DEFAULT_CADENCE = 170;
 /** The figure runs at full swing at this pace (seconds per km) and faster. */
 const FULL_SWING_PACE = 330;
 
+/** Where the pin of a spot stands, to the right of the direction of travel: (dy, -dx). Labels use it too. */
+export function pinPosition(track: Track, km: number): { x: number; y: number } {
+  const at = track.at(km);
+  return { x: at.x + at.dy * PIN_OFFSET_M, y: at.y - at.dx * PIN_OFFSET_M };
+}
+
 function disposeTree(o: Object3D) {
   o.traverse((c) => {
     if (!(c instanceof Mesh)) return;
@@ -51,10 +57,7 @@ export function createActors(track: Track): Layer {
     spots.forEach((s, i) => {
       let p = pins.get(s.id);
       if (!p) {
-        const at = track.at(s.km);
-        // To the right of the direction of travel: (dy, -dx).
-        const x = at.x + at.dy * PIN_OFFSET_M;
-        const y = at.y - at.dx * PIN_OFFSET_M;
+        const { x, y } = pinPosition(track, s.km);
         p = { group: createPin(flags[i % flags.length]), passed: s.passed, x, y, km: s.km };
         p.group.position.set(...toThree(x, y));
         group.add(p.group);

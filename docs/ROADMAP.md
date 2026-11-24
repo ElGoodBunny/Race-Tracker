@@ -59,7 +59,8 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [x] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
   - [ ] Zoom mit zwei Fingern beim Folgen, ohne die Kamera freizugeben
 - [ ] 9. **Läufer** aus `figures.ts`, vom Replay bewegt, Größe je nach Abstand, Ring. Position über `toThree` aus `world.ts`. Prüfpunkt: In der Übersicht ist der Läufer mindestens 40 px hoch und fällt zuerst auf. Laufanimation passt zum Tempo
-- [ ] 10. **Labels** (`labels.ts`) über Läufer und Spots. Prüfpunkt: Check "Labels kleben" als Playwright-Test: Kamera per Skript schnell drehen und zoomen, Label weicht in jedem Bild höchstens 1 px vom Anker ab, keine Überdeckung
+- [x] 10. **Labels** (`labels.ts`) über Läufer und Spots. Prüfpunkt: Check "Labels kleben" als Playwright-Test: Kamera per Skript schnell drehen und zoomen, Label weicht in jedem Bild höchstens 1 px vom Anker ab, keine Überdeckung
+  - [ ] Spot-Namen in der Übersicht beim Antippen (gehört zu Schritt 11), km-Marken (gehört zu Schritt 7)
 - [ ] 11. **Spots:** Pins, Avatare als Grüppchen, Passieren, Konfetti, Meldung, Liste "Als Nächstes". Prüfpunkt: Check "Spots werden wirklich passiert" als Test: genau beim Überschreiten, nicht doppelt, auch beim Vorspulen über mehrere Spots
 - [ ] 12. **HUD und Panel** mit Replay-Daten, mobil als Bottom Sheet. Prüfpunkt: Sichtprüfung gegen `frame-01.jpg` und `frame-05.jpg`, hell und dunkel, Desktop und Handy. Zahlen in Geist Mono
   - [x] Obere Leiste, Panel und Bottom Sheet auf `/dev/live` mit Replay-Daten, Sichtprüfung hell und dunkel, Desktop und Handy (`docs/decisions/2026-11-13-3d-konzept.md`)

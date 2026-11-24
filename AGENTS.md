@@ -75,3 +75,4 @@ Roadmap: <Phase und Schritt>
 - 005 Mischquelle (Phase 2, Schritt 13 ohne Replay-Steuerung): claude, review, Branch `claude/005-mischquelle` (baut auf 004 auf)
 - 006 Bedienleiste der Kamera (Phase 2, Schritt 8): claude, review, Branch `claude/006-kamera` (baut auf 005 auf)
 - 007 HUD und Panel (Phase 2, Schritt 12): claude, review, Branch `claude/007-hud-panel` (baut auf 006 auf)
+- 008 Labels (Phase 2, Schritt 10): claude, review, Branch `claude/008-labels` (baut auf 007 auf)

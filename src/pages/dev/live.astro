@@ -38,6 +38,8 @@ const recording = "hamburg-2026";
 
     <div class="stage" id="stage" data-races={JSON.stringify(races)} data-recording={recording}>
       <canvas id="view" aria-label="3D-Ansicht der Strecke mit Läufer"></canvas>
+      <!-- Labels over runner and pins, moved by labels.ts. Under the HUD, panel and sheet, which cover them. -->
+      <div class="labels" id="labels"></div>
       <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>
 
       <!-- Top bar like the video (frame-01.jpg): pulse with its curve, race time with the finish forecast -->
@@ -111,6 +113,11 @@ const recording = "hamburg-2026";
   .lead { max-width: 680px; }
   .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
   .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  /* The labels are built in labels.ts, so they need :global. Positioned only by transform, from the top left. */
+  .labels :global(.label) { position: absolute; left: 0; top: 0; white-space: nowrap; padding: var(--s25) var(--s75); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--ink); border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .labels :global(.label-runner) { display: flex; align-items: center; gap: var(--s50); padding-left: var(--s25); font-weight: 500; color: var(--route-ink); background: var(--route); border-color: var(--route); }
+  .labels :global(.label-name) { padding: 0 var(--s75); border-radius: 9999px; font-weight: 600; text-transform: uppercase; color: var(--route); background: var(--route-ink); }
   .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
   .fallback[hidden], .top[hidden], .panel[hidden], .bar[hidden], [hidden] { display: none; }
   /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
@@ -189,7 +196,9 @@ const recording = "hamburg-2026";
   import { createStats, finishForecast, passedLandmark } from "../../lib/live/stats";
   import { unpackScene, type PackedScene } from "../../lib/osm";
   import type { Mode } from "../../lib/view3d/camera";
+  import { createLabels } from "../../lib/view3d/labels";
   import { VIEW_TOKENS, createView } from "../../lib/view3d/view";
+  import { makeLocal, makeTrack } from "../../lib/view3d/world";
 
   type Race = { slug: string; city: string; note: string; targetSec: number; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
   const stage = document.getElementById("stage")!;
@@ -333,28 +342,33 @@ const recording = "hamburg-2026";
     }
 
     const sceneData = unpackScene(packed, trees);
-    const mount = () => createView(canvas, {
-      scene: sceneData,
-      course: race.course,
-      tokens: () => {
-        const cs = getComputedStyle(root);
-        return Object.fromEntries(VIEW_TOKENS.map((t) => [t, cs.getPropertyValue(`--${t}`).trim()]));
-      },
-      dark: isDark,
-      reducedMotion: reduced,
-      // One measurement per frame: clock, source, events, then the view and the HUD get the same sample.
-      tick(now) {
-        const sample = source.sampleAt(clock.time(now));
-        announce(tracker.update(sample.km, race.spots));
-        view.update(sample, race.spots.map((s) => ({ ...s, passed: tracker.passed(s.id) })));
-        showHud(sample);
-        if (clock.playing && sample.t >= source.duration) setPlaying(false, now);
-      },
-      onState({ mode, free }) {
-        for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) b.setAttribute("aria-pressed", String(!free && b.dataset.mode === mode));
-        el("center").classList.toggle("on", free);
-      },
-    });
+    const track = makeTrack(race.course, makeLocal(sceneData.origin));
+    const mount = () => {
+      const v = createView(canvas, {
+        scene: sceneData,
+        course: race.course,
+        tokens: () => {
+          const cs = getComputedStyle(root);
+          return Object.fromEntries(VIEW_TOKENS.map((t) => [t, cs.getPropertyValue(`--${t}`).trim()]));
+        },
+        dark: isDark,
+        reducedMotion: reduced,
+        // One measurement per frame: clock, source, events, then the view and the HUD get the same sample.
+        tick(now) {
+          const sample = source.sampleAt(clock.time(now));
+          announce(tracker.update(sample.km, race.spots));
+          view.update(sample, race.spots.map((s) => ({ ...s, passed: tracker.passed(s.id) })));
+          showHud(sample);
+          if (clock.playing && sample.t >= source.duration) setPlaying(false, now);
+        },
+        onState({ mode, free }) {
+          for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) b.setAttribute("aria-pressed", String(!free && b.dataset.mode === mode));
+          el("center").classList.toggle("on", free);
+        },
+      });
+      v?.add(createLabels(el("labels"), track, { name: "Dima" }));
+      return v;
+    };
     const first = mount();
     if (!first) {
       canvas.hidden = true;

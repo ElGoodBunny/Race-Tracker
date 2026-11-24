@@ -11,6 +11,7 @@
     "new-race": "node scripts/new-race.ts",
     "fetch-osm": "node scripts/fetch-osm.ts",
     "test": "vitest run",
+    "e2e": "playwright test",
     "astro": "astro"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "1.65.0",
     "@types/node": "^26.6.6",
     "@types/three": "^0.187.0",
     "typescript": "^6.0.3",

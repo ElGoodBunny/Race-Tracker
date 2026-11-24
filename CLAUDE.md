@@ -12,6 +12,7 @@ Eine Seite pro Rennen. Nachfolger des Artifacts "Dima läuft Hamburg" (Code lieg
 ## Befehle
 - `npm run dev` lokal starten
 - `npm test` alle Tests (vor jedem Commit)
+- `npm run e2e` Browser-Checks mit Playwright im installierten Chrome (baut selbst, Port 4331)
 - `npm run check` Typecheck
 - `npm run build` statischer Build nach `dist/`
 
