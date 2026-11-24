@@ -47,9 +47,11 @@ Arbeitsweise: Pakete größer schneiden, Ergebnis in einem Commit statt mehrerer
 ## Phase 1: Feature-Parität mit dem Artifact
 Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar über die Checkliste.
 - [ ] Supabase-Projekt anlegen, Migration einspielen, Anonymous Sign-in + CAPTCHA aktivieren, Dima als Admin plus Anzeigenamen eintragen
+  - [x] 24.11.: Projekt in Frankfurt, drei Migrationen, Barcelona in `races`, Dima als Admin mit Profil, `.env` lokal. Gegen das Projekt geprüft: Lesen geht, `race_secrets` und `admins` leer, anonymes Schreiben scheitert mit `profile required`, `subscribeRace` lädt Barcelona und abonniert (Status `live`)
+  - [ ] CAPTCHA (Cloudflare Turnstile) und Limit für anonyme Anmeldungen pro IP, kommt mit dem Gast-Onboarding
 - [x] Migration: sieben Schema-Lücken aus Checkpoint A plus diese drei Entscheidungen, jede mit RLS-Test, beim LiveTrack-Link inklusive der Fälle fremder Host, Subdomain-Trick, `http`, Port und Zugangsdaten in der URL (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Datenschicht `src/lib/live/supabase.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
-  - [x] `subscribeRace` mit Tests gegen einen nachgebauten Client (Paket 018). Offen: Prüfung gegen das echte Projekt
+  - [x] `subscribeRace` mit Tests gegen einen nachgebauten Client (Paket 018), gegen das echte Projekt geladen und abonniert. Offen: ein Realtime-Ereignis echt empfangen, braucht einen Schreibzugriff mit Login
 - [ ] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile)
 - [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil
 - [ ] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion
