@@ -37,6 +37,12 @@ export const MAX_TURN = 60 * DEG;
 export const FIGURE_UNITS = 38;
 export const FIGURE_SCALE = 0.55;
 export const FIGURE_MIN_PX = 40;
+/** Pin height in figure units (pinProfile in src/lib/figures.ts). From far away a pin stays this many pixels tall, below the runner. */
+export const PIN_UNITS = 41;
+export const PIN_MIN_PX = 24;
+/** Half the runner body across the direction of travel, mid stride, and the pin radius, in figure units. */
+export const RUNNER_SIDE_UNITS = 8.4;
+export const PIN_RADIUS_UNITS = 11;
 
 /** The easing curve from docs/DESIGN.md, cubic-bezier(0.22, 1, 0.36, 1), for k from 0 to 1. */
 export function ease(k: number): number {
@@ -132,9 +138,19 @@ export function metresForPixels(px: number, dist: number, viewportH: number, fov
   return (px * 2 * dist * Math.tan((fovDeg * DEG) / 2)) / viewportH;
 }
 
-/** Scale of runner and pins: 0.55 in the follow mode, growing with the distance so the runner stays at least 40 px tall. */
+/** Scale of the runner: 0.55 in the follow mode, growing with the distance so the runner stays at least 40 px tall. */
 export function figureScale(dist: number, viewportH: number, fovDeg = FOV_DEG): number {
   return Math.max(FIGURE_SCALE, metresForPixels(FIGURE_MIN_PX, dist, viewportH, fovDeg) / FIGURE_UNITS);
+}
+
+/** Scale of the pins: like figureScale, but from far away they only keep PIN_MIN_PX, so the runner is the bigger figure. */
+export function pinScale(dist: number, viewportH: number, fovDeg = FOV_DEG): number {
+  return Math.max(FIGURE_SCALE, metresForPixels(PIN_MIN_PX, dist, viewportH, fovDeg) / PIN_UNITS);
+}
+
+/** Metres from the course to a pin: the runner body and the pin side by side, at their scales. */
+export function pinOffset(figureScale: number, pinScale: number): number {
+  return RUNNER_SIDE_UNITS * figureScale + PIN_RADIUS_UNITS * pinScale;
 }
 
 /** Between two poses: target and angles linear (heading the short way round), distance along its logarithm. */

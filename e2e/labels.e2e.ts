@@ -9,8 +9,12 @@ import { expect, test, type Page } from "@playwright/test";
 /** Runner height in figure units (FIGURE_UNITS in src/lib/view3d/camera.ts) and the gap above it (LABEL_GAP_PX). */
 const RUNNER_UNITS = 38;
 const GAP_PX = 8;
-/** Pins stand 9 m to the right of the course (PIN_OFFSET_M in actors.ts) and are 41 units tall (pinProfile in figures.ts). */
-const PIN_OFFSET_M = 9;
+/**
+ * Pins stand to the right of the course, as far out as the runner body (8.4 units at the runner scale) plus the pin
+ * radius (11 units at the pin scale), see pinOffset in camera.ts. They are 41 units tall (pinProfile in figures.ts).
+ */
+const RUNNER_SIDE_UNITS = 8.4;
+const PIN_RADIUS_UNITS = 11;
 const PIN_UNITS = 41;
 
 interface Probe {
@@ -25,7 +29,7 @@ interface Probe {
 
 async function installProbe(page: Page) {
   await page.evaluate(
-    ([units, gap, pinOffset, pinUnits]) => {
+    ([units, gap, runnerSide, pinRadius, pinUnits]) => {
       const w = window as any;
       const canvas = document.getElementById("view")!;
       const p = { on: false, frames: 0, runnerFrames: 0, spotFrames: 0, maxDev: 0, overlaps: 0, multi: 0, maxShown: 0 };
@@ -57,7 +61,8 @@ async function installProbe(page: Page) {
             const e = shown.find((x) => !x.classList.contains("label-runner") && x.textContent === s.name);
             if (!e) continue;
             const a = track.at(s.km);
-            const at = f.project(a.x + a.dy * pinOffset, a.y - a.dx * pinOffset, pinUnits * f.figureScale);
+            const off = runnerSide * f.figureScale + pinRadius * f.pinScale;
+            const at = f.project(a.x + a.dy * off, a.y - a.dx * off, pinUnits * f.pinScale);
             if (!at) continue;
             p.maxDev = Math.max(p.maxDev, dev(e, at, c));
             p.spotFrames++;
@@ -72,7 +77,7 @@ async function installProbe(page: Page) {
         dispose() {},
       });
     },
-    [RUNNER_UNITS, GAP_PX, PIN_OFFSET_M, PIN_UNITS],
+    [RUNNER_UNITS, GAP_PX, RUNNER_SIDE_UNITS, PIN_RADIUS_UNITS, PIN_UNITS],
   );
 }
 

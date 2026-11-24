@@ -35,8 +35,9 @@ export interface Frame {
   /** Size of the view in CSS pixels. */
   width: number;
   height: number;
-  /** Scale for runner and pins at this camera distance. */
+  /** Scale of the runner and of the pins at this camera distance (camera.ts). */
   figureScale: number;
+  pinScale: number;
   /** false with prefers-reduced-motion: no confetti, no pulsing, no flowing texture. */
   animate: boolean;
   /** Scene point to CSS pixels from the top left of the view, with this frame's camera. null behind the camera. */

@@ -10,7 +10,7 @@ import type { CourseData } from "../course";
 import type { Sample } from "../live/source";
 import type { SceneData } from "../osm";
 import { createActors } from "./actors";
-import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, turnToward, type Mode, type Pose } from "./camera";
+import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, pinScale, turnToward, type Mode, type Pose } from "./camera";
 import type { Frame, Layer, SpotState, Tokens } from "./layer";
 import { createCity, createRibbon, CITY_TOKENS, type CityColors } from "./scene";
 import { createTrees } from "./trees";
@@ -217,6 +217,7 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
       width,
       height,
       figureScale: figureScale(pose.dist, height),
+      pinScale: pinScale(pose.dist, height),
       animate,
       project,
     };

@@ -134,8 +134,8 @@ export function createLabels(container: HTMLElement, track: Track, o: LabelOptio
           const id = `spot:${s.id}`;
           const l = label(id, false);
           setText(l, [s.name]);
-          const p = pinPosition(track, s.km);
-          const at = f.project(p.x, p.y, PIN_UNITS * f.figureScale);
+          const p = pinPosition(track, s.km, f.figureScale, f.pinScale);
+          const at = f.project(p.x, p.y, PIN_UNITS * f.pinScale);
           if (!at) continue;
           anchors.set(id, at);
           // Spots still ahead before passed ones, nearer ones first.

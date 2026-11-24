@@ -3,9 +3,10 @@ import raceJson from "../src/content/races/hamburg-2026.json";
 import bcnJson from "../src/content/races/barcelona-2027.json";
 import type { CourseData } from "../src/lib/course";
 import {
-  FIGURE_SCALE, FLAT_TILT, FOLLOW_DIST_M, FOLLOW_TILT, LOOK_AHEAD_M, MAX_TURN, OVERVIEW_TILT, TRANSITION_S, angleDelta, cameraPosition, createRig,
-  ease, figureScale, fitOverview, metresForPixels, mixPose, projector, turnToward, type Anchor, type Pose,
+  FIGURE_SCALE, FIGURE_UNITS, FLAT_TILT, PIN_MIN_PX, PIN_RADIUS_UNITS, PIN_UNITS, RUNNER_SIDE_UNITS, FOLLOW_DIST_M, FOLLOW_TILT, LOOK_AHEAD_M, MAX_TURN, OVERVIEW_TILT, TRANSITION_S, angleDelta, cameraPosition, createRig,
+  ease, figureScale, fitOverview, metresForPixels, mixPose, pinOffset, pinScale, projector, turnToward, type Anchor, type Pose,
 } from "../src/lib/view3d/camera";
+import { pinProfile } from "../src/lib/figures";
 import { headingOf, makeLocal, makeTrack, toThree } from "../src/lib/view3d/world";
 
 const course = raceJson.course as unknown as CourseData;
@@ -97,6 +98,27 @@ describe("figure size", () => {
     const far = figureScale(9000, 600);
     expect(far).toBeGreaterThan(FIGURE_SCALE);
     expect((38 * far) / metresForPixels(1, 9000, 600)).toBeCloseTo(40, 6);
+  });
+
+  it("keeps pins at 0.55 while following and 24 px tall from far away, smaller than the runner", () => {
+    expect(pinScale(FOLLOW_DIST_M, 600)).toBe(FIGURE_SCALE);
+    const px = (units: number, scale: number) => (units * scale) / metresForPixels(1, 9000, 600);
+    expect(px(PIN_UNITS, pinScale(9000, 600))).toBeCloseTo(PIN_MIN_PX, 6);
+    expect(px(PIN_UNITS, pinScale(9000, 600))).toBeLessThan(px(FIGURE_UNITS, figureScale(9000, 600)));
+  });
+
+  it("has the pin height of the pin model", () => {
+    expect(PIN_UNITS).toBe(Math.max(...pinProfile().map(([, y]) => y)));
+  });
+
+  it("puts the pin beside the runner body at every scale", () => {
+    for (const dist of [FOLLOW_DIST_M, 900, 3000, 9000]) {
+      const fs = figureScale(dist, 600);
+      const ps = pinScale(dist, 600);
+      expect(pinOffset(fs, ps)).toBeGreaterThanOrEqual(RUNNER_SIDE_UNITS * fs + PIN_RADIUS_UNITS * ps);
+    }
+    // Wide enough for the runner in the follow mode, more than the 9 m before.
+    expect(pinOffset(FIGURE_SCALE, FIGURE_SCALE)).toBeCloseTo(10.67, 2);
   });
 });
 
