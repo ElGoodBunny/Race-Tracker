@@ -1,6 +1,6 @@
 # 011 Nachprüfung Läufer, Pins und Streckenband
 Besitzer: claude (von gemini übernommen)
-Status: review
+Status: erledigt
 Branch: claude/011-nachpruefung-live
 Roadmap: Phase 2, Schritt 7 (Streckenband) und Schritt 9 (Läufer), jeweils der Teil "Sichtprüfung"
 

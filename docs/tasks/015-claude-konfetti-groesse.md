@@ -1,6 +1,6 @@
 # 015 Konfetti in der richtigen Größe
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/015-konfetti-groesse
 Roadmap: Phase 2, Schritt 11 (Spots), Teil "Konfetti"
 

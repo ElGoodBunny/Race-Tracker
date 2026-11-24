@@ -76,8 +76,8 @@ Roadmap: <Phase und Schritt>
 - 008 Labels (Phase 2, Schritt 10): claude, erledigt
 - 009 Läufer vor den Pins (Phase 2, Schritt 9): claude, erledigt
 - 010 Pfeile im Streckenband (Phase 2, Schritt 7): claude, erledigt
-- 011 Nachprüfung Läufer, Pins und Streckenband auf `/dev/live` (Phase 2, Schritte 7 und 9): claude (von gemini übernommen), review, `docs/tasks/011-gemini-nachpruefung-live.md`
+- 011 Nachprüfung Läufer, Pins und Streckenband auf `/dev/live` (Phase 2, Schritte 7 und 9): claude (von gemini übernommen), erledigt, `docs/tasks/011-gemini-nachpruefung-live.md`
 - 012 "Als Nächstes" im Panel (Phase 2, Schritt 11): claude, erledigt
 - 013 Ansicht auf die freie Fläche (Phase 2, Schritt 12): claude, erledigt
-- 014 Zoom mit zwei Fingern beim Folgen (Phase 2, Schritt 8): claude, review
-- 015 Konfetti in der richtigen Größe (Phase 2, Schritt 11): claude, review
+- 014 Zoom mit zwei Fingern beim Folgen (Phase 2, Schritt 8): claude, erledigt
+- 015 Konfetti in der richtigen Größe (Phase 2, Schritt 11): claude, erledigt

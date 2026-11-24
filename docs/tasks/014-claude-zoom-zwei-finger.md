@@ -1,6 +1,6 @@
 # 014 Zoom mit zwei Fingern beim Folgen
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/014-zoom-zwei-finger
 Roadmap: Phase 2, Schritt 8 (Kamera-Rig), Unterpunkt "Zoom mit zwei Fingern beim Folgen, ohne die Kamera freizugeben"
 
