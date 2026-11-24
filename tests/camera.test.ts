@@ -1,10 +1,11 @@
+import { PerspectiveCamera, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import raceJson from "../src/content/races/hamburg-2026.json";
 import bcnJson from "../src/content/races/barcelona-2027.json";
 import type { CourseData } from "../src/lib/course";
 import {
   FIGURE_SCALE, FIGURE_UNITS, FLAT_TILT, PIN_MIN_PX, PIN_RADIUS_UNITS, PIN_UNITS, RUNNER_SIDE_UNITS, FOLLOW_DIST_M, FOLLOW_TILT, LOOK_AHEAD_M, MAX_TURN, OVERVIEW_TILT, TRANSITION_S, angleDelta, cameraPosition, createRig,
-  ease, figureScale, fitOverview, metresForPixels, mixPose, pinOffset, pinScale, projector, turnToward, type Anchor, type Pose,
+  FOV_DEG, ease, figureScale, fitOverview, metresForPixels, mixPose, pinOffset, pinScale, projector, viewFrame, turnToward, type Anchor, type Pose,
 } from "../src/lib/view3d/camera";
 import { pinProfile } from "../src/lib/figures";
 import { headingOf, makeLocal, makeTrack, toThree } from "../src/lib/view3d/world";
@@ -303,5 +304,32 @@ describe("createRig, zoom and 2D (step 8)", () => {
     rig.zoom(2);
     expect(rig.free).toBe(true);
     expect(rig.step(FRAME, anchorAt(6))).toEqual(held);
+  });
+});
+
+describe("free area", () => {
+  const none = { top: 0, right: 0, bottom: 0, left: 0 };
+
+  it("changes nothing without insets", () => {
+    expect(viewFrame(1280, 900, none)).toEqual({ aspect: 1280 / 900, fovDeg: FOV_DEG, offsetX: 0, offsetY: 0 });
+  });
+
+  it("puts the camera target in the middle of the free area and fits height and aspect to it", () => {
+    const w = 1280;
+    const h = 900;
+    const insets = { top: 120, right: 340, bottom: 0, left: 0 };
+    const f = viewFrame(w, h, insets);
+    expect(f.aspect).toBeCloseTo((w - 340) / (h - 120), 9);
+    const t = (deg: number) => Math.tan((deg * Math.PI) / 360);
+    expect(t(f.fovDeg)).toBeCloseTo((t(FOV_DEG) * (h - 120)) / h, 9);
+
+    const camera = new PerspectiveCamera(FOV_DEG, w / h, 1, 10000);
+    camera.setViewOffset(w, h, f.offsetX, f.offsetY, w, h);
+    camera.position.set(0, 0, 100);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    const p = new Vector3(0, 0, 0).project(camera);
+    expect(((p.x + 1) / 2) * w).toBeCloseTo(insets.left + (w - insets.left - insets.right) / 2, 6);
+    expect(((1 - p.y) / 2) * h).toBeCloseTo(insets.top + (h - insets.top - insets.bottom) / 2, 6);
   });
 });

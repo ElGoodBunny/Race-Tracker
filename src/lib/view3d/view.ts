@@ -10,7 +10,7 @@ import type { CourseData } from "../course";
 import type { Sample } from "../live/source";
 import type { SceneData } from "../osm";
 import { createActors } from "./actors";
-import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, pinScale, turnToward, type Mode, type Pose } from "./camera";
+import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, pinScale, turnToward, viewFrame, type Insets, type Mode, type Pose } from "./camera";
 import type { Frame, Layer, SpotState, Tokens } from "./layer";
 import { createCity, createRibbon, CITY_TOKENS, type CityColors } from "./scene";
 import { createTrees } from "./trees";
@@ -41,6 +41,8 @@ export interface ViewOptions {
   tick?(now: number): void;
   /** Mode or "camera is free" changed, for the buttons of the page. */
   onState?(state: { mode: Mode; free: boolean }): void;
+  /** Edges of the view that panel, sheet or HUD cover, in CSS pixels. Asked every frame, the camera aims at the rest. */
+  insets?(): Insets;
 }
 
 export interface ViewStats {
@@ -147,16 +149,24 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
   const onControlsChange = () => (dirty = true);
   controls.addEventListener("change", onControlsChange);
 
+  let insetKey = "";
   function resize() {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    if (!w || !h || (w === width && h === height)) return;
+    const insets = o.insets?.() ?? { top: 0, right: 0, bottom: 0, left: 0 };
+    const key = `${insets.top} ${insets.right} ${insets.bottom} ${insets.left}`;
+    if (!w || !h || (w === width && h === height && key === insetKey)) return;
+    if (w !== width || h !== height) renderer.setSize(w, h, false);
     width = w;
     height = h;
-    renderer.setSize(w, h, false);
+    insetKey = key;
     camera.aspect = w / h;
+    // The camera target sits in the middle of the free area, the overview fills the free area.
+    const free = viewFrame(w, h, insets);
+    if (free.offsetX || free.offsetY) camera.setViewOffset(w, h, free.offsetX, free.offsetY, w, h);
+    else camera.clearViewOffset();
     camera.updateProjectionMatrix();
-    rig.setOverview(fitOverview(track.xy, w / h), fitOverview(track.xy, w / h, OVERVIEW_MARGIN, FOV_DEG, FLAT_TILT));
+    rig.setOverview(fitOverview(track.xy, free.aspect, OVERVIEW_MARGIN, free.fovDeg), fitOverview(track.xy, free.aspect, OVERVIEW_MARGIN, free.fovDeg, FLAT_TILT));
     dirty = true;
   }
 

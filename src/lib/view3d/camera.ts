@@ -107,6 +107,30 @@ export function projector(p: Pose, aspect: number, fovDeg = FOV_DEG) {
   };
 }
 
+/** CSS pixels at the edges of the view that panel, sheet or HUD cover. */
+export interface Insets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Camera for the free part of the view: aspect and vertical field of view of the free area, and the shift for
+ * camera.setViewOffset that puts the camera target in its middle. Without insets it is the plain camera.
+ */
+export function viewFrame(width: number, height: number, i: Insets, fovDeg = FOV_DEG): { aspect: number; fovDeg: number; offsetX: number; offsetY: number } {
+  const w = Math.max(1, width - i.left - i.right);
+  const h = Math.max(1, height - i.top - i.bottom);
+  const t = Math.tan((fovDeg * DEG) / 2);
+  return {
+    aspect: w / h,
+    fovDeg: h === height ? fovDeg : (2 * Math.atan((t * h) / height)) / DEG,
+    offsetX: (i.right - i.left) / 2,
+    offsetY: (i.bottom - i.top) / 2,
+  };
+}
+
 /** Overview: the whole course in the frame with a margin, north up, looking down at 50°. */
 export function fitOverview(points: readonly (readonly [number, number])[], aspect: number, margin = OVERVIEW_MARGIN, fovDeg = FOV_DEG, tilt = OVERVIEW_TILT): Pose {
   let w = Infinity;

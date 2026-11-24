@@ -394,6 +394,7 @@ const recording = "hamburg-2026";
         },
         dark: isDark,
         reducedMotion: reduced,
+        insets: coveredEdges,
         // One measurement per frame: clock, source, events, then the view and the HUD get the same sample.
         tick(now) {
           const sample = source.sampleAt(clock.time(now));
@@ -410,6 +411,26 @@ const recording = "hamburg-2026";
       v?.add(createLabels(el("labels"), track, { name: "Dima" }));
       return v;
     };
+    /**
+     * What HUD, camera bar and panel cover of the view, so the camera aims at the rest (docs/tasks/013-claude-freie-flaeche.md).
+     * Desktop: HUD on top, bar and panel on the right. Phone: HUD on top, the collapsed sheet at the bottom.
+     * An open sheet keeps the last value, it is only pulled up for a moment.
+     */
+    let edges = { top: 0, right: 0, bottom: 0, left: 0 };
+    function coveredEdges() {
+      const panel = el("panel");
+      if (panel.hidden || panel.classList.contains("open")) return edges;
+      const c = canvas.getBoundingClientRect();
+      const hud = el("hud").getBoundingClientRect();
+      const p = panel.getBoundingClientRect();
+      const phone = p.width >= c.width - 1;
+      const gap = 8;
+      const top = Math.max(0, Math.round(hud.bottom - c.top + gap));
+      const right = phone ? 0 : Math.max(0, Math.round(c.right - Math.min(p.left, el("bar").getBoundingClientRect().left) + gap));
+      const bottom = phone ? Math.max(0, Math.round(c.bottom - p.top + gap)) : 0;
+      edges = { top, right, bottom, left: 0 };
+      return edges;
+    }
     const first = mount();
     if (!first) {
       canvas.hidden = true;
