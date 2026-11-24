@@ -6,6 +6,9 @@
   "name": "race-tracker",
   "compatibility_date": "2026-11-24",
   "workers_dev": true,
+  // Builds von Nicht-Production-Branches (z. B. phase-2) laufen als wrangler preview,
+  // das verlangt diesen Block, auch leer.
+  "previews": {},
   "assets": {
     "directory": "./dist"
   }
