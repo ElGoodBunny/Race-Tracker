@@ -75,6 +75,8 @@ const recording = "hamburg-2026";
           <div><dt class="body-6 muted">Daten</dt><dd class="body-5" id="hud-quality"><span class="dot" id="hud-dot"></span><span id="hud-quality-text">gemessen</span></dd></div>
         </dl>
         <div class="more" id="panel-more">
+          <p class="caption-4 muted">Als Nächstes</p>
+          <ol class="next" id="hud-next"></ol>
           <p class="caption-4 muted">Splits</p>
           <ol class="splits" id="hud-splits"></ol>
           <p class="caption-5 muted" id="note"></p>
@@ -144,6 +146,10 @@ const recording = "hamburg-2026";
   /* Rows are built in the script, so they need :global to get these styles. */
   .splits :global(li) { display: grid; grid-template-columns: var(--s400) 1fr auto; align-items: center; gap: var(--s100); }
   .splits :global(li.empty) { display: block; }
+  .next { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s50); margin-bottom: var(--s100); }
+  .next :global(li) { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s100); }
+  .next :global(.next-name) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .next :global(.next-when) { flex-shrink: 0; }
   .splits :global(.split-bar) { height: var(--s75); border-radius: 9999px; background: var(--route); transform-origin: left; }
   /* Camera buttons on the map, like the bar in the video (frame-05.jpg) */
   .bar { position: absolute; right: calc(300px + 2 * var(--s200)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--s25); padding: var(--s25); border-radius: 24px; }
@@ -189,9 +195,10 @@ const recording = "hamburg-2026";
 
 <script>
   import type { CourseData } from "../../lib/course";
-  import { fmtAgo, fmtDur, fmtKm, fmtPace } from "../../lib/format";
+  import { fmtAgo, fmtDur, fmtIn, fmtKm, fmtPace } from "../../lib/format";
   import { createClock, type Speed } from "../../lib/live/clock";
   import { createSpotTracker, type Spot } from "../../lib/live/events";
+  import { upcomingSpots } from "../../lib/live/upcoming";
   import { mixedSource, replaySource, rescaleSource, type ReplayFile, type Sample } from "../../lib/live/source";
   import { createStats, finishForecast, passedLandmark } from "../../lib/live/stats";
   import { unpackScene, type PackedScene } from "../../lib/osm";
@@ -238,8 +245,8 @@ const recording = "hamburg-2026";
     const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
 
     /** Text with words in Geist and numbers in Geist Mono: each number, with a time unit behind it, gets its own span. */
-    const putMixed = (id: string, text: string) => {
-      const node = el(id);
+    const putMixed = (id: string, text: string) => setMixed(el(id), text);
+    const setMixed = (node: HTMLElement, text: string) => {
       if (node.dataset.text === text) return;
       node.dataset.text = text;
       node.replaceChildren(
@@ -295,6 +302,40 @@ const recording = "hamburg-2026";
       }
       const splits = stats.splits(s.t);
       if (splits.length !== splitCount) showSplits(splits);
+      showNext(s);
+    }
+    /**
+     * Spots still ahead, nearest first (docs/tasks/012-claude-als-naechstes-panel.md). "Passed" comes from the tracker.
+     * The arrival uses the average pace so far: the pace of the moment jumps between samples and the minutes would flicker.
+     */
+    let nextText = "";
+    function showNext(s: Sample) {
+      const avg = s.km >= 0.2 ? s.t / s.km : null;
+      const next = upcomingSpots(s.km, avg, race.spots, tracker.passed).map((u) => ({
+        name: u.spot.name,
+        when: [`${fmtKm(u.distKm)} km`, u.etaSec != null ? fmtIn(u.etaSec * 1000) : ""].filter(Boolean).join(" · "),
+      }));
+      const text = JSON.stringify(next);
+      if (text === nextText) return;
+      nextText = text;
+      const items = next.map(({ name, when }) => {
+        const li = document.createElement("li");
+        const n = document.createElement("span");
+        n.className = "body-6 next-name";
+        n.textContent = name;
+        const w = document.createElement("span");
+        w.className = "body-6 muted next-when";
+        setMixed(w, when);
+        li.append(n, w);
+        return li;
+      });
+      if (!items.length) {
+        const li = document.createElement("li");
+        li.className = "body-6 muted";
+        li.textContent = "Alle Spots passiert";
+        items.push(li);
+      }
+      el("hud-next").replaceChildren(...items);
     }
     /**
      * The last 8 km as bars: the fastest full length, 20 s slower or the slowest at 30 %.
