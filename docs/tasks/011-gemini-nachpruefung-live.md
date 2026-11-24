@@ -60,7 +60,7 @@ Erledigt:
 - Bericht `docs/decisions/2026-11-24-nachpruefung-live.md`: jede Frage aus Schritt 5 je Bild in einer Tabelle, beide Listen aus Schritt 7, Konsole "keine Fehler"
 - Messwerte aus der Szene gerechnet statt geschätzt, Rohwerte in `messwerte.json` im Bildordner. Aufnahme- und Messskript liegt nur lokal in `.cache/nachpruefung.mjs`
 
-Wichtigste Befunde: Konfetti steht bei Pause groß im Bild und liegt an km 13,9 über dem Kopf. Läufer in der Übersicht etwa 30 px statt mindestens 40 px. Band in der Übersicht über dem Läufer. Pin im Folgemodus größer als der Läufer. Am Handy Pin Fòrum zu etwa 60 % unter der Kameraleiste.
+Wichtigste Befunde: Konfetti viel zu groß, an km 13,9 über dem Kopf (Ursache und Fix in Paket 015). Läufer in der Übersicht etwa 30 px statt mindestens 40 px. Band in der Übersicht über dem Läufer. Pin im Folgemodus größer als der Läufer. Am Handy Pin Fòrum zu etwa 60 % unter der Kameraleiste.
 
 Abweichungen vom Auftrag: Bilder per Skript statt in der Browser-Konsole. Pfeile im Fließen nur an einem Bild geprüft (km 12 Folgen hell). Pins im Wasser oder Häuserblock an Ausschnitten von `km28.5-uebersicht-hell.jpg` geprüft, nicht an allen Bildern.
 
