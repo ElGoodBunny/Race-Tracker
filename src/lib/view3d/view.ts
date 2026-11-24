@@ -18,7 +18,7 @@ import { headingOf, makeLocal, makeTrack, toThree } from "./world";
 
 /** Token names the view needs, without the leading "--". The page reads them from CSS and passes them in. */
 export const VIEW_TOKENS = [
-  ...CITY_TOKENS, "tree", "trunk", "route", "route-todo", "ink", "pressed-ink", "muted", "toast", "signal",
+  ...CITY_TOKENS, "tree", "trunk", "route", "route-ink", "route-todo", "ink", "pressed-ink", "muted", "toast", "signal",
   ...[1, 2, 3, 4, 5, 6].map((i) => `flag-${i}`),
   ...[1, 2, 3].flatMap((i) => [`figure-skin-${i}`, `figure-hair-${i}`]),
 ] as const;
