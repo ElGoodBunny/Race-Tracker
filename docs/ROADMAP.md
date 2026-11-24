@@ -5,8 +5,29 @@ Stand: 12.11.2026. Zielbild ist das Video aus München, Details und Kriterien in
 ## Meilenstein: Zurich Marató Barcelona, 14.03.2027
 Marathon, 42,195 km, Start 8:30 an der Plaça de Catalunya. Erster echter Live-Einsatz mit Leuten an der Strecke.
 - Für den Live-Einsatz müssen Phase 1, 2, 2b, 3 und 4 fertig sein
-- Zwischenziele: Phase 2 bis Mitte Dezember 2026, Phase 1 bis Mitte Januar 2027, Phase 2b und 3 bis Mitte Februar 2027, Phase 4 bis Ende Februar 2027
+- Ziel seit 24.11.: Code fertig bis 22.12.2026. Fällt Woche 1 bei Dima aus, rutscht alles auf Mitte Januar 2027. Beides lässt bis zum Rennen Puffer
 - Generalprobe mit Live-Daten bei einem langen Trainingslauf Anfang März 2027
+
+## Plan bis 22.12.2026 (Stand 24.11.)
+Lage: Die 3D-Ansicht steht auf `/dev/live`, die Rennseite `[race].astro` ist noch die statische Seite aus Phase 0. Von Phase 1 ist nur die Migration erledigt, ohne Supabase-Projekt (keine `.env`) geht dort nichts weiter. Wie Garmin LiveTrack Daten liefert, ist ungemessen. Engpass sind deshalb Dimas Aufgaben und die Zahl der Arbeitstage, nicht der Code. Annahme: 3 Arbeitstage pro Woche.
+
+Reihenfolge nach Abhängigkeit und Risiko, nicht nach Phasennummer:
+- **Woche 1 (bis 1.12.)**
+  - Dima bis 27.11.: Supabase-Projekt anlegen, Migration einspielen, Anonymous Sign-in und CAPTCHA an, `.env` lokal
+  - Dima bis 1.12.: Bei einem Trainingslauf LiveTrack teilen und den Link aufheben
+  - Dima: Hosting-Konto (Cloudflare Pages oder Vercel), damit jeder Merge als Vorschau online steht
+  - Claude: Schritt 15 und Replay-Steuerung (13): 3D aus `/dev/live` in die Rennseite. Phase 1 baut darauf auf, beides landet in `[race].astro`, deshalb nacheinander und nicht parallel
+- **Woche 2 (bis 8.12.)**: Phase 1 Datenschicht, Gast-Onboarding, Cheering Spots, Pinnwand gegen Supabase. Auswertung LiveTrack, Schwelle für "geschätzt" festlegen
+- **Woche 3 (bis 15.12.)**: Phase 1 Einstellungen und Splits (nur Dima), Hero, Statuskarte, Fehlertexte. Phase 2b Poller
+- **Woche 4 (bis 22.12.)**: Phase 2b Client, Phase 3, Puffer. Erste Probe mit Live-Daten bei einem Trainingslauf
+
+Bis zum Live-Einsatz zurückgestellt:
+- Feinschliff an der 3D-Ansicht (Art der Pakete 013 bis 015) und Schritt 14 Sagrada Família, der OSM-Klotz bleibt
+- Simulation aus Phase 1, die Replay-Steuerung ersetzt sie
+- Wetter und offizielle Splits im HUD, eigene Domain, OG-Bild
+- Schwebende Navigation und FAQ nur in einfacher Form
+
+Arbeitsweise: Pakete größer schneiden, Ergebnis in einem Commit statt mehrerer `docs:`-Commits. Gemini nur für Skripte am Mac (LiveTrack), Sichtprüfungen macht Claude (Paket 011).
 
 ## Offene Fehler
 - [x] `STALE_AFTER_MS` in `src/lib/estimate.ts` ist fest 4,5 h und passt nicht zum Marathon
@@ -55,7 +76,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
   - [x] Nachtrag: mit Barcelona wiederholen
 - [x] 5b. **Budget Barcelona:** Umrisse mit 2 m vereinfacht, Hochhäuser ab 50 m bleiben voll. Übersicht 377.000 statt 926.000 Dreiecke (Ziel höchstens 400.000), Folgemodus 58.000 bis 65.000 statt 130.000 bis 143.000 (Ziel höchstens 120.000). Ergebnis in `docs/decisions/2026-11-13-3d-konzept.md`
 - [x] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000 (gemessen höchstens 102.237 an den dichtesten Stellen, Bäume bis 300 m Kameraabstand)
-- [ ] 7. **Streckenband** mit fließender Textur, gelaufener Teil kräftiger. Prüfpunkt: Bei km 12 endet der kräftige Teil unter dem Läufer. Sichtprüfung gegen `frame-04.jpg`
+- [x] 7. **Streckenband** mit fließender Textur, gelaufener Teil kräftiger. Prüfpunkt: Bei km 12 endet der kräftige Teil unter dem Läufer. Sichtprüfung gegen `frame-04.jpg`
 - [x] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
   - [x] Zoom mit zwei Fingern beim Folgen, ohne die Kamera freizugeben (Abstand 100 bis 400 m, Paket 014)
 - [ ] 9. **Läufer** aus `figures.ts`, vom Replay bewegt, Größe je nach Abstand, Ring. Position über `toThree` aus `world.ts`. Prüfpunkt: In der Übersicht ist der Läufer mindestens 40 px hoch und fällt zuerst auf. Laufanimation passt zum Tempo
@@ -87,7 +108,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 ## Phase 4: Live gehen
 - [ ] Hosting festlegen (Vorschlag: Cloudflare Pages oder Vercel, beides kann statische Astro-Builds) und `site` in `astro.config.mjs` setzen
 - [ ] Eigene Domain
-- [ ] GitHub Actions: check, test, build bei jedem PR
+- [x] CI: check, test, build, Audit, Secret- und SAST-Scan in `.gitlab-ci.yml` (GitLab statt GitHub Actions)
 - [ ] Env-Variablen im Hosting setzen
 - [ ] OG-Bild pro Rennen
 
