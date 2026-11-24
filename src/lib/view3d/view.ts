@@ -10,7 +10,7 @@ import type { CourseData } from "../course";
 import type { Sample } from "../live/source";
 import type { SceneData } from "../osm";
 import { createActors } from "./actors";
-import { FOV_DEG, LOOK_AHEAD_M, cameraPosition, createRig, figureScale, fitOverview, turnToward, type Mode, type Pose } from "./camera";
+import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, turnToward, type Mode, type Pose } from "./camera";
 import type { Frame, Layer, SpotState, Tokens } from "./layer";
 import { createCity, createRibbon, CITY_TOKENS, type CityColors } from "./scene";
 import { createTrees } from "./trees";
@@ -26,6 +26,8 @@ export const VIEW_TOKENS = [
 /** The runner figure turns faster than the camera: 240° per second. */
 const RUNNER_TURN = (240 * Math.PI) / 180;
 const MAX_DT = 0.1;
+/** Zoom of the free camera with the buttons. */
+const DOLLY_S = 0.5;
 
 export interface ViewOptions {
   scene: SceneData;
@@ -59,6 +61,11 @@ export interface View {
   readonly free: boolean;
   /** After a theme change. */
   setColors(): void;
+  /** Closer (factor below 1) or further away. Following: the follow distance, smoothly. Otherwise the user gets the camera. */
+  zoom(factor: number): void;
+  /** 2D (looking down) or 3D. Takes the camera back when the user holds it. */
+  setFlat(flat: boolean): void;
+  readonly flat: boolean;
   /** Add something to draw: trees, labels, landmarks. See layer.ts. */
   add(layer: Layer): void;
   /** Draw one frame now, outside the loop (tests, screenshots). */
@@ -106,6 +113,12 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
   let lastNow = 0;
   let frameMs = 0;
   let pose: Pose = rig.step(0, { x: 0, y: 0, heading: 0 });
+  /** Zoom of the free camera, on the logarithm of the distance. */
+  let dolly: { from: number; to: number; elapsed: number } | null = null;
+  function setCameraDist(d: number) {
+    const off = camera.position.clone().sub(controls.target).setLength(d);
+    camera.position.copy(controls.target).add(off);
+  }
 
   /** Where the user has put the camera, as a pose, so a flight back can start from there. */
   function poseOfCamera(): Pose {
@@ -125,6 +138,7 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
   const state = () => o.onState?.({ mode: rig.mode, free: rig.free });
   // Any touch takes the camera from the rig. No automatic return, the page highlights "Zentrieren" instead.
   const onGrab = () => {
+    dolly = null;
     if (rig.free) return;
     rig.release(poseOfCamera());
     state();
@@ -142,7 +156,7 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    rig.setOverview(fitOverview(track.xy, w / h));
+    rig.setOverview(fitOverview(track.xy, w / h), fitOverview(track.xy, w / h, OVERVIEW_MARGIN, FOV_DEG, FLAT_TILT));
     dirty = true;
   }
 
@@ -168,12 +182,18 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
     runnerHeading = runnerHeading === null || !animate || gap > 0.25 ? heading : turnToward(runnerHeading, heading, dt, RUNNER_TURN, 10);
     const moving = sample !== null && km !== drawnKm;
 
-    const still = !animate && !dirty && !moving && !rig.moving && !layers.some((l) => l.busy?.());
+    const still = !animate && !dirty && !moving && !rig.moving && !dolly && !layers.some((l) => l.busy?.());
     if (still && !force) return;
     drawnKm = sample ? km : -1;
     dirty = false;
 
     if (rig.free) {
+      if (dolly) {
+        dolly.elapsed += dt;
+        const k = ease(Math.min(1, dolly.elapsed / DOLLY_S));
+        setCameraDist(Math.exp(Math.log(dolly.from) + (Math.log(dolly.to) - Math.log(dolly.from)) * k));
+        if (k >= 1) dolly = null;
+      }
       controls.update();
       pose = poseOfCamera();
     } else {
@@ -241,7 +261,29 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
       sample = next;
       spots = nextSpots;
     },
+    zoom(factor) {
+      dirty = true;
+      if (rig.mode === "follow" && !rig.free) return rig.zoom(factor);
+      if (!rig.free) onGrab();
+      const from = camera.position.distanceTo(controls.target);
+      const to = Math.max(controls.minDistance, Math.min(controls.maxDistance, from * factor));
+      if (animate) dolly = { from, to, elapsed: 0 };
+      else setCameraDist(to);
+    },
+    setFlat(next) {
+      dolly = null;
+      if (rig.free) {
+        rig.setMode(rig.mode, poseOfCamera());
+        state();
+      }
+      rig.setFlat(next);
+      dirty = true;
+    },
+    get flat() {
+      return rig.flat;
+    },
     setMode(mode) {
+      dolly = null;
       const changed = mode !== rig.mode || rig.free;
       rig.setMode(mode, rig.free ? poseOfCamera() : undefined);
       dirty = true;

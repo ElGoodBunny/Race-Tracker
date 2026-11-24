@@ -3,7 +3,7 @@ import raceJson from "../src/content/races/hamburg-2026.json";
 import bcnJson from "../src/content/races/barcelona-2027.json";
 import type { CourseData } from "../src/lib/course";
 import {
-  FIGURE_SCALE, FOLLOW_DIST_M, FOLLOW_TILT, LOOK_AHEAD_M, MAX_TURN, OVERVIEW_TILT, TRANSITION_S, angleDelta, cameraPosition, createRig,
+  FIGURE_SCALE, FLAT_TILT, FOLLOW_DIST_M, FOLLOW_TILT, LOOK_AHEAD_M, MAX_TURN, OVERVIEW_TILT, TRANSITION_S, angleDelta, cameraPosition, createRig,
   ease, figureScale, fitOverview, metresForPixels, mixPose, projector, turnToward, type Anchor, type Pose,
 } from "../src/lib/view3d/camera";
 import { headingOf, makeLocal, makeTrack, toThree } from "../src/lib/view3d/world";
@@ -225,5 +225,61 @@ describe("createRig, flights between the modes", () => {
     rig.step(FRAME, anchorAt(16.9));
     const pose = rig.step(30, anchorAt(17.1)); // the tab was hidden for 30 s
     expect(Math.abs(angleDelta(pose.heading, anchorAt(17.1).heading))).toBeLessThan(1e-9);
+  });
+});
+
+describe("createRig, zoom and 2D (step 8)", () => {
+  /** Runs the rig for s seconds at 60 frames per second and returns every pose. */
+  const run = (rig: ReturnType<typeof createRig>, s: number, km = 5) => Array.from({ length: Math.round(s / FRAME) }, () => rig.step(FRAME, anchorAt(km)));
+
+  it("zooms the follow camera smoothly to the new distance, without a jump", () => {
+    const rig = createRig(overview, { mode: "follow" });
+    rig.step(FRAME, anchorAt(5));
+    rig.zoom(1 / 1.6);
+    const poses = run(rig, 1);
+    expect(poses[0].dist).toBeGreaterThan(130);
+    for (let i = 1; i < poses.length; i++) expect(poses[i].dist).toBeLessThanOrEqual(poses[i - 1].dist);
+    expect(poses.at(-1)!.dist).toBeCloseTo(140 / 1.6, 0);
+  });
+
+  it("keeps zooming within 60 to 400 m", () => {
+    const rig = createRig(overview, { mode: "follow" });
+    for (let i = 0; i < 10; i++) rig.zoom(1.6);
+    expect(run(rig, 2).at(-1)!.dist).toBeCloseTo(400, 1);
+    for (let i = 0; i < 10; i++) rig.zoom(1 / 1.6);
+    expect(run(rig, 2).at(-1)!.dist).toBeCloseTo(60, 1);
+  });
+
+  it("zooms at once with reduced motion", () => {
+    const rig = createRig(overview, { mode: "follow", cut: true });
+    rig.step(FRAME, anchorAt(5));
+    rig.zoom(2);
+    expect(rig.step(FRAME, anchorAt(5)).dist).toBe(280);
+  });
+
+  it("2D looks down from above in both modes and flies there without a jump, 3D flies back", () => {
+    for (const mode of ["follow", "overview"] as const) {
+      const rig = createRig(overview, { mode });
+      run(rig, 0.5);
+      rig.setFlat(true);
+      expect(rig.flat).toBe(true);
+      const there = run(rig, TRANSITION_S + 0.1);
+      // No jump: like the flights between the modes, the angle changes by a bounded step per frame, also in the first one.
+      for (let i = 1; i < there.length; i++) expect(Math.abs(there[i].tilt - there[i - 1].tilt)).toBeLessThan(5 * DEG);
+      expect(there[0].tilt).toBeLessThan((mode === "follow" ? FOLLOW_TILT : OVERVIEW_TILT) + 5 * DEG);
+      expect(there.at(-1)!.tilt).toBe(FLAT_TILT);
+      rig.setFlat(false);
+      expect(run(rig, TRANSITION_S + 0.1).at(-1)!.tilt).toBe(mode === "follow" ? FOLLOW_TILT : OVERVIEW_TILT);
+    }
+  });
+
+  it("changing 2D or zooming does not take the camera back when the user holds it", () => {
+    const rig = createRig(overview, { mode: "follow" });
+    const held = run(rig, 0.5).at(-1)!;
+    rig.release(held);
+    rig.setFlat(true);
+    rig.zoom(2);
+    expect(rig.free).toBe(true);
+    expect(rig.step(FRAME, anchorAt(6))).toEqual(held);
   });
 });

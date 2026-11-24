@@ -25,6 +25,10 @@ export const FOLLOW_TILT = 30 * DEG;
 /** The camera looks at a point this far ahead of the runner, along the course. */
 export const LOOK_AHEAD_M = 25;
 export const OVERVIEW_TILT = 50 * DEG;
+/** 2D: looking down from almost straight above. Exactly 90° would leave the camera without a direction. */
+export const FLAT_TILT = 88 * DEG;
+/** How fast a zoom of the follow camera closes the gap to the new distance (per second, on the logarithm). */
+const ZOOM_STIFFNESS = 6;
 export const OVERVIEW_MARGIN = 0.08;
 export const TRANSITION_S = 1.2;
 /** The follow camera turns at most this fast, so it swings round a hairpin instead of jumping. */
@@ -98,7 +102,7 @@ export function projector(p: Pose, aspect: number, fovDeg = FOV_DEG) {
 }
 
 /** Overview: the whole course in the frame with a margin, north up, looking down at 50°. */
-export function fitOverview(points: readonly (readonly [number, number])[], aspect: number, margin = OVERVIEW_MARGIN, fovDeg = FOV_DEG): Pose {
+export function fitOverview(points: readonly (readonly [number, number])[], aspect: number, margin = OVERVIEW_MARGIN, fovDeg = FOV_DEG, tilt = OVERVIEW_TILT): Pose {
   let w = Infinity;
   let e = -Infinity;
   let s = Infinity;
@@ -109,7 +113,7 @@ export function fitOverview(points: readonly (readonly [number, number])[], aspe
     s = Math.min(s, y);
     n = Math.max(n, y);
   }
-  const pose: Pose = { x: (w + e) / 2, y: (s + n) / 2, dist: 5000, tilt: OVERVIEW_TILT, heading: Math.PI / 2 };
+  const pose: Pose = { x: (w + e) / 2, y: (s + n) / 2, dist: 5000, tilt, heading: Math.PI / 2 };
   // Move out or in until the outermost course point sits on the margin. Perspective makes this a few rounds.
   for (let i = 0; i < 8; i++) {
     const project = projector(pose, aspect, fovDeg);
@@ -164,10 +168,15 @@ export interface Rig {
   setMode(mode: Mode, from?: Pose): void;
   /** Hand the camera to the user: stops any flight. `pose` is where the camera is now. */
   release(pose?: Pose): void;
-  /** Overview pose, set again when the frame changes its shape. */
-  setOverview(pose: Pose): void;
-  /** Follow distance (clamped to 60 to 400 m) and tilt, for zooming with two fingers while following. */
+  /** Overview pose and the one for 2D (default: the same from above), set again when the frame changes its shape. */
+  setOverview(pose: Pose, flat?: Pose): void;
+  /** Follow distance (clamped to 60 to 400 m) and tilt, at once. */
   setFollow(dist: number, tilt?: number): void;
+  /** Follow mode: change the distance by this factor (clamped to 60 to 400 m), smoothly. Does nothing in the overview or when the camera is free. */
+  zoom(factor: number): void;
+  /** 2D (looking down) or 3D. Flies there, unless the camera is free: then it only applies when the camera is taken back. */
+  setFlat(flat: boolean): void;
+  readonly flat: boolean;
   /** Advance by dt seconds of wall time and return the pose of this frame. */
   step(dt: number, anchor: Anchor): Pose;
 }
@@ -178,13 +187,19 @@ export function createRig(overview: Pose, opts: { cut?: boolean; mode?: Mode } =
   let mode: Mode = opts.mode ?? "overview";
   let free = false;
   let followDist = FOLLOW_DIST_M;
+  let followTarget = FOLLOW_DIST_M;
   let followTilt = FOLLOW_TILT;
+  let flat = false;
+  let flatOverview: Pose = { ...overview, tilt: FLAT_TILT };
   let camHeading: number | null = null;
   let last: Pose | null = null;
   let flight: { from: Pose; elapsed: number } | null = null;
 
   const goal = (a: Anchor): Pose =>
-    mode === "overview" ? overview : { x: a.x, y: a.y, dist: followDist, tilt: followTilt, heading: camHeading ?? a.heading };
+    mode === "overview"
+      ? flat ? flatOverview : overview
+      : { x: a.x, y: a.y, dist: followDist, tilt: flat ? FLAT_TILT : followTilt, heading: camHeading ?? a.heading };
+  const clampFollow = (d: number) => Math.max(FOLLOW_MIN_M, Math.min(FOLLOW_MAX_M, d));
 
   return {
     get mode() {
@@ -209,18 +224,31 @@ export function createRig(overview: Pose, opts: { cut?: boolean; mode?: Mode } =
       flight = null;
       if (pose) last = pose;
     },
-    setOverview(pose) {
+    get flat() {
+      return flat;
+    },
+    setOverview(pose, flatPose) {
       overview = pose;
+      flatOverview = flatPose ?? { ...pose, tilt: FLAT_TILT };
     },
     setFollow(dist, tilt) {
-      followDist = Math.max(FOLLOW_MIN_M, Math.min(FOLLOW_MAX_M, dist));
+      followDist = followTarget = clampFollow(dist);
       if (tilt !== undefined) followTilt = tilt;
+    },
+    zoom(factor) {
+      if (mode === "follow" && !free) followTarget = clampFollow(followTarget * factor);
+    },
+    setFlat(next) {
+      if (next === flat) return;
+      flat = next;
+      if (!free && last && !cut) flight = { from: last, elapsed: 0 };
     },
     step(dt, anchor) {
       if (free && last) return last;
       // First frame, reduced motion, or a long gap (tab was hidden): no catching up, be there.
       const snap = cut || camHeading === null || dt > 0.25;
       camHeading = snap ? anchor.heading : turnToward(camHeading!, anchor.heading, dt);
+      followDist = cut ? followTarget : followTarget * (followDist / followTarget) ** Math.exp(-ZOOM_STIFFNESS * dt);
       if (flight && dt > 0.25) flight = null;
       let pose = goal(anchor);
       if (flight) {

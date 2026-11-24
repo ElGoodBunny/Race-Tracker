@@ -56,7 +56,8 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [x] 5b. **Budget Barcelona:** Umrisse mit 2 m vereinfacht, Hochhäuser ab 50 m bleiben voll. Übersicht 377.000 statt 926.000 Dreiecke (Ziel höchstens 400.000), Folgemodus 58.000 bis 65.000 statt 130.000 bis 143.000 (Ziel höchstens 120.000). Ergebnis in `docs/decisions/2026-11-13-3d-konzept.md`
 - [x] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000 (gemessen höchstens 96.022 an der Sagrada Família)
 - [ ] 7. **Streckenband** mit fließender Textur, gelaufener Teil kräftiger. Prüfpunkt: Bei km 12 endet der kräftige Teil unter dem Läufer. Sichtprüfung gegen `frame-04.jpg`
-- [ ] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
+- [x] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
+  - [ ] Zoom mit zwei Fingern beim Folgen, ohne die Kamera freizugeben
 - [ ] 9. **Läufer** aus `figures.ts`, vom Replay bewegt, Größe je nach Abstand, Ring. Position über `toThree` aus `world.ts`. Prüfpunkt: In der Übersicht ist der Läufer mindestens 40 px hoch und fällt zuerst auf. Laufanimation passt zum Tempo
 - [ ] 10. **Labels** (`labels.ts`) über Läufer und Spots. Prüfpunkt: Check "Labels kleben" als Playwright-Test: Kamera per Skript schnell drehen und zoomen, Label weicht in jedem Bild höchstens 1 px vom Anker ab, keine Überdeckung
 - [ ] 11. **Spots:** Pins, Avatare als Grüppchen, Passieren, Konfetti, Meldung, Liste "Als Nächstes". Prüfpunkt: Check "Spots werden wirklich passiert" als Test: genau beim Überschreiten, nicht doppelt, auch beim Vorspulen über mehrere Spots

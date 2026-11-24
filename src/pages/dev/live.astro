@@ -50,6 +50,11 @@ const recording = "hamburg-2026";
         <p class="caption-4 note card" id="note" hidden></p>
         <dl class="card quality" id="quality" hidden><dt class="caption-4 muted">Daten</dt><dd class="title-2" id="hud-quality">gemessen</dd></dl>
       </div>
+      <div class="bar card" id="bar" role="group" aria-label="Kamera" hidden>
+        <button type="button" class="title-2" id="zoom-in" aria-label="Näher heran">+</button>
+        <button type="button" class="title-2" id="zoom-out" aria-label="Weiter weg">−</button>
+        <button type="button" class="body-5" id="flat" aria-pressed="false" aria-label="Ansicht von oben">2D</button>
+      </div>
       <p class="body-5 toast" id="toast" role="status" aria-live="polite"></p>
       <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
     </div>
@@ -78,7 +83,7 @@ const recording = "hamburg-2026";
   .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
   .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
-  .fallback[hidden], .hud[hidden], .note[hidden], .quality[hidden] { display: none; }
+  .fallback[hidden], .hud[hidden], .note[hidden], .quality[hidden], .bar[hidden] { display: none; }
   /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
   .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .hud { position: absolute; left: var(--s200); top: var(--s200); margin: 0; display: flex; flex-wrap: wrap; gap: var(--s100); pointer-events: none; }
@@ -86,6 +91,10 @@ const recording = "hamburg-2026";
   .side { position: absolute; right: var(--s200); top: var(--s200); display: flex; flex-direction: column; align-items: flex-end; gap: var(--s100); pointer-events: none; }
   .note { margin: 0; }
   .quality dd { margin: 0; }
+  /* Camera buttons on the map, like the bar in the video (frame-05.jpg) */
+  .bar { position: absolute; right: var(--s200); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--s25); padding: var(--s25); border-radius: 24px; }
+  .bar button { width: var(--s500); height: var(--s500); border: 0; border-radius: 9999px; background: transparent; color: var(--ink); cursor: pointer; transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
+  .bar button[aria-pressed="true"] { background: var(--pressed); color: var(--pressed-ink); }
   .toast { position: absolute; left: 50%; bottom: var(--s500); margin: 0; padding: var(--s100) var(--s200); border-radius: 9999px; background: var(--toast); color: var(--toast-ink); opacity: 0; transform: translate(-50%, var(--s100)); transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease); pointer-events: none; white-space: nowrap; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
   .credit { position: absolute; right: var(--s100); bottom: var(--s75); pointer-events: none; }
@@ -207,6 +216,7 @@ const recording = "hamburg-2026";
     el("note").textContent = race.note;
     el("note").hidden = false;
     el("quality").hidden = false;
+    el("bar").hidden = false;
 
     const play = el("play");
     function setPlaying(on: boolean, now = performance.now()) {
@@ -229,6 +239,12 @@ const recording = "hamburg-2026";
     }
     for (const b of document.querySelectorAll<HTMLButtonElement>("[data-mode]")) b.addEventListener("click", () => view.setMode(b.dataset.mode as Mode));
     el("center").addEventListener("click", () => view.setMode(view.mode));
+    el("zoom-in").addEventListener("click", () => view.zoom(1 / 1.6));
+    el("zoom-out").addEventListener("click", () => view.zoom(1.6));
+    el("flat").addEventListener("click", () => {
+      view.setFlat(!view.flat);
+      el("flat").setAttribute("aria-pressed", String(view.flat));
+    });
     el("outage").addEventListener("click", () => {
       const t = clock.time(performance.now());
       outages.push([t, t + 60]);
@@ -238,8 +254,15 @@ const recording = "hamburg-2026";
 
     clock.setSpeed(10, performance.now());
     setPlaying(true);
-    // Opening: a moment of overview, then the flight to the runner.
-    const opening = window.setTimeout(() => view.setMode("follow"), 1500);
+    // Opening: a moment of overview, then the flight to the runner. Once per session, after that straight to the runner.
+    let opened = false;
+    try {
+      opened = sessionStorage.getItem("live-opened") === "1";
+      sessionStorage.setItem("live-opened", "1");
+    } catch {
+      // Storage blocked: every visit opens with the overview.
+    }
+    const opening = window.setTimeout(() => view.setMode("follow"), opened ? 0 : 1500);
 
     // Hooks for measurement and screenshots, like /dev/view3d.
     Object.assign(window, {
