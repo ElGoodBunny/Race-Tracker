@@ -66,11 +66,14 @@ Roadmap: <Phase und Schritt>
 ```
 
 ## Pakete
-- 001 Liste "Als Nächstes" (Phase 2, Schritt 11): claude, offen, `docs/tasks/001-claude-als-naechstes.md`
-- 002 Sichtprüfung Streckenband und Läufer auf `/dev/live` (Phase 2, Schritte 7 und 9): gemini, offen, `docs/tasks/002-gemini-sichtpruefung-live.md`
-- 003 Budget Barcelona, Detailstufe der Stadt (Phase 2, Schritt 5b): claude, review
-- 004 Bäume (Phase 2, Schritt 6): claude, review, Branch `claude/004-baeume` (baut auf 003 auf)
-- 005 Mischquelle (Phase 2, Schritt 13 ohne Replay-Steuerung): claude, review, Branch `claude/005-mischquelle` (baut auf 004 auf)
-- 006 Bedienleiste der Kamera (Phase 2, Schritt 8): claude, review, Branch `claude/006-kamera` (baut auf 005 auf)
-- 007 HUD und Panel (Phase 2, Schritt 12): claude, review, Branch `claude/007-hud-panel` (baut auf 006 auf)
-- 008 Labels (Phase 2, Schritt 10): claude, review, Branch `claude/008-labels` (baut auf 007 auf)
+- 001 Liste "Als Nächstes" (Phase 2, Schritt 11): claude, erledigt
+- 002 Sichtprüfung Streckenband und Läufer auf `/dev/live` (Phase 2, Schritte 7 und 9): gemini, erledigt
+- 003 Budget Barcelona, Detailstufe der Stadt (Phase 2, Schritt 5b): claude, erledigt
+- 004 Bäume (Phase 2, Schritt 6): claude, erledigt
+- 005 Mischquelle (Phase 2, Schritt 13 ohne Replay-Steuerung): claude, erledigt
+- 006 Bedienleiste der Kamera (Phase 2, Schritt 8): claude, erledigt
+- 007 HUD und Panel (Phase 2, Schritt 12): claude, erledigt
+- 008 Labels (Phase 2, Schritt 10): claude, erledigt
+- 009 Läufer vor den Pins (Phase 2, Schritt 9): claude, erledigt
+- 010 Pfeile im Streckenband (Phase 2, Schritt 7): claude, erledigt
+- 011 Nachprüfung Läufer, Pins und Streckenband auf `/dev/live` (Phase 2, Schritte 7 und 9): gemini, offen, `docs/tasks/011-gemini-nachpruefung-live.md`

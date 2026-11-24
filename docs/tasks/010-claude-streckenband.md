@@ -1,6 +1,6 @@
 # 010 Pfeile im Streckenband
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/010-streckenband
 Roadmap: Phase 2, Schritt 7 (Streckenband), Teil "Sichtprüfung gegen frame-04.jpg"
 

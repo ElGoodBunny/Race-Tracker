@@ -1,6 +1,6 @@
 # 001 Liste "Als Nächstes"
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/001-als-naechstes
 Roadmap: Phase 2, Schritt 11 (Spots), Teil "Liste Als Nächstes"
 

@@ -1,6 +1,6 @@
 # 009 Läufer vor den Pins
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/009-pins-uebersicht
 Roadmap: Phase 2, Schritt 9 (Läufer), Teil "fällt in der Übersicht zuerst auf"
 
