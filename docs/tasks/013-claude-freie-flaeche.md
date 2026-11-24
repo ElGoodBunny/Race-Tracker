@@ -1,6 +1,6 @@
 # 013 Ansicht auf die freie Fläche
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/013-freie-flaeche
 Roadmap: Phase 2, Schritt 12 (HUD und Panel), Nachtrag aus der Sichtprüfung
 
@@ -31,5 +31,16 @@ Rennseite, Layout von Panel und HUD, Kamera-Bedienung.
 ## Rückfragen
 
 ## Ergebnis
+Erledigt: `viewFrame` und `Insets` in `camera.ts`. `view.ts` fragt jedes Bild `insets()` ab, verschiebt den Bildmittelpunkt per `setViewOffset` und passt Übersicht und 2D in die freie Fläche ein. `/dev/live` misst HUD, Kameraleiste und Panel (Desktop) beziehungsweise HUD und eingeklapptes Sheet (Handy), mit 8 px Abstand. Ein aufgezogenes Sheet behält den letzten Wert.
+
+Geprüft:
+- Unit-Tests zuerst, rot ohne `viewFrame`: ohne Ränder unverändert, mit Rändern liegt das Kameraziel mit einer echten `PerspectiveCamera` genau in der Mitte der freien Fläche
+- Check `e2e/free-area.e2e.ts`: alle 200 Streckenpunkte in der Übersicht innerhalb der freien Fläche, Desktop und Handy. Gegenprobe ohne `insets`: rot, Desktop 26 Punkte bis 153 px unter Kameraleiste und Panel, Handy 32 Punkte
+- `npm test` 23 Dateien, 269 Tests grün. `npm run check` 0 Fehler im Projekt. `npm run e2e` 3 von 3 grün, "Labels kleben" unverändert
+- Sichtprüfung: Desktop hell Übersicht km 28,5 (Läufer und Pin Fòrum jetzt sichtbar, vorher unter dem Panel) und Folgen (Läufer mittig links vom Panel). Handy dunkel Übersicht km 13,9 und Folgen. Nicht geprüft: Desktop dunkel, Handy hell
+
+Offen:
+- Am Handy ragt die Strecke rechts oben unter die Kameraleiste. Die Leiste ziehe ich am Handy bewusst nicht ab, die Karte würde sonst 60 px schmaler
+- Am Handy im Folgemodus berührt der Ring unter dem Läufer die Kante des Sheets
 
 ## Review
