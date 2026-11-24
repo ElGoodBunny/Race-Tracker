@@ -1,7 +1,7 @@
 # 011 Nachprüfung Läufer, Pins und Streckenband
-Besitzer: gemini
-Status: offen
-Branch: gemini/011-nachpruefung-live
+Besitzer: claude (von gemini übernommen)
+Status: review
+Branch: claude/011-nachpruefung-live
 Roadmap: Phase 2, Schritt 7 (Streckenband) und Schritt 9 (Läufer), jeweils der Teil "Sichtprüfung"
 
 ## Worum es geht
@@ -53,5 +53,17 @@ Jede Änderung an Code, Styles, Roadmap oder `AGENTS.md`. Lösungsvorschläge. M
 ## Rückfragen
 
 ## Ergebnis
+Von Claude übernommen, auf Dimas Wunsch. Geminis Lauf hatte Bilder vom falschen Server und in Claudes Ordner geschrieben, im zweiten Anlauf einen Bericht ohne Prüfung ("nicht geprüft" in jedem Feld). Geminis Branch `gemini/011-nachpruefung-live` und die ungetrackten Dateien in Geminis Ordner sind damit hinfällig.
+
+Erledigt:
+- 20 Screenshots in `docs/decisions/2026-11-24-nachpruefung-live/`, Namen wie verlangt, Desktop 1200 px breit
+- Bericht `docs/decisions/2026-11-24-nachpruefung-live.md`: jede Frage aus Schritt 5 je Bild in einer Tabelle, beide Listen aus Schritt 7, Konsole "keine Fehler"
+- Messwerte aus der Szene gerechnet statt geschätzt, Rohwerte in `messwerte.json` im Bildordner. Aufnahme- und Messskript liegt nur lokal in `.cache/nachpruefung.mjs`
+
+Wichtigste Befunde: Konfetti steht bei Pause groß im Bild und liegt an km 13,9 über dem Kopf. Läufer in der Übersicht etwa 30 px statt mindestens 40 px. Band in der Übersicht über dem Läufer. Pin im Folgemodus größer als der Läufer. Am Handy Pin Fòrum zu etwa 60 % unter der Kameraleiste.
+
+Abweichungen vom Auftrag: Bilder per Skript statt in der Browser-Konsole. Pfeile im Fließen nur an einem Bild geprüft (km 12 Folgen hell). Pins im Wasser oder Häuserblock an Ausschnitten von `km28.5-uebersicht-hell.jpg` geprüft, nicht an allen Bildern.
+
+Geprüft: `git status` vor dem Commit, nur Bericht, Bildordner und diese Datei geändert.
 
 ## Review
