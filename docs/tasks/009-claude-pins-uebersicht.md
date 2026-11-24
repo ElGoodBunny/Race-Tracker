@@ -1,6 +1,6 @@
 # 009 Läufer vor den Pins
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/009-pins-uebersicht
 Roadmap: Phase 2, Schritt 9 (Läufer), Teil "fällt in der Übersicht zuerst auf"
 
@@ -41,5 +41,17 @@ Startnummer, Farbe und Pfeile des Streckenbands, Sagrada Família, Spot-Namen be
 ## Rückfragen
 
 ## Ergebnis
+Erledigt: `pinScale` und `pinOffset` in `camera.ts`, `pinScale` im Frame (`layer.ts`, `view.ts`), Pins und Konfetti werden in jedem Bild neu gesetzt (`actors.ts`), Spot-Labels und Check "Labels kleben" nehmen den neuen Anker.
+
+Geprüft:
+- Tests zuerst, rot ohne `pinScale`, danach `npm test` 22 Dateien, 256 Tests grün (dieser Branch hat Paket 001 nicht)
+- `npm run check`: 0 Fehler im Projekt. Gemeldet werden 17, alle in `Claude outputs/` und `brag-output/`. 5 davon sind neu: Kopien in `brag-output/work/` bauen den Frame selbst und kennen `pinScale` nicht
+- `npm run e2e`: "Labels kleben" grün, größte Abweichung 0,00005 px, keine Überdeckung
+- Messung per Projektion auf `/dev/live`, Barcelona, 1280 × 900, km 13,9: Übersicht Läufer 39 px, Pin 25 px (vorher 45 px), Läuferbox zu 26 % von der Pinbox überdeckt (vorher 100 %). Folgemodus 0 %. An km 12 und 28,5 kein Pin in der Nähe, Läufer 37,5 bis 40 px
+- Sichtprüfung: Übersicht hell Desktop und dunkel Handy, Folgemodus dunkel Handy an km 13,9. Der Läufer fällt mit Label zuerst auf, der Pin steht klein daneben, im Folgemodus rechts neben dem Körper. Nicht einzeln abgebildet: Folgemodus hell Desktop, Übersicht dunkel Desktop
+
+Abweichungen: Im Folgemodus steht der Pin jetzt 10,7 m statt 9 m neben der Strecke, sonst wäre die Kollision aus Paket 002 geblieben. `docs/decisions/` nicht ergänzt, die Herleitung steht hier und in den Kommentaren von `camera.ts`.
+
+Offen aus Paket 002: Startnummer, Farbe und Pfeile des Streckenbands, Sagrada Família.
 
 ## Review
