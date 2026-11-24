@@ -82,4 +82,5 @@ Roadmap: <Phase und Schritt>
 - 014 Zoom mit zwei Fingern beim Folgen (Phase 2, Schritt 8): claude, erledigt
 - 015 Konfetti in der richtigen Größe (Phase 2, Schritt 11): claude, erledigt
 - 017 3D-Ansicht in der Rennseite (Phase 2, Schritte 15 und 13): claude, erledigt
-- 018 Datenschicht Supabase (Phase 1): claude, review
+- 018 Datenschicht Supabase (Phase 1): claude, erledigt
+- 019 Fehlertexte (Phase 1): claude, review

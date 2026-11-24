@@ -1,6 +1,6 @@
 # 018 Datenschicht Supabase
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/018-datenschicht
 Roadmap: Phase 1, Datenschicht `src/lib/live/supabase.ts`
 

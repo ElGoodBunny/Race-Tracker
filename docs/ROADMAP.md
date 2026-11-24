@@ -49,6 +49,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Supabase-Projekt anlegen, Migration einspielen, Anonymous Sign-in + CAPTCHA aktivieren, Dima als Admin plus Anzeigenamen eintragen
 - [x] Migration: sieben Schema-Lücken aus Checkpoint A plus diese drei Entscheidungen, jede mit RLS-Test, beim LiveTrack-Link inklusive der Fälle fremder Host, Subdomain-Trick, `http`, Port und Zugangsdaten in der URL (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Datenschicht `src/lib/live/supabase.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
+  - [x] `subscribeRace` mit Tests gegen einen nachgebauten Client (Paket 018). Offen: Prüfung gegen das echte Projekt
 - [ ] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile)
 - [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil
 - [ ] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion
@@ -61,6 +62,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Simulation mit Geschwindigkeitsstufen
 - [ ] FAQ, Abschluss, Footer mit Quellen
 - [ ] Fehlertexte aus dem Legacy übernehmen (Rate Limit, keine Rechte, offline)
+  - [x] Texte als `errorText` in `src/lib/live/errors.ts` (Paket 019). Anzeige kommt mit dem Schreiben
 
 ## Phase 2: Video-Niveau (docs/VISION.md, Abschnitte 1 bis 5)
 Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decisions/2026-11-13-3d-konzept.md`), jeder ein eigener Commit. Fokus ist Barcelona 2027: Bis Schritt 5 wurde gegen Hamburg entwickelt, ab Schritt 6 wird gegen Barcelona entwickelt und gemessen. Hamburg bleibt Testfall mit echten Replay-Daten und Archivseite.
