@@ -41,7 +41,7 @@ Geprüft:
 
 Abweichungen:
 - `src/lib/view3d/view.ts` war nicht freigegeben. Nötig war eine Zeile: `route-ink` in der Liste der Tokens, die die Ansicht liest
-- Farbton bleibt `--route` (hell `#0A5CA8`, im Video heller und türkiser). Das Token gilt seitenweit für Links, Fokus und die 2D-Karte. Ein eigenes Token fürs Band wäre eine Design-Entscheidung für Dima
+- Farbton bleibt `--route` (hell `#0A5CA8`, im Video heller und türkiser). Das Token gilt seitenweit für Links, Fokus und die 2D-Karte. Dima hat am 24.11. entschieden: so lassen, kein eigenes Token
 - Im dunklen Thema sind die Pfeile dunkel (`--route-ink` ist dort `#131209`), nicht weiß wie im Video. So bleibt der Kontrast auf dem hellen Blau
 
 ## Review
