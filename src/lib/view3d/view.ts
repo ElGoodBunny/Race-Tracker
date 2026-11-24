@@ -10,6 +10,7 @@ import type { CourseData } from "../course";
 import type { Sample } from "../live/source";
 import type { SceneData } from "../osm";
 import { createActors } from "./actors";
+import { createFollowGesture } from "./gesture";
 import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, pinScale, turnToward, viewFrame, type Insets, type Mode, type Pose } from "./camera";
 import type { Frame, Layer, SpotState, Tokens } from "./layer";
 import { createCity, createRibbon, CITY_TOKENS, type CityColors } from "./scene";
@@ -146,6 +147,36 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
     state();
   };
   controls.addEventListener("start", onGrab);
+  // Touch while following (gesture.ts): two fingers zoom the follow distance, one finger takes the camera
+  // only once it really moves. Until then MapControls does not see the fingers, so a pinch or a tap leaves the rig in charge.
+  const gesture = createFollowGesture();
+  const doc = canvas.ownerDocument;
+  let handing = false;
+  const following = () => rig.mode === "follow" && !rig.free;
+  const onTouchDown = (e: PointerEvent) => {
+    if (handing || e.pointerType !== "touch" || (!gesture.active && !following())) return;
+    e.stopImmediatePropagation();
+    gesture.down(e.pointerId, e.clientX, e.clientY);
+  };
+  const onTouchMove = (e: PointerEvent) => {
+    const r = gesture.move(e.pointerId, e.clientX, e.clientY);
+    if (r.type === "zoom" && following()) {
+      rig.zoom(r.factor);
+      dirty = true;
+    } else if (r.type === "drag") {
+      onGrab();
+      // MapControls takes this finger over from here, as if it had just touched down.
+      handing = true;
+      const { pointerId, pointerType, clientX, clientY, isPrimary } = e;
+      canvas.dispatchEvent(new PointerEvent("pointerdown", { pointerId, pointerType, clientX, clientY, isPrimary, button: 0, buttons: 1, bubbles: true }));
+      handing = false;
+    }
+  };
+  const onTouchUp = (e: PointerEvent) => gesture.up(e.pointerId);
+  canvas.addEventListener("pointerdown", onTouchDown, { capture: true });
+  doc.addEventListener("pointermove", onTouchMove);
+  doc.addEventListener("pointerup", onTouchUp);
+  doc.addEventListener("pointercancel", onTouchUp);
   const onControlsChange = () => (dirty = true);
   controls.addEventListener("change", onControlsChange);
 
@@ -320,6 +351,10 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
       renderer.setAnimationLoop(null);
       seen.disconnect();
       controls.removeEventListener("start", onGrab);
+      canvas.removeEventListener("pointerdown", onTouchDown, { capture: true });
+      doc.removeEventListener("pointermove", onTouchMove);
+      doc.removeEventListener("pointerup", onTouchUp);
+      doc.removeEventListener("pointercancel", onTouchUp);
       controls.removeEventListener("change", onControlsChange);
       controls.dispose();
       for (const l of layers) {

@@ -170,10 +170,10 @@ describe("createRig, follow mode", () => {
     expect(Math.abs(angleDelta(prev.heading, headingOf(track.at(17.15))))).toBeLessThan(2 * DEG);
   });
 
-  it("keeps the follow distance between 60 and 400 m", () => {
+  it("keeps the follow distance between 100 and 400 m", () => {
     const rig = createRig(overview, { mode: "follow" });
     rig.setFollow(20);
-    expect(rig.step(FRAME, anchorAt(5)).dist).toBe(60);
+    expect(rig.step(FRAME, anchorAt(5)).dist).toBe(100);
     rig.setFollow(1000, 45 * DEG);
     const pose = rig.step(FRAME, anchorAt(5));
     expect(pose.dist).toBe(400);
@@ -258,19 +258,19 @@ describe("createRig, zoom and 2D (step 8)", () => {
   it("zooms the follow camera smoothly to the new distance, without a jump", () => {
     const rig = createRig(overview, { mode: "follow" });
     rig.step(FRAME, anchorAt(5));
-    rig.zoom(1 / 1.6);
+    rig.zoom(1 / 1.3);
     const poses = run(rig, 1);
     expect(poses[0].dist).toBeGreaterThan(130);
     for (let i = 1; i < poses.length; i++) expect(poses[i].dist).toBeLessThanOrEqual(poses[i - 1].dist);
-    expect(poses.at(-1)!.dist).toBeCloseTo(140 / 1.6, 0);
+    expect(poses.at(-1)!.dist).toBeCloseTo(140 / 1.3, 0);
   });
 
-  it("keeps zooming within 60 to 400 m", () => {
+  it("keeps zooming within 100 to 400 m", () => {
     const rig = createRig(overview, { mode: "follow" });
     for (let i = 0; i < 10; i++) rig.zoom(1.6);
     expect(run(rig, 2).at(-1)!.dist).toBeCloseTo(400, 1);
     for (let i = 0; i < 10; i++) rig.zoom(1 / 1.6);
-    expect(run(rig, 2).at(-1)!.dist).toBeCloseTo(60, 1);
+    expect(run(rig, 2).at(-1)!.dist).toBeCloseTo(100, 1);
   });
 
   it("zooms at once with reduced motion", () => {

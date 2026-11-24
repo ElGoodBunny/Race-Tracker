@@ -19,7 +19,8 @@ export interface Pose {
 const DEG = Math.PI / 180;
 export const FOV_DEG = 35;
 export const FOLLOW_DIST_M = 140;
-export const FOLLOW_MIN_M = 60;
+/** Closer than this the runner (about 21 m tall in the follow mode) fills the view and the label slips under the HUD. */
+export const FOLLOW_MIN_M = 100;
 export const FOLLOW_MAX_M = 400;
 export const FOLLOW_TILT = 30 * DEG;
 /** The camera looks at a point this far ahead of the runner, along the course. */
@@ -210,9 +211,9 @@ export interface Rig {
   release(pose?: Pose): void;
   /** Overview pose and the one for 2D (default: the same from above), set again when the frame changes its shape. */
   setOverview(pose: Pose, flat?: Pose): void;
-  /** Follow distance (clamped to 60 to 400 m) and tilt, at once. */
+  /** Follow distance (clamped to 100 to 400 m) and tilt, at once. */
   setFollow(dist: number, tilt?: number): void;
-  /** Follow mode: change the distance by this factor (clamped to 60 to 400 m), smoothly. Does nothing in the overview or when the camera is free. */
+  /** Follow mode: change the distance by this factor (clamped to 100 to 400 m), smoothly. Does nothing in the overview or when the camera is free. */
   zoom(factor: number): void;
   /** 2D (looking down) or 3D. Flies there, unless the camera is free: then it only applies when the camera is taken back. */
   setFlat(flat: boolean): void;
