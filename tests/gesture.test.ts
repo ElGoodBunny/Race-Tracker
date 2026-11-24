@@ -20,6 +20,13 @@ describe("createFollowGesture (step 8, two-finger zoom)", () => {
     expect(g.move(1, 150, 150)).toEqual({ type: "none" });
   });
 
+  it("lets go of the fingers after a drag, so later fingers belong to the free camera", () => {
+    const g = createFollowGesture();
+    g.down(1, 100, 100);
+    g.move(1, 100, 100 + DRAG_PX + 1);
+    expect(g.active).toBe(false);
+  });
+
   it("never a drag once two fingers were down, even when one is lifted first", () => {
     const g = createFollowGesture();
     g.down(1, 100, 100);

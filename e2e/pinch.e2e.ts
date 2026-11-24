@@ -17,7 +17,9 @@ async function setUp(page: Page) {
     const L = (window as any).__live;
     L.pause();
     L.view.setMode("follow");
-    L.view.add({ frame: (f: any) => (((window as any).__dist = f.pose.dist), ((window as any).__pose = f.pose)), dispose() {} });
+    const w = window as any;
+    w.__dists = [];
+    L.view.add({ frame: (f: any) => ((w.__dist = f.pose.dist), (w.__pose = f.pose), w.__dists.push(f.pose.dist)), dispose() {} });
     document.getElementById("view")!.scrollIntoView({ block: "start" });
   });
   await page.waitForTimeout(2500);
@@ -35,12 +37,22 @@ test("Zoom mit zwei Fingern: näher, Kamera bleibt beim Läufer", async ({ page 
   const at = await setUp(page);
   const cdp = await page.context().newCDPSession(page);
   const before = await state(page);
+  await page.evaluate(() => ((window as any).__dists = []));
   await touch(cdp, "touchStart", [{ x: at.x - 20, y: at.y, id: 1 }, { x: at.x + 20, y: at.y, id: 2 }]);
-  for (let s = 1; s <= 10; s++) await touch(cdp, "touchMove", [{ x: at.x - 20 - 6 * s, y: at.y, id: 1 }, { x: at.x + 20 + 6 * s, y: at.y, id: 2 }]);
+  for (let s = 1; s <= 10; s++) {
+    await touch(cdp, "touchMove", [{ x: at.x - 20 - 6 * s, y: at.y, id: 1 }, { x: at.x + 20 + 6 * s, y: at.y, id: 2 }]);
+    await page.waitForTimeout(16);
+  }
   await touch(cdp, "touchEnd", []);
   await page.waitForTimeout(1500);
   const after = await state(page);
-  console.log(JSON.stringify({ before, after }));
+  // No jump: frame by frame the distance only shrinks, in small steps.
+  const dists: number[] = await page.evaluate(() => (window as any).__dists);
+  const steps = dists.slice(1).map((d, i) => d - dists[i]);
+  const maxStep = Math.max(...steps.map((d) => -d));
+  console.log(JSON.stringify({ before, after, frames: dists.length, maxStep }));
+  expect(Math.max(...steps)).toBeLessThanOrEqual(1e-6);
+  expect(maxStep).toBeLessThan(5);
   expect(after.free).toBe(false);
   // Fingers spread to four times their distance: the camera goes as close as it may (FOLLOW_MIN_M).
   expect(after.dist).toBeLessThan(before.dist);
@@ -67,4 +79,22 @@ test("Ein Finger zieht: Kamera wird frei. Tippen: bleibt beim Läufer", async ({
   console.log(JSON.stringify({ grabbed, after }));
   expect(grabbed.free).toBe(true);
   expect(Math.hypot(after.x - grabbed.x, after.y - grabbed.y)).toBeGreaterThan(5);
+});
+
+test("Nach dem Ziehen zoomt ein zweiter Finger die freie Kamera", async ({ page }) => {
+  const at = await setUp(page);
+  const cdp = await page.context().newCDPSession(page);
+  await touch(cdp, "touchStart", [{ ...at, id: 1 }]);
+  for (let s = 1; s <= 4; s++) await touch(cdp, "touchMove", [{ x: at.x, y: at.y + 5 * s, id: 1 }]);
+  const one = { x: at.x, y: at.y + 20, id: 1 };
+  expect((await state(page)).free).toBe(true);
+  const before = await state(page);
+  await touch(cdp, "touchStart", [one, { x: at.x + 40, y: at.y + 20, id: 2 }]);
+  for (let s = 1; s <= 10; s++) await touch(cdp, "touchMove", [{ x: at.x - 6 * s, y: at.y + 20, id: 1 }, { x: at.x + 40 + 6 * s, y: at.y + 20, id: 2 }]);
+  await touch(cdp, "touchEnd", []);
+  await page.waitForTimeout(800);
+  const after = await state(page);
+  console.log(JSON.stringify({ before, after }));
+  expect(after.free).toBe(true);
+  expect(after.dist).toBeLessThan(before.dist * 0.9);
 });

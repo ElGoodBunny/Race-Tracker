@@ -153,8 +153,9 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
   const doc = canvas.ownerDocument;
   let handing = false;
   const following = () => rig.mode === "follow" && !rig.free;
+  // On the document in the capture phase, so it runs before MapControls' listener on the canvas in every browser.
   const onTouchDown = (e: PointerEvent) => {
-    if (handing || e.pointerType !== "touch" || (!gesture.active && !following())) return;
+    if (handing || e.target !== canvas || e.pointerType !== "touch" || (!gesture.active && !following())) return;
     e.stopImmediatePropagation();
     gesture.down(e.pointerId, e.clientX, e.clientY);
   };
@@ -173,7 +174,7 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
     }
   };
   const onTouchUp = (e: PointerEvent) => gesture.up(e.pointerId);
-  canvas.addEventListener("pointerdown", onTouchDown, { capture: true });
+  doc.addEventListener("pointerdown", onTouchDown, { capture: true });
   doc.addEventListener("pointermove", onTouchMove);
   doc.addEventListener("pointerup", onTouchUp);
   doc.addEventListener("pointercancel", onTouchUp);
@@ -351,7 +352,7 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
       renderer.setAnimationLoop(null);
       seen.disconnect();
       controls.removeEventListener("start", onGrab);
-      canvas.removeEventListener("pointerdown", onTouchDown, { capture: true });
+      doc.removeEventListener("pointerdown", onTouchDown, { capture: true });
       doc.removeEventListener("pointermove", onTouchMove);
       doc.removeEventListener("pointerup", onTouchUp);
       doc.removeEventListener("pointercancel", onTouchUp);

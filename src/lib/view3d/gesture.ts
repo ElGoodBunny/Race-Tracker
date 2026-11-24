@@ -23,7 +23,6 @@ export function createFollowGesture(): FollowGesture {
   const fingers = new Map<number, { x: number; y: number; startX: number; startY: number }>();
   // Once two fingers were down, the gesture stays a zoom until all fingers are up.
   let pinch = false;
-  let dragged = false;
 
   const spread = () => {
     if (fingers.size !== 2) return 0;
@@ -46,13 +45,14 @@ export function createFollowGesture(): FollowGesture {
         const after = spread();
         return before > 0 && after > 0 ? { type: "zoom", factor: before / after } : { type: "none" };
       }
-      if (dragged || Math.hypot(x - f.startX, y - f.startY) <= DRAG_PX) return { type: "none" };
-      dragged = true;
+      if (Math.hypot(x - f.startX, y - f.startY) <= DRAG_PX) return { type: "none" };
+      // The finger goes to the free camera: forget it, so further fingers go there too.
+      fingers.clear();
       return { type: "drag", id };
     },
     up(id) {
       fingers.delete(id);
-      if (fingers.size === 0) pinch = dragged = false;
+      if (fingers.size === 0) pinch = false;
     },
     get active() {
       return fingers.size > 0;
