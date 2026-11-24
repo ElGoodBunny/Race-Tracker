@@ -1,6 +1,6 @@
 # 010 Pfeile im Streckenband
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/010-streckenband
 Roadmap: Phase 2, Schritt 7 (Streckenband), Teil "Sichtprüfung gegen frame-04.jpg"
 
@@ -32,5 +32,16 @@ Farbton des Bands (`--route` gilt seitenweit, siehe Ergebnis), Bandbreite, km-Ma
 ## Rückfragen
 
 ## Ergebnis
+Erledigt: `ribbonInk` in `scene.ts` leitet Band- und Pfeilfarben aus den Tokens ab, die Textur wird pro Thema in diesen Farben gezeichnet, statt grau zu sein und eingefärbt zu werden. Doppelter Winkelpfeil über rund zwei Drittel der Bandbreite. Fließen, Breite und Übergang unverändert.
+
+Geprüft:
+- Tests zuerst, rot ohne `ribbonInk`. Die Tests lesen beide Themen direkt aus `tokens.css`: Pfeil zu Band im gelaufenen Teil mindestens 3:1, im Rest sichtbar (über 1,15:1) und leiser als im gelaufenen Teil
+- `npm test` 22 Dateien, 256 Tests grün. `npm run check` 0 Fehler im Projekt (die gemeldeten liegen in `Claude outputs/` und `brag-output/`). `npm run e2e` grün
+- Sichtprüfung km 12: Folgen hell Desktop (weiße Doppelpfeile auf kräftigem Blau, Rest blass mit leisen Pfeilen), Übersicht hell Desktop (Band als Linie, Pfeile spielen dort keine Rolle), Folgen dunkel Handy (Rest graublau mit leisen dunklen Pfeilen). Nicht geprüft: Übersicht dunkel, Folgen hell Handy
+
+Abweichungen:
+- `src/lib/view3d/view.ts` war nicht freigegeben. Nötig war eine Zeile: `route-ink` in der Liste der Tokens, die die Ansicht liest
+- Farbton bleibt `--route` (hell `#0A5CA8`, im Video heller und türkiser). Das Token gilt seitenweit für Links, Fokus und die 2D-Karte. Ein eigenes Token fürs Band wäre eine Design-Entscheidung für Dima
+- Im dunklen Thema sind die Pfeile dunkel (`--route-ink` ist dort `#131209`), nicht weiß wie im Video. So bleibt der Kontrast auf dem hellen Blau
 
 ## Review
