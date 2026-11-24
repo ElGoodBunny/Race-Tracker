@@ -1,6 +1,6 @@
 # 017 3D-Ansicht in der Rennseite
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/017-einbau-rennseite
 Roadmap: Phase 2, Schritt 15 (Einbau) und Schritt 13 (Replay-Steuerung auf der Rennseite)
 
