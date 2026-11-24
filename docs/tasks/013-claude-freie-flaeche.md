@@ -37,7 +37,7 @@ Geprüft:
 - Unit-Tests zuerst, rot ohne `viewFrame`: ohne Ränder unverändert, mit Rändern liegt das Kameraziel mit einer echten `PerspectiveCamera` genau in der Mitte der freien Fläche
 - Check `e2e/free-area.e2e.ts`: alle 200 Streckenpunkte in der Übersicht innerhalb der freien Fläche, Desktop und Handy. Gegenprobe ohne `insets`: rot, Desktop 26 Punkte bis 153 px unter Kameraleiste und Panel, Handy 32 Punkte
 - `npm test` 23 Dateien, 269 Tests grün. `npm run check` 0 Fehler im Projekt. `npm run e2e` 3 von 3 grün, "Labels kleben" unverändert
-- Sichtprüfung: Desktop hell Übersicht km 28,5 (Läufer und Pin Fòrum jetzt sichtbar, vorher unter dem Panel) und Folgen (Läufer mittig links vom Panel). Handy dunkel Übersicht km 13,9 und Folgen. Nicht geprüft: Desktop dunkel, Handy hell
+- Sichtprüfung: Desktop hell Übersicht km 28,5 (Läufer und Pin Fòrum jetzt sichtbar, vorher unter dem Panel) und Folgen (Läufer mittig links vom Panel). Handy dunkel Übersicht km 13,9 und Folgen. Nachgeholt: Desktop dunkel km 28,5 Übersicht (Strecke links vom Panel) und Folgen, Handy hell km 12 Übersicht (Strecke zwischen HUD und Sheet) und Folgen. Keine neuen Abweichungen, die beiden offenen Punkte unten sind auch dort zu sehen
 
 Offen:
 - Am Handy ragt die Strecke rechts oben unter die Kameraleiste. Die Leiste ziehe ich am Handy bewusst nicht ab, die Karte würde sonst 60 px schmaler
