@@ -19,7 +19,7 @@ Dieses Paket nimmt 3 und 6. Ursache, gemessen an den Figuren aus `src/lib/figure
 ## Auftrag
 1. Pins bekommen einen eigenen Maßstab `pinScale` nach dem Muster von `figureScale`: im Folgemodus 0,55 wie bisher, aus der Ferne so groß, dass ein Pin mindestens `PIN_MIN_PX` = 24 px hoch ist. Der Läufer bleibt bei mindestens 40 px.
 2. Der Abstand des Pins zur Strecke folgt aus beiden Maßstäben: Körperbreite seitlich mal `figureScale` plus Pin-Radius mal `pinScale`. Eine Funktion `pinPosition` für Figuren, Labels und den Check.
-3. Pins und Konfetti werden in jedem Bild neu gesetzt, nicht nur beim Anlegen.
+3. Pins werden in jedem Bild neu gesetzt, nicht nur beim Anlegen. Konfetti startet an der aktuellen Pin-Stelle.
 4. Check "Labels kleben" rechnet den Pin-Anker mit der neuen Regel.
 
 ## Erlaubte Dateien
@@ -41,17 +41,19 @@ Startnummer, Farbe und Pfeile des Streckenbands, Sagrada Família, Spot-Namen be
 ## Rückfragen
 
 ## Ergebnis
-Erledigt: `pinScale` und `pinOffset` in `camera.ts`, `pinScale` im Frame (`layer.ts`, `view.ts`), Pins und Konfetti werden in jedem Bild neu gesetzt (`actors.ts`), Spot-Labels und Check "Labels kleben" nehmen den neuen Anker.
+Erledigt: `pinScale` und `pinOffset` in `camera.ts`, `pinScale` im Frame (`layer.ts`, `view.ts`), Pins werden in jedem Bild neu gesetzt, Konfetti startet an der aktuellen Pin-Stelle (`actors.ts`), Spot-Labels und Check "Labels kleben" nehmen den neuen Anker.
 
 Geprüft:
 - Tests zuerst, rot ohne `pinScale`, danach `npm test` 22 Dateien, 256 Tests grün (dieser Branch hat Paket 001 nicht)
 - `npm run check`: 0 Fehler im Projekt. Gemeldet werden 17, alle in `Claude outputs/` und `brag-output/`. 5 davon sind neu: Kopien in `brag-output/work/` bauen den Frame selbst und kennen `pinScale` nicht
 - `npm run e2e`: "Labels kleben" grün, größte Abweichung 0,00005 px, keine Überdeckung
 - Messung per Projektion auf `/dev/live`, Barcelona, 1280 × 900, km 13,9: Übersicht Läufer 39 px, Pin 25 px (vorher 45 px), Läuferbox zu 26 % von der Pinbox überdeckt (vorher 100 %). Folgemodus 0 %. An km 12 und 28,5 kein Pin in der Nähe, Läufer 37,5 bis 40 px
-- Sichtprüfung: Übersicht hell Desktop und dunkel Handy, Folgemodus dunkel Handy an km 13,9. Der Läufer fällt mit Label zuerst auf, der Pin steht klein daneben, im Folgemodus rechts neben dem Körper. Nicht einzeln abgebildet: Folgemodus hell Desktop, Übersicht dunkel Desktop
+- Sichtprüfung: Übersicht hell Desktop (km 13,9 und 28,5) und dunkel Handy, Folgemodus dunkel Handy an km 13,9. Der Läufer fällt mit Label zuerst auf, der Pin steht klein daneben, im Folgemodus rechts neben dem Körper. Pins Sagrada Família und Port Vell stehen in der Übersicht an Land neben der Strecke. Nicht geprüft: Folgemodus hell Desktop, Übersicht dunkel Desktop
+- Die 37,5 px an km 12 sind eine Näherung aus projizierten Eckpunkten, `figureScale` rechnet mit dem Abstand zum Kameraziel, nicht zum Läufer. Nicht weiter verfolgt
 
-Abweichungen: Im Folgemodus steht der Pin jetzt 10,7 m statt 9 m neben der Strecke, sonst wäre die Kollision aus Paket 002 geblieben. `docs/decisions/` nicht ergänzt, die Herleitung steht hier und in den Kommentaren von `camera.ts`.
+Abweichungen: Im Folgemodus steht der Pin jetzt 10,7 m statt 9 m neben der Strecke. Grund ist die Geometrie: Körper seitlich 8,4 und Pin-Radius 11 Einheiten brauchen bei Maßstab 0,55 zusammen 10,67 m. In meiner Messung aus dieser Kamera war die alte Regel im Folgemodus bei 0 % Überdeckung, Geminis Bild zeigt die Kollision aus anderem Winkel. Entscheidung im Nachtrag in `docs/decisions/2026-11-13-3d-konzept.md`.
 
 Offen aus Paket 002: Startnummer, Farbe und Pfeile des Streckenbands, Sagrada Família.
+Neu gefunden, schon vor dem Paket so: Am Desktop liegen an km 28,5 Läufer und Pin Fòrum in der Übersicht unter dem Panel. Die Übersicht rechnet die Fläche des Panels nicht heraus.
 
 ## Review
