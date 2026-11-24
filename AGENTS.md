@@ -79,3 +79,4 @@ Roadmap: <Phase und Schritt>
 - 011 Nachprüfung Läufer, Pins und Streckenband auf `/dev/live` (Phase 2, Schritte 7 und 9): claude (von gemini übernommen), review, `docs/tasks/011-gemini-nachpruefung-live.md`
 - 012 "Als Nächstes" im Panel (Phase 2, Schritt 11): claude, erledigt
 - 013 Ansicht auf die freie Fläche (Phase 2, Schritt 12): claude, erledigt
+- 014 Zoom mit zwei Fingern beim Folgen (Phase 2, Schritt 8): claude, review
