@@ -1,6 +1,6 @@
 # 012 "Als Nächstes" im Panel
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/012-als-naechstes-panel
 Roadmap: Phase 2, Schritt 11 (Spots), Teil "Liste Als Nächstes"
 
@@ -30,5 +30,13 @@ Spots auf der Rennseite, Avatare, Konfetti, eigene Spots hervorheben.
 ## Rückfragen
 
 ## Ergebnis
+Erledigt: Abschnitt "Als Nächstes" im Panel vor den Splits, bis zu 3 Spots mit Name, km bis dorthin und Ankunft (`fmtIn`, Schnitt bis jetzt). "Passiert" kommt von `tracker.passed`. Ohne Spots vor ihm steht "Alle Spots passiert". Das DOM ändert sich nur, wenn sich der Text ändert. Die Hilfsfunktion für Zahlen in Geist Mono gibt es jetzt auch für einzelne Knoten (`setMixed`), `putMixed` nutzt sie.
+
+Geprüft:
+- Check `e2e/upcoming.e2e.ts`: km 12 Sagrada Família oben mit 1,9 km und "in … min", 3 Einträge. km 14 Port Vell oben, Sagrada Família fehlt. km 31 nur "Alle Spots passiert". Rücksprung auf km 12: Sagrada Família wieder oben. `npm run e2e` 2 von 2 grün
+- `npm test` 23 Dateien, 267 Tests grün. `npm run check` 0 Fehler im Projekt
+- Sichtprüfung km 12: Desktop hell (Panel) und Handy dunkel mit offenem Sheet. Anzeige zum Beispiel "Sagrada Família 1,9 km · in 9 min". Nicht geprüft: Desktop dunkel, Handy hell
+
+Abweichungen: keine. Offen für Schritt 11: Pins antippen, Avatare, Meldung im Stil des Videos.
 
 ## Review
