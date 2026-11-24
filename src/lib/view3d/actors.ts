@@ -4,20 +4,23 @@
 
 import { Group, Mesh, type Material, type Object3D } from "three";
 import { createConfetti, createPin, createRunner, figurePalette, type Confetti, type Runner } from "../figures";
+import { pinOffset } from "./camera";
 import type { Layer, SpotState } from "./layer";
 import { toThree, type Track } from "./world";
 
-/** Pins stand this far to the right of the course, so the runner does not run through them. */
-const PIN_OFFSET_M = 9;
 /** Stride of the running animation when the source has no cadence, in steps per minute. */
 const DEFAULT_CADENCE = 170;
 /** The figure runs at full swing at this pace (seconds per km) and faster. */
 const FULL_SWING_PACE = 330;
 
-/** Where the pin of a spot stands, to the right of the direction of travel: (dy, -dx). Labels use it too. */
-export function pinPosition(track: Track, km: number): { x: number; y: number } {
+/**
+ * Where the pin of a spot stands, to the right of the direction of travel: (dy, -dx). Far enough out that the runner
+ * passes beside it at both scales, so it moves out when the camera zooms out. Labels use it too.
+ */
+export function pinPosition(track: Track, km: number, figureScale: number, pinScale: number): { x: number; y: number } {
   const at = track.at(km);
-  return { x: at.x + at.dy * PIN_OFFSET_M, y: at.y - at.dx * PIN_OFFSET_M };
+  const off = pinOffset(figureScale, pinScale);
+  return { x: at.x + at.dy * off, y: at.y - at.dx * off };
 }
 
 function disposeTree(o: Object3D) {
@@ -36,7 +39,7 @@ export function createActors(track: Track): Layer {
   let runner: Runner | null = null;
   let confetti: Confetti | null = null;
   let phase = 0;
-  const pins = new Map<string, { group: Group; passed: boolean; x: number; y: number; km: number }>();
+  const pins = new Map<string, { group: Group; passed: boolean; km: number }>();
 
   const clearPins = () => {
     for (const p of pins.values()) {
@@ -46,7 +49,7 @@ export function createActors(track: Track): Layer {
     pins.clear();
   };
 
-  function syncPins(spots: readonly SpotState[], scale: number, animate: boolean) {
+  function syncPins(spots: readonly SpotState[], figureScale: number, scale: number, animate: boolean) {
     for (const [id, p] of pins) {
       const s = spots.find((x) => x.id === id);
       if (s && s.km === p.km) continue;
@@ -57,16 +60,16 @@ export function createActors(track: Track): Layer {
     spots.forEach((s, i) => {
       let p = pins.get(s.id);
       if (!p) {
-        const { x, y } = pinPosition(track, s.km);
-        p = { group: createPin(flags[i % flags.length]), passed: s.passed, x, y, km: s.km };
-        p.group.position.set(...toThree(x, y));
+        p = { group: createPin(flags[i % flags.length]), passed: s.passed, km: s.km };
         group.add(p.group);
         pins.set(s.id, p);
       }
+      const { x, y } = pinPosition(track, s.km, figureScale, scale);
+      p.group.position.set(...toThree(x, y));
       p.group.scale.setScalar(scale);
       // Confetti exactly when events.ts reports the spot as passed. A spot that arrives already passed stays quiet.
       if (s.passed && !p.passed && animate && confetti) {
-        confetti.mesh.position.set(...toThree(p.x, p.y));
+        confetti.mesh.position.set(...toThree(x, y));
         confetti.mesh.scale.setScalar(scale);
         confetti.burst(0, 34, 0);
       }
@@ -78,7 +81,7 @@ export function createActors(track: Track): Layer {
     object: group,
     frame(f) {
       if (!runner) return;
-      syncPins(f.spots, f.figureScale, f.animate);
+      syncPins(f.spots, f.figureScale, f.pinScale, f.animate);
       confetti?.step(f.dt);
       runner.group.visible = f.runner !== null;
       if (!f.runner || !f.sample) return;
