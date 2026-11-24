@@ -1,18 +1,22 @@
 // Check "Labels kleben" (docs/VISION.md, roadmap phase 2 step 10): the camera is turned and zoomed fast by script and
-// by mouse, and in every drawn frame the runner label sits at most 1 px off its anchor and no two labels overlap.
+// by mouse, and in every drawn frame runner and spot labels sit at most 1 px off their anchors and no two overlap.
 //
 // The measurement is a layer of its own, added after the labels: view.ts calls it in the same frame, after the
-// labels have been moved. It projects the top of the runner itself and compares that with where the label really
+// labels have been moved. It projects the top of the runner and of each pin itself and compares that with where the label really
 // is on screen, relative to the canvas. So a label one frame behind, a CSS transition or a shifted container fail.
 import { expect, test, type Page } from "@playwright/test";
 
 /** Runner height in figure units (FIGURE_UNITS in src/lib/view3d/camera.ts) and the gap above it (LABEL_GAP_PX). */
 const RUNNER_UNITS = 38;
 const GAP_PX = 8;
+/** Pins stand 9 m to the right of the course (PIN_OFFSET_M in actors.ts) and are 41 units tall (pinProfile in figures.ts). */
+const PIN_OFFSET_M = 9;
+const PIN_UNITS = 41;
 
 interface Probe {
   frames: number;
   runnerFrames: number;
+  spotFrames: number;
   maxDev: number;
   overlaps: number;
   multi: number;
@@ -21,10 +25,15 @@ interface Probe {
 
 async function installProbe(page: Page) {
   await page.evaluate(
-    ([units, gap]) => {
+    ([units, gap, pinOffset, pinUnits]) => {
       const w = window as any;
       const canvas = document.getElementById("view")!;
-      const p = { on: false, frames: 0, runnerFrames: 0, maxDev: 0, overlaps: 0, multi: 0, maxShown: 0 };
+      const p = { on: false, frames: 0, runnerFrames: 0, spotFrames: 0, maxDev: 0, overlaps: 0, multi: 0, maxShown: 0 };
+      /** Distance between the bottom centre of a label (plus the gap) and its anchor, relative to the canvas. */
+      const dev = (e: HTMLElement, at: [number, number], c: DOMRect) => {
+        const r = e.getBoundingClientRect();
+        return Math.hypot(r.left + r.width / 2 - c.left - at[0], r.bottom + gap - c.top - at[1]);
+      };
       w.__probe = p;
       w.__live.view.add({
         frame(f: any) {
@@ -42,30 +51,39 @@ async function installProbe(page: Page) {
               if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5) p.overlaps++;
             }
           }
+          // Spot labels against the pin, computed from the course as actors.ts places it.
+          const track = w.__live.track;
+          for (const s of f.spots) {
+            const e = shown.find((x) => !x.classList.contains("label-runner") && x.textContent === s.name);
+            if (!e) continue;
+            const a = track.at(s.km);
+            const at = f.project(a.x + a.dy * pinOffset, a.y - a.dx * pinOffset, pinUnits * f.figureScale);
+            if (!at) continue;
+            p.maxDev = Math.max(p.maxDev, dev(e, at, c));
+            p.spotFrames++;
+          }
           const runner = document.querySelector<HTMLElement>("#labels .label-runner");
           if (!runner || runner.style.visibility !== "visible" || !f.runner) return;
           const at = f.project(f.runner.x, f.runner.y, units * f.figureScale);
           if (!at) return;
-          const r = runner.getBoundingClientRect();
-          const dev = Math.hypot(r.left + r.width / 2 - c.left - at[0], r.bottom + gap - c.top - at[1]);
-          p.maxDev = Math.max(p.maxDev, dev);
+          p.maxDev = Math.max(p.maxDev, dev(runner, at, c));
           p.runnerFrames++;
         },
         dispose() {},
       });
     },
-    [RUNNER_UNITS, GAP_PX],
+    [RUNNER_UNITS, GAP_PX, PIN_OFFSET_M, PIN_UNITS],
   );
 }
 
 /** Measures while act() runs and returns what the probe saw. */
 async function measure(page: Page, act: () => Promise<void>): Promise<Probe> {
-  await page.evaluate(() => Object.assign((window as any).__probe, { on: true, frames: 0, runnerFrames: 0, maxDev: 0, overlaps: 0, multi: 0, maxShown: 0 }));
+  await page.evaluate(() => Object.assign((window as any).__probe, { on: true, frames: 0, runnerFrames: 0, spotFrames: 0, maxDev: 0, overlaps: 0, multi: 0, maxShown: 0 }));
   await act();
   return page.evaluate(() => {
     const p = (window as any).__probe;
     p.on = false;
-    return { frames: p.frames, runnerFrames: p.runnerFrames, maxDev: p.maxDev, overlaps: p.overlaps, multi: p.multi, maxShown: p.maxShown };
+    return { frames: p.frames, runnerFrames: p.runnerFrames, spotFrames: p.spotFrames, maxDev: p.maxDev, overlaps: p.overlaps, multi: p.multi, maxShown: p.maxShown };
   });
 }
 
@@ -116,8 +134,9 @@ test("Labels kleben: am Anker, ohne Überdeckung", async ({ page }) => {
     }
   });
   expectGlued(follow, 12);
-  // Runner and spot label were on screen together, so "no overlap" was really tested.
+  // Runner and spot label were on screen together, so "no overlap" and the spot anchor were really tested.
   expect(follow.multi).toBeGreaterThan(0);
+  expect(follow.spotFrames).toBeGreaterThanOrEqual(5);
 
   // Free camera: turn with the right mouse button and zoom with the wheel, as fast as the mouse goes.
   // The clock stops, because the free camera does not follow and the runner would run out of the picture.
@@ -147,4 +166,9 @@ test("Labels kleben: am Anker, ohne Überdeckung", async ({ page }) => {
   expect(overview.maxShown).toBe(1);
 
   console.log(JSON.stringify({ follow, free, overview }));
+
+  // A rebuilt view leaves no labels of the old one behind.
+  await page.evaluate(() => (window as any).__live.remount());
+  await page.waitForTimeout(500);
+  await expect(page.locator("#labels .label-runner")).toHaveCount(1);
 });

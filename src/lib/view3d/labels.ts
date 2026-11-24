@@ -68,17 +68,21 @@ export interface LabelOptions {
 
 /**
  * Labels as a layer. The elements go into container, which lies exactly over the canvas. Styles come from the page:
- * every label has the class "label", the runner's also "label-runner". Numbers are in spans with the class "mono",
+ * every label has the class "label" and a text style, the runner's also "label-runner". Numbers are in spans with the class "mono",
  * the runner's name in one with "label-name".
  */
 export function createLabels(container: HTMLElement, track: Track, o: LabelOptions): Layer {
   const labels = new Map<string, Label>();
+  // Sizes measured before Geist has loaded are too small and would let labels overlap. Measure again once it is there.
+  document.fonts?.ready.then(() => {
+    for (const l of labels.values()) l.text = "";
+  });
 
   function label(id: string, runner: boolean): Label {
     let l = labels.get(id);
     if (!l) {
       const el = document.createElement("div");
-      el.className = runner ? "label label-runner" : "label";
+      el.className = runner ? "label label-runner caption-4" : "label caption-5";
       el.style.visibility = "hidden";
       container.append(el);
       l = { el, text: "", w: 0, h: 0, shown: false };
@@ -90,7 +94,8 @@ export function createLabels(container: HTMLElement, track: Track, o: LabelOptio
   /** Sets the parts (plain text, or a span with a class) and measures the label, only when the text changed. */
   function setText(l: Label, parts: (string | Part)[]) {
     const text = parts.map((p) => (typeof p === "string" ? p : `<${p.cls}>${p.text}`)).join("");
-    if (text === l.text) return;
+    // A label measured while the view was hidden has no size yet: measure again.
+    if (text === l.text && l.w > 0) return;
     l.text = text;
     l.el.replaceChildren(
       ...parts.map((p) => {
@@ -109,11 +114,10 @@ export function createLabels(container: HTMLElement, track: Track, o: LabelOptio
     frame(f) {
       const boxes: LabelBox[] = [];
       const anchors = new Map<string, [number, number]>();
-      const want = new Set<string>();
+      const listed = new Set(f.spots.map((s) => `spot:${s.id}`));
 
       if (f.runner && f.sample) {
         const l = label("runner", true);
-        want.add("runner");
         const pace = f.sample.pace;
         setText(l, [{ text: o.name, cls: "label-name" }, " ", mono(fmtKm(f.sample.km)), " km", ...(pace ? [" · ", mono(fmtPace(pace)), "/km"] : [])]);
         const at = f.project(f.runner.x, f.runner.y, FIGURE_UNITS * f.figureScale);
@@ -129,7 +133,6 @@ export function createLabels(container: HTMLElement, track: Track, o: LabelOptio
         for (const s of f.spots) {
           const id = `spot:${s.id}`;
           const l = label(id, false);
-          want.add(id);
           setText(l, [s.name]);
           const p = pinPosition(track, s.km);
           const at = f.project(p.x, p.y, PIN_UNITS * f.figureScale);
@@ -142,7 +145,7 @@ export function createLabels(container: HTMLElement, track: Track, o: LabelOptio
 
       const shown = placeLabels(boxes, f.width, f.height, MAX_LABELS[f.mode]);
       for (const [id, l] of labels) {
-        if (f.mode === "follow" && id.startsWith("spot:") && !want.has(id)) {
+        if (id.startsWith("spot:") && !listed.has(id)) {
           // The spot is gone from the list.
           l.el.remove();
           labels.delete(id);
