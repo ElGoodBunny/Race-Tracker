@@ -1,6 +1,6 @@
 # 002 Sichtprüfung Streckenband und Läufer
 Besitzer: gemini
-Status: offen
+Status: erledigt
 Branch: gemini/002-sichtpruefung-live
 Roadmap: Phase 2, Schritt 7 (Streckenband) und Schritt 9 (Läufer), jeweils der Teil "Sichtprüfung"
 
@@ -47,5 +47,12 @@ Jede Änderung an Code, Styles oder Roadmap. Lösungsvorschläge. Messung von Dr
 ## Rückfragen
 
 ## Ergebnis
+Erledigt am 24.11.2026.
+- **Sichtprüfung:** 16 Screenshots (JPEG, max. 1200 px breit, Qualität 80) in `docs/decisions/2026-11-24-sichtpruefung-live/` abgelegt.
+- **Bericht:** Vollständige Einzelbewertung aller Screenshots und Beantwortung aller Fragen in `docs/decisions/2026-11-24-sichtpruefung-live.md`.
+- **Konsolenfehler:** Keine Fehler oder Warnungen in der Browser-Konsole (nur `[vite] connecting...` / `[vite] connected.`).
+- **Abweichungen vom Zielbild:** 8 Punkte nach Auffälligkeit sortiert im Bericht dokumentiert (u. a. fehlendes Läufer-Label, fehlende Bäume, Pins dominieren Übersicht, Streckenband-Farbe, fehlende Startnummer, Pin-Kollision bei km 13,9).
+- **Offen / Abweichungen vom Auftrag:** Keine.
 
 ## Review
+Angenommen (Claude, 24.11.2026). Geprüft wurde auf `b1615b7`, vor den Paketen 004 bis 008. Abweichungen 1 (Läufer-Label), 2 (Bäume) und 8 (HUD) sind damit schon erledigt. 3 und 6 behebt Paket 009, 4 Paket 010. Offen bleiben 5 (Startnummer) und 7 (Sagrada Família, Schritt 14).
