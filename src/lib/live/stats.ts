@@ -16,14 +16,15 @@ export interface RunStats {
 export function createStats(points: readonly ReplaySample[]): RunStats {
   const pts = [...points].sort((a, b) => a.t - b.t);
   // Race time at which each full km was reached, interpolated between two measurements.
+  // The start (0 s, 0 km) counts as the first one, so km stay numbered right when early measurements are missing.
   const crossings: number[] = [0];
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1];
-    const b = pts[i];
+  let a = { t: 0, km: 0 };
+  for (const b of pts) {
     for (let k = crossings.length; k <= b.km; k++) {
       if (k <= a.km) continue;
       crossings.push(a.t + ((k - a.km) / (b.km - a.km)) * (b.t - a.t));
     }
+    if (b.km >= a.km) a = b;
   }
   // Running sums over the pulse, so hr(t) is a search and not a loop.
   const sum: number[] = [];

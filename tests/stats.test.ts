@@ -19,6 +19,15 @@ describe("splits", () => {
     expect(stats.splits(600)).toEqual([300, 240]);
   });
 
+  it("keeps km numbers when the first measurement is already past km 1", () => {
+    // Nothing measured before 2,5 km (outage at the start): km 1 and 2 come from the start at 0 s.
+    const s = createStats([pt(750, 2.5, null), pt(1050, 3.5, null)]).splits(1050);
+    expect(s).toHaveLength(3);
+    expect(s[0]).toBeCloseTo(300, 9);
+    expect(s[1]).toBeCloseTo(300, 9);
+    expect(s[2]).toBeCloseTo(300, 9);
+  });
+
   it("interpolates the crossing between two measurements", () => {
     const s = createStats([pt(0, 0, null), pt(100, 0.4, null), pt(400, 1.4, null)]).splits(400);
     expect(s).toHaveLength(1);

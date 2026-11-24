@@ -136,6 +136,7 @@ const recording = "hamburg-2026";
   .splits { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s50); }
   /* Rows are built in the script, so they need :global to get these styles. */
   .splits :global(li) { display: grid; grid-template-columns: var(--s400) 1fr auto; align-items: center; gap: var(--s100); }
+  .splits :global(li.empty) { display: block; }
   .splits :global(.split-bar) { height: var(--s75); border-radius: 9999px; background: var(--route); transform-origin: left; }
   /* Camera buttons on the map, like the bar in the video (frame-05.jpg) */
   .bar { position: absolute; right: calc(300px + 2 * var(--s200)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--s25); padding: var(--s25); border-radius: 24px; }
@@ -227,10 +228,25 @@ const recording = "hamburg-2026";
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
 
+    /** Text with words in Geist and numbers in Geist Mono: each number, with a time unit behind it, gets its own span. */
+    const putMixed = (id: string, text: string) => {
+      const node = el(id);
+      if (node.dataset.text === text) return;
+      node.dataset.text = text;
+      node.replaceChildren(
+        ...text.split(/(\d+(?:[:,.]\d+)*(?: (?:s|min|h)\b)?)/).map((part, i) => {
+          if (i % 2 === 0) return part;
+          const span = document.createElement("span");
+          span.className = "mono";
+          span.textContent = part;
+          return span;
+        }),
+      );
+    };
     const total = race.course.km[race.course.km.length - 1];
     el("hud-total").textContent = `/ ${fmtKm(total)} km`;
     if (race.bib || race.block) {
-      el("hud-who").textContent = [race.bib && `Startnummer ${race.bib}`, race.block && `Block ${race.block}`].filter(Boolean).join(", ");
+      putMixed("hud-who", [race.bib && `Startnummer ${race.bib}`, race.block && `Block ${race.block}`].filter(Boolean).join(", "));
       el("hud-who").hidden = false;
     }
     /** Text of a node, set only when it changed: the HUD runs every frame, the DOM changes a few times per second. */
@@ -256,9 +272,9 @@ const recording = "hamburg-2026";
       put("hud-hr-stats", hr ? `Ø ${Math.round(hr.avg)}, max ${hr.max}` : "");
       put("hud-time", fmtDur(s.t));
       const finish = done ? null : finishForecast(s.t, s.km, total);
-      put("hud-finish", finish ? `Ziel etwa ${fmtDur(finish)}` : "");
+      putMixed("hud-finish", finish ? `Ziel etwa ${fmtDur(finish)}` : "");
       const measured = s.quality === "measured";
-      put("hud-quality-text", measured ? (s.age != null ? `gemessen, ${ago(s.age)}` : "gemessen") : s.age != null ? `geschätzt, letzte Messung ${ago(s.age)}` : "geschätzt");
+      putMixed("hud-quality-text", measured ? (s.age != null ? `gemessen, ${ago(s.age)}` : "gemessen") : s.age != null ? `geschätzt, letzte Messung ${ago(s.age)}` : "geschätzt");
       el("hud-dot").classList.toggle("estimated", !measured);
       // Pulse curve of the last 10 minutes, redrawn once per 2 s of race time.
       if (Math.abs(s.t - trailAt) >= 2) {
@@ -272,16 +288,17 @@ const recording = "hamburg-2026";
       if (splits.length !== splitCount) showSplits(splits);
     }
     /**
-     * The last 8 km as bars: the fastest full length, the slowest at 30 %.
+     * The last 8 km as bars: the fastest full length, 20 s slower or the slowest at 30 %.
      * Proportional to speed, all bars would be 90 to 100 % long and look the same.
+     * The 20 s floor keeps a 1 s difference from looking like a big one.
      */
     function showSplits(splits: number[]) {
       splitCount = splits.length;
       const list = el("hud-splits");
       const last = splits.slice(-8);
       const fastest = Math.min(...last);
-      const slowest = Math.max(...last);
-      const length = (sec: number) => (slowest > fastest ? 0.3 + (0.7 * (slowest - sec)) / (slowest - fastest) : 1);
+      const range = Math.max(Math.max(...last) - fastest, 20);
+      const length = (sec: number) => 1 - (0.7 * (sec - fastest)) / range;
       const items = last.map((sec, i) => {
         const li = document.createElement("li");
         const k = document.createElement("span");
@@ -299,7 +316,7 @@ const recording = "hamburg-2026";
       list.replaceChildren(...items);
       if (!items.length) {
         const li = document.createElement("li");
-        li.className = "caption-5 muted";
+        li.className = "caption-5 muted empty";
         li.textContent = "Nach dem ersten km";
         list.replaceChildren(li);
       }
@@ -387,6 +404,7 @@ const recording = "hamburg-2026";
       outages.push([t, t + 60]);
       source = build();
       stats = createStats(known());
+      splitCount = -1;
     });
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => view.setColors());
 
@@ -417,6 +435,7 @@ const recording = "hamburg-2026";
           outages.push([a, b]);
           source = build();
           stats = createStats(known());
+          splitCount = -1;
         },
         /** Throw the view away and build it again, to check that dispose() frees everything. */
         remount() {
