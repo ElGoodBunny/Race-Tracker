@@ -1,6 +1,6 @@
 # 001 Liste "Als Nächstes"
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/001-als-naechstes
 Roadmap: Phase 2, Schritt 11 (Spots), Teil "Liste Als Nächstes"
 
@@ -73,5 +73,17 @@ Anzeige im HUD oder auf `/dev/live`, Formatierung der Zeit (`fmtIn` in `src/lib/
 ## Rückfragen
 
 ## Ergebnis
+Erledigt: `src/lib/live/upcoming.ts` mit `upcomingSpots` genau nach der Schnittstelle im Auftrag, `tests/upcoming.test.ts` mit den acht Prüfpunkten als je eigenem Fall.
+
+Geprüft:
+- Tests zuerst geschrieben, rot ohne Modul, danach grün: `npx vitest run tests/upcoming.test.ts` 8 von 8
+- `npm test`: 23 Dateien, 261 Tests grün
+- `npm run check`: 0 Fehler im Projekt. Die 12 gemeldeten Fehler liegen alle in `Claude outputs/` und `brag-output/`, die laut `AGENTS.md` nicht zum Projekt gehören
+
+Umsetzung: `filter` kopiert die Eingabe, `sort` ist stabil, damit bleibt die Reihenfolge bei gleichem km und das Eingabe-Array unverändert. Pace gilt nur als Zahl größer 0, `NaN` gibt damit auch `null`.
+
+Offen: Anzeige im HUD und auf `/dev/live` (nicht Teil des Pakets). Die Paketliste in `AGENTS.md` steht noch auf "offen", die Datei ist für dieses Paket nicht freigegeben.
+
+Abweichungen: keine.
 
 ## Review
