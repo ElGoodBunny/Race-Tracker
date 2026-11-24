@@ -57,7 +57,7 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [x] 6. **Bäume** instanziert, nur in der Nähe. Prüfpunkt: Sichtprüfung gegen `frame-05.jpg`. Dreiecke im Folgemodus unter 120.000 (gemessen höchstens 102.237 an den dichtesten Stellen, Bäume bis 300 m Kameraabstand)
 - [ ] 7. **Streckenband** mit fließender Textur, gelaufener Teil kräftiger. Prüfpunkt: Bei km 12 endet der kräftige Teil unter dem Läufer. Sichtprüfung gegen `frame-04.jpg`
 - [x] 8. **Kamera-Rig** (`camera.ts`) und Bedienleiste. Prüfpunkt: Tests: kein Sprung im Übergang, Schwenk an der Wende höchstens 60° pro Sekunde, Berührung bricht ab. Sichtprüfung beider Modi
-  - [ ] Zoom mit zwei Fingern beim Folgen, ohne die Kamera freizugeben
+  - [x] Zoom mit zwei Fingern beim Folgen, ohne die Kamera freizugeben (Abstand 100 bis 400 m, Paket 014)
 - [ ] 9. **Läufer** aus `figures.ts`, vom Replay bewegt, Größe je nach Abstand, Ring. Position über `toThree` aus `world.ts`. Prüfpunkt: In der Übersicht ist der Läufer mindestens 40 px hoch und fällt zuerst auf. Laufanimation passt zum Tempo
 - [x] 10. **Labels** (`labels.ts`) über Läufer und Spots. Prüfpunkt: Check "Labels kleben" als Playwright-Test: Kamera per Skript schnell drehen und zoomen, Label weicht in jedem Bild höchstens 1 px vom Anker ab, keine Überdeckung
   - [ ] Spot-Namen in der Übersicht beim Antippen (gehört zu Schritt 11), km-Marken (gehört zu Schritt 7)
