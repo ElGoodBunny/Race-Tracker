@@ -35,16 +35,20 @@ Mausrad und Trackpad am Desktop (nehmen die Kamera weiter weg), Drehen mit zwei 
 ## Rückfragen
 
 ## Ergebnis
-Erledigt: `createFollowGesture` in `gesture.ts` entscheidet zwischen Zoom, Ziehen und nichts. `view.ts` fängt Touch-Finger im Folgemodus ab, bevor MapControls sie sieht: Zwei Finger gehen an `rig.zoom`, ein Finger über 8 px gibt die Kamera frei und wird per nachgereichtem `pointerdown` an MapControls übergeben, so dass die Karte ohne neues Ansetzen weiter mitgeht. Ein Tippen gibt die Kamera nicht mehr frei. Maus, Rad und freie Kamera unverändert.
+Erledigt: `createFollowGesture` in `gesture.ts` entscheidet zwischen Zoom, Ziehen und nichts. `view.ts` fängt Touch-Finger im Folgemodus ab, bevor MapControls sie sieht (Listener auf dem Dokument in der Capture-Phase, damit die Reihenfolge nicht vom Browser abhängt): Zwei Finger gehen an `rig.zoom`, ein Finger über 8 px gibt die Kamera frei und wird per nachgereichtem `pointerdown` an MapControls übergeben, so dass die Karte ohne neues Ansetzen weiter mitgeht. Danach vergisst die Geste ihre Finger, ein zweiter Finger zoomt also die freie Kamera wie bisher. Ein Tippen gibt die Kamera nicht mehr frei. Maus, Rad und freie Kamera unverändert.
 
-Abweichung: untere Grenze der Folgedistanz 100 m statt 60 m (`FOLLOW_MIN_M`). Bei 60 m sitzt die Kamera in der etwa 21 m hohen Figur, bei 80 m rutscht das Label unter das HUD, bei 100 m sind Figur und Label ganz zu sehen. Die Knöpfe kamen vorher auch schon auf 60 m, mit zwei Fingern ist man nur schneller dort. Begründung auch in `docs/decisions/2026-11-13-3d-konzept.md`.
+Abweichung: untere Grenze der Folgedistanz 100 m statt 60 m (`FOLLOW_MIN_M`). Bei 60 m sitzt die Kamera in der etwa 21 m hohen Figur, bei 80 m rutscht das Label unter das HUD, bei 100 m sind Figur und Label ganz zu sehen. Das gilt auch für die Knöpfe + und − am Desktop, die vorher schon auf 60 m kamen. Erlaubte Dateien dafür nachträglich ergänzt, Begründung auch in `docs/decisions/2026-11-13-3d-konzept.md`.
 
 Geprüft:
-- `tests/gesture.test.ts` zuerst, rot ohne `gesture.ts`, dann 6 von 6 grün. Kamera-Tests auf 100 m angepasst, vorher rot mit 60 m
-- Check `e2e/pinch.e2e.ts` mit CDP-Touch am Handy 390 × 844: zwei Finger auseinander, Distanz 140 auf 100 m, Kamera nicht frei. Tippen: nicht frei. Ein Finger 90 px: frei, und die Karte bewegt sich nach der Übergabe weiter (Ziel um etwa 24 m verschoben). Gegenprobe ohne die Änderung in `view.ts`: beide Fälle rot (`free` true)
-- `npm test` 24 Dateien, 275 Tests grün. `npm run check` 0 Fehler im Projekt (17 in `Claude outputs/` und `brag-output/`). `npm run e2e` 6 von 6 grün
-- Sichtprüfung Handy hell und dunkel: vor und nach dem Zoom, km 12 und km 13,9. Kein Sprung, die Distanz läuft gefedert wie bei den Knöpfen
+- `tests/gesture.test.ts` zuerst, rot ohne `gesture.ts`, dann grün, 7 Tests. Kamera-Tests auf 100 m angepasst, vorher rot mit 60 m
+- Check `e2e/pinch.e2e.ts` mit CDP-Touch am Handy 390 × 844:
+  - zwei Finger auseinander: Distanz 140 auf 100 m, Kamera nicht frei. Ohne Sprung gemessen: über 149 Bilder wird die Distanz nie größer, höchstens 3,4 m pro Bild
+  - Tippen: nicht frei. Ein Finger 90 px: frei, die Karte bewegt sich nach der Übergabe weiter (Ziel um etwa 24 m verschoben)
+  - ein Finger zieht, dann ein zweiter dazu und auseinander: die freie Kamera zoomt (vorher rot, der zweite Finger wurde verschluckt)
+  - Gegenprobe ohne die Änderung in `view.ts`: Zoom und Tippen rot (`free` true)
+- `npm test` 24 Dateien, 276 Tests grün. `npm run check` 0 Fehler im Projekt (17 in `Claude outputs/` und `brag-output/`). `npm run e2e` 7 von 7 grün
+- Sichtprüfung bei der kleinsten Distanz 100 m über die Knöpfe: Handy hell km 12, Handy dunkel km 13,9, Desktop hell km 12. Figur und Label ganz zu sehen. Zum Vergleich 80 m und 60 m angesehen (zu nah, siehe Abweichung)
 
-Offen: echtes Gerät nicht geprüft, nur Touch-Emulation in Chrome.
+Offen: echtes Gerät nicht geprüft, nur Touch-Emulation in Chrome. Auf dem iPhone besonders prüfen: Zoom mit zwei Fingern gibt die Kamera nicht frei, Ziehen mit einem Finger geht ohne neues Ansetzen weiter.
 
 ## Review
