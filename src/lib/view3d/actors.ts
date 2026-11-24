@@ -38,6 +38,8 @@ export function createActors(track: Track): Layer {
   let flags: string[] = [];
   let runner: Runner | null = null;
   let confetti: Confetti | null = null;
+  /** The spot whose pin the confetti last burst from. */
+  let confettiKm: number | null = null;
   let phase = 0;
   const pins = new Map<string, { group: Group; passed: boolean; km: number }>();
 
@@ -69,8 +71,7 @@ export function createActors(track: Track): Layer {
       p.group.scale.setScalar(scale);
       // Confetti exactly when events.ts reports the spot as passed. A spot that arrives already passed stays quiet.
       if (s.passed && !p.passed && animate && confetti) {
-        confetti.mesh.position.set(...toThree(x, y));
-        confetti.mesh.scale.setScalar(scale);
+        confettiKm = s.km;
         confetti.burst(0, 34, 0);
       }
       p.passed = s.passed;
@@ -82,6 +83,13 @@ export function createActors(track: Track): Layer {
     frame(f) {
       if (!runner) return;
       syncPins(f.spots, f.figureScale, f.pinScale, f.animate);
+      // Where the pin is in this frame and at its scale, not as at the burst: a flight from the overview would
+      // otherwise leave huge pieces far beside the course.
+      if (confetti && confettiKm !== null) {
+        const { x, y } = pinPosition(track, confettiKm, f.figureScale, f.pinScale);
+        confetti.mesh.position.set(...toThree(x, y));
+        confetti.mesh.scale.setScalar(f.pinScale);
+      }
       confetti?.step(f.dt);
       runner.group.visible = f.runner !== null;
       if (!f.runner || !f.sample) return;

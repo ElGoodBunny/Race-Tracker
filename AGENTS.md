@@ -80,3 +80,4 @@ Roadmap: <Phase und Schritt>
 - 012 "Als Nächstes" im Panel (Phase 2, Schritt 11): claude, erledigt
 - 013 Ansicht auf die freie Fläche (Phase 2, Schritt 12): claude, erledigt
 - 014 Zoom mit zwei Fingern beim Folgen (Phase 2, Schritt 8): claude, review
+- 015 Konfetti in der richtigen Größe (Phase 2, Schritt 11): claude, review
