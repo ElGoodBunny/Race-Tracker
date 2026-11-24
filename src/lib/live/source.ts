@@ -135,7 +135,8 @@ export function mixedSource(points: readonly ReplaySample[], o: MixOptions): Sou
   const distanceKm = o.course.km[o.course.km.length - 1];
   const race: RaceState = { plannedStart: 0, actualStart: 0, finishedAt: null, targetSec: o.targetSec };
   const measuredKm = (t: number) => measured!.sampleAt(t).km;
-  const gapKm = (g: Gap, t: number) => Math.min(distanceKm - FINISH_GAP_KM, Math.max(g.startKm, g.startKm + (t - g.from) / g.pace));
+  // Never below where the gap started, also when that is already within the last 50 m.
+  const gapKm = (g: Gap, t: number) => Math.max(g.startKm, Math.min(distanceKm - FINISH_GAP_KM, g.startKm + (t - g.from) / g.pace));
   const weight = (g: Gap, t: number) => Math.max(0, 1 - (measuredKm(t) - g.backKm) / g.blendKm);
 
   const gaps: Gap[] = [];

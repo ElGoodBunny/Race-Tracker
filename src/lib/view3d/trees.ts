@@ -11,8 +11,8 @@ import { TREE_MAX, TREE_RADIUS_M, nearestTrees, treeGrid, treeLook } from "./geo
 import type { Layer } from "./layer";
 import { toThree } from "./world";
 
-/** Trees show up to this camera distance (m). The follow mode is at 140 m. */
-const TREES_UNTIL_M = 700;
+/** Trees show up to this camera distance (m). The follow mode is at 140 m, zoomed out to 400 m the city alone fills the budget (km 33: 125,000 triangles with trees). */
+const TREES_UNTIL_M = 300;
 /** The set of trees is looked up again when the camera target has moved this far (m). */
 const REFILL_M = 30;
 

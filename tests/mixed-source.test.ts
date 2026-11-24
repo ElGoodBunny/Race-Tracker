@@ -142,3 +142,12 @@ describe("Rückfall ohne Sprung on the Barcelona demo (time stretched by about 2
     expectSmooth(walk(mixed, 5900, 6400), 0.012);
   });
 });
+
+describe("at the finish", () => {
+  it("does not step back when the data stops within the last 50 m", () => {
+    const mixed = mixedSource(points, { staleS: STALE_S, course: hamburg, targetSec: 6600 });
+    const end = mixed.sampleAt(mixed.duration).km;
+    expect(mixed.sampleAt(mixed.duration + 1).km).toBeGreaterThanOrEqual(end);
+    expect(mixed.sampleAt(mixed.duration + 600).km).toBeGreaterThanOrEqual(end);
+  });
+});
