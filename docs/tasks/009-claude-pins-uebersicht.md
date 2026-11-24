@@ -1,0 +1,45 @@
+# 009 Läufer vor den Pins
+Besitzer: claude
+Status: in Arbeit
+Branch: claude/009-pins-uebersicht
+Roadmap: Phase 2, Schritt 9 (Läufer), Teil "fällt in der Übersicht zuerst auf"
+
+## Worum es geht
+Review von Paket 002 (Gemini, Sichtprüfung auf `/dev/live`): Gemini hat auf `b1615b7` geprüft, 14 Commits hinter `phase-2`. Die Abweichungen 1 (Läufer-Label), 2 (Bäume) und 8 (HUD) sind mit den Paketen 004, 007 und 008 schon erledigt. 3 bis 7 gelten weiter:
+3. In der Übersicht dominieren die Pins, der Läufer fällt nicht zuerst auf
+4. Streckenband: Farbe und Pfeile blasser als in `frame-04.jpg`
+5. Startnummer auf dem Trikot fehlt
+6. Bei km 13,9 steht der Pin im Läufer
+7. Sagrada Família ist ein OSM-Klotz (Schritt 14)
+
+Dieses Paket nimmt 3 und 6. Ursache, gemessen an den Figuren aus `src/lib/figures.ts`:
+- Pins skalieren mit demselben `figureScale` wie der Läufer und sind 41 Einheiten hoch, der Läufer 38. Ein Pin ist also immer größer als der Läufer.
+- Der Pin steht fest 9 m neben der Strecke. Der Körper reicht seitlich 8,4 Einheiten, der Pin hat 11 Einheiten Radius. Schon im Folgemodus (Maßstab 0,55) braucht es 10,7 m, in der Übersicht wächst der Bedarf mit dem Maßstab, der Abstand nicht.
+
+## Auftrag
+1. Pins bekommen einen eigenen Maßstab `pinScale` nach dem Muster von `figureScale`: im Folgemodus 0,55 wie bisher, aus der Ferne so groß, dass ein Pin mindestens `PIN_MIN_PX` = 24 px hoch ist. Der Läufer bleibt bei mindestens 40 px.
+2. Der Abstand des Pins zur Strecke folgt aus beiden Maßstäben: Körperbreite seitlich mal `figureScale` plus Pin-Radius mal `pinScale`. Eine Funktion `pinPosition` für Figuren, Labels und den Check.
+3. Pins und Konfetti werden in jedem Bild neu gesetzt, nicht nur beim Anlegen.
+4. Check "Labels kleben" rechnet den Pin-Anker mit der neuen Regel.
+
+## Erlaubte Dateien
+- `src/lib/view3d/camera.ts`, `src/lib/view3d/actors.ts`, `src/lib/view3d/labels.ts`, `src/lib/view3d/layer.ts`, `src/lib/view3d/view.ts`
+- `tests/camera.test.ts`, `tests/actors.test.ts` (neu, falls nötig)
+- `e2e/labels.e2e.ts`
+- `docs/decisions/2026-11-13-3d-konzept.md`: Nachtrag
+- `docs/tasks/009-claude-pins-uebersicht.md`
+
+## Prüfpunkt
+- Tests: `pinScale` ist im Folgemodus 0,55, aus der Ferne ist der Pin genau 24 px hoch und damit kleiner als der Läufer (40 px). Abstand Pin zu Strecke ist bei jedem Maßstab mindestens Körperbreite plus Pin-Radius
+- Test: `PIN_UNITS` in `camera.ts` passt zu `pinProfile()` aus `figures.ts`
+- `npm run e2e` grün ("Labels kleben" mit neuem Anker)
+- Sichtprüfung km 12, 13,9, 28,5, Folgen und Übersicht, hell und dunkel, Desktop und Handy: Läufer fällt in der Übersicht vor den Pins auf, bei km 13,9 steht der Pin neben dem Läufer
+
+## Nicht Teil des Pakets
+Startnummer, Farbe und Pfeile des Streckenbands, Sagrada Família, Spot-Namen beim Antippen.
+
+## Rückfragen
+
+## Ergebnis
+
+## Review
