@@ -24,6 +24,7 @@ Annahmen:
 - `src/components/pinboard.ts`, `src/components/Pinboard.astro`, `src/components/guest-prompt.ts` (neu), `src/components/GuestPrompt.astro` (neu)
 - `src/components/spots.ts` (neu), `src/components/Spots.astro` (neu), `src/components/live-stage.ts`, `src/components/LiveStage.astro`
 - `src/pages/[race].astro`, `src/styles/global.css`
+- `src/lib/live/supabase.ts`, `tests/live-supabase.test.ts` (nachgetragen: Realtime filtert DELETE nicht, siehe Ergebnis)
 - diese Datei, `AGENTS.md` (Paketliste), `docs/ROADMAP.md` (Checkbox)
 
 ## Prüfpunkt

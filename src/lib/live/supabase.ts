@@ -169,6 +169,9 @@ export function subscribeRace(client: SupabaseClient, slug: string, onState: (s:
   for (const table of ["races", "spots", "messages", "checkpoints"] as const) {
     const filter = table === "races" ? `slug=eq.${slug}` : `race_slug=eq.${slug}`;
     channel = channel.on("postgres_changes" as never, { event: "*", schema: "public", table, filter }, (p: Change) => onChange({ table, eventType: p.eventType, new: p.new ?? {}, old: p.old ?? {} }));
+    // Realtime cannot filter DELETE: it carries only the key, so the filter above never matches one. Without a filter
+    // deletes of every race arrive, applyChange drops the ids this race does not have (docs/tasks/025-claude-spots.md).
+    if (table !== "races") channel = channel.on("postgres_changes" as never, { event: "DELETE", schema: "public", table }, (p: Change) => onChange({ table, eventType: "DELETE", new: {}, old: p.old ?? {} }));
   }
   channel.subscribe((status: string) => {
     if (stopped) return;
