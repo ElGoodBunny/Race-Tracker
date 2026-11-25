@@ -153,6 +153,12 @@ export function startPinboard(root: HTMLElement): void {
           appearance: "interaction-only",
           callback: (token: string) => (captchaToken = token),
           "expired-callback": () => (captchaToken = undefined),
+          // The code says why (https://developers.cloudflare.com/turnstile/troubleshooting/client-side-errors/error-codes/).
+          "error-callback": (code: string) => {
+            captchaToken = undefined;
+            fieldErr(nameInput, nameErr, `Die Prüfung gegen Bots hat nicht geklappt (Code ${code}). Lad die Seite neu und versuch es nochmal.`);
+            return true;
+          },
         });
       })
       .catch(() => fieldErr(nameInput, nameErr, "Die Prüfung gegen Bots lädt nicht. Prüf deine Verbindung."));
