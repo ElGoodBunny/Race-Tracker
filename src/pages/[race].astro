@@ -85,11 +85,11 @@ const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runne
     {live ? (
       <div class="live">
         <LiveStage races={[live]} recording={recording} live>
-          <CourseMap slot="placeholder" race={race} fill />
+          <CourseMap slot="placeholder" race={race} fill live />
         </LiveStage>
       </div>
     ) : (
-      <CourseMap race={race} />
+      <CourseMap race={race} live />
     )}
     <Status slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} netSec={net} />
   </section>
@@ -122,7 +122,12 @@ const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runne
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
-        import("../components/live-stage").then(({ startLive }) => startLive(stage));
+        // Without WebGL or when loading fails, the 2D map underneath gets its live layer (docs/tasks/034-claude-karte.md).
+        const fallback = () => document.dispatchEvent(new Event("stage-fallback"));
+        import("../components/live-stage")
+          .then(({ startLive }) => startLive(stage))
+          .then((ok) => ok || fallback())
+          .catch(fallback);
       },
       { rootMargin: "200px" },
     );

@@ -75,3 +75,16 @@ export function spotEta(est: Estimate, km: number): { passed: boolean; at: numbe
   if (est.phase === "done" || km <= est.km) return { passed: true, at: null };
   return { passed: false, at: est.eta(km) };
 }
+
+/** A tap counts as on the route when the closest route point is at most this far away on screen (CSS px). */
+export const TAP_PX = 24;
+
+/**
+ * The km a tap on the 3D view chooses for the own spot (docs/tasks/034-claude-karte.md), rounded and clamped
+ * like the slider. `px` is the screen distance from the tap to the closest route point. null: not on the route.
+ */
+export function tapSpotKm(hit: { km: number; px: number } | null, distanceKm: number): { km: number } | null {
+  if (!hit || hit.px > TAP_PX) return null;
+  const k = checkSpotKm(hit.km, distanceKm);
+  return "km" in k ? k : null;
+}

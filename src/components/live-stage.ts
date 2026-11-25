@@ -1,6 +1,7 @@
 // Client side of LiveStage.astro: clock, source, view, HUD and controls (docs/tasks/017-claude-einbau-rennseite.md).
 // Used by /dev/live and, loaded on demand, by the race page. Everything about 3D lives in src/lib/view3d.
-import type { CourseData } from "../lib/course";
+import { nearestKm, type CourseData } from "../lib/course";
+import { tapSpotKm } from "../lib/live/spots";
 import { fmtAgo, fmtDur, fmtIn, fmtKm, fmtPace } from "../lib/format";
 import { createClock, type Speed } from "../lib/live/clock";
 import { createSpotTracker, type Spot } from "../lib/live/events";
@@ -216,12 +217,33 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
 
   const toast = el("toast");
   let toastTimer = 0;
-  function announce(spots: Spot[]) {
-    if (!spots.length) return;
-    toast.textContent = `${spots.map((s) => s.name).join(", ")} passiert`;
+  function say(text: string) {
+    toast.textContent = text;
     toast.classList.add("on");
     clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => toast.classList.remove("on"), 4000);
+  }
+  function announce(spots: Spot[]) {
+    if (spots.length) say(`${spots.map((s) => s.name).join(", ")} passiert`);
+  }
+
+  /**
+   * A tap on the route chooses the km for the own spot (docs/tasks/034-claude-karte.md). Only on the race page and
+   * only looking down, like the legacy map. The spot form answers through `reply`; nothing is saved here.
+   */
+  function onTap(cx: number, cy: number) {
+    if (!stage.dataset.live) return;
+    const g = view.groundAt(cx, cy);
+    const n = g && nearestKm(race.course as CourseData, track.xy, g[0], g[1]);
+    if (!n) return;
+    const p = track.at(n.km);
+    const [sx, sy] = view.screenOf(p.x, p.y);
+    const hit = tapSpotKm({ km: n.km, px: Math.hypot(sx - cx, sy - cy) }, total);
+    if (!hit) return;
+    if (!view.flat) return say("Zum Setzen in die Draufsicht wechseln.");
+    const detail: { km: number; reply?: string } = { km: hit.km };
+    document.dispatchEvent(new CustomEvent("spot-pick", { detail }));
+    if (detail.reply) say(detail.reply);
   }
 
   const sceneData = unpackScene(packed, trees);
@@ -237,6 +259,7 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
       dark: isDark,
       reducedMotion: reduced,
       insets: coveredEdges,
+      onTap,
       // One measurement per frame: clock, source, events, then the view and the HUD get the same sample.
       tick(now) {
         const sample = source.sampleAt(clock.time(now));
@@ -280,6 +303,8 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
     return false;
   }
   let view = first;
+  // Dev server only, for checking taps and picking from the browser console (docs/tasks/034-claude-karte.md).
+  if (import.meta.env.DEV) Object.assign(stage, { debug: { view: () => view, track } });
   el("hud").hidden = false;
   el("panel").hidden = false;
   el("note").textContent = race.note;

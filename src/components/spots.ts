@@ -166,6 +166,18 @@ export function startSpots(root: HTMLElement): void {
     save(name.name, km.km);
   });
   kmInput.addEventListener("input", showKm);
+  // A tap on the route in the 3D view (docs/tasks/034-claude-karte.md): set the slider, the name comes next.
+  document.addEventListener("spot-pick", (e) => {
+    const detail = (e as CustomEvent<{ km: number; reply?: string }>).detail;
+    if (form.hidden) {
+      detail.reply = "Hier kannst du gerade keinen Spot setzen.";
+      return;
+    }
+    kmInput.value = String(detail.km);
+    showKm();
+    // No focus: it would scroll away from the map and open the phone keyboard. The toast says where to go on.
+    detail.reply = `km ${fmtKm(detail.km)} gewählt. Trag unten ein, wer da steht.`;
+  });
 
   showKm();
   form.hidden = false;

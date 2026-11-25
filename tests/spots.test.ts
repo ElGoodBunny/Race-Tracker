@@ -1,7 +1,7 @@
 // Cheering spots (docs/tasks/025-claude-spots.md): checks like the database, writes, ETA, own spots. Fake Supabase client.
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { SPOT_NAME_MAX, addSpot, checkSpotKm, checkSpotName, deleteSpot, isMine, kmRange, raceEstimate, spotEta } from "../src/lib/live/spots";
+import { SPOT_NAME_MAX, TAP_PX, addSpot, checkSpotKm, checkSpotName, deleteSpot, isMine, kmRange, raceEstimate, spotEta, tapSpotKm } from "../src/lib/live/spots";
 import type { CheckpointRow, RaceRow, SpotRow } from "../src/lib/live/supabase";
 
 const SLUG = "barcelona-2027";
@@ -158,5 +158,20 @@ describe("raceEstimate with a result in the content file", () => {
   });
   it("is not finished before start plus the net time", () => {
     expect(raceEstimate(row(), [], content, START + 3600_000).phase).toBe("run");
+  });
+});
+
+describe("tapSpotKm (docs/tasks/034-claude-karte.md)", () => {
+  it("takes a tap close enough to the route, rounded like the slider", () => {
+    expect(tapSpotKm({ km: 12.345, px: 10 }, 42.195)).toEqual({ km: 12.3 });
+    expect(tapSpotKm({ km: 12.3, px: TAP_PX }, 42.195)).toEqual({ km: 12.3 });
+  });
+  it("ignores taps beside the route or with no route found", () => {
+    expect(tapSpotKm({ km: 12.3, px: TAP_PX + 1 }, 42.195)).toBeNull();
+    expect(tapSpotKm(null, 42.195)).toBeNull();
+  });
+  it("keeps the km inside the slider range at start and finish", () => {
+    expect(tapSpotKm({ km: 0.05, px: 3 }, 42.195)).toEqual({ km: 0.3 });
+    expect(tapSpotKm({ km: 42.195, px: 3 }, 42.195)).toEqual({ km: 42.1 });
   });
 });

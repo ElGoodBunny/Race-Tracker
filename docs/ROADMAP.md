@@ -56,7 +56,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [x] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil (Paket 033)
 - [x] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion (Paket 029)
 - [x] Statuskarte: km, Pace, Zielzeit-Prognose, "zuletzt gesehen" (Paket 027)
-- [ ] Interaktive 2D-Karte: Läufer, gelaufener Teil, Spots, Tippen setzt Spot, Neigen-Ansicht, Mobil-Labels
+- [x] Interaktive 2D-Karte: Läufer, gelaufener Teil, Spots, Tippen setzt Spot, Neigen-Ansicht, Mobil-Labels (Paket 034: Tippen in der 3D-Draufsicht, SVG-Karte als Ersatz ohne 3D, Neigen macht die 3D-Ansicht)
 - [x] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf (Paket 025)
 - [x] Pinnwand mit Schnellnachrichten und "Gesehen"-Button (Pakete 024 und 026)
 - [ ] Zwischenzeiten-Tabelle und Split-Eingabe (nur Dima)
