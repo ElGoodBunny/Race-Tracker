@@ -57,7 +57,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion
 - [ ] Statuskarte: km, Pace, Zielzeit-Prognose, "zuletzt gesehen"
 - [ ] Interaktive 2D-Karte: Läufer, gelaufener Teil, Spots, Tippen setzt Spot, Neigen-Ansicht, Mobil-Labels
-- [ ] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf
+- [x] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf (Paket 025)
 - [ ] Pinnwand mit Schnellnachrichten und "Gesehen"-Button
 - [ ] Zwischenzeiten-Tabelle und Split-Eingabe (nur Dima)
 - [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, Start/Ziel zurücksetzen. LiveTrack-Link nur setzen über `set_livetrack_link` (nur `https://livetrack.garmin.com`, Liste erlaubter Hosts in der Funktion), angezeigt wird über `livetrack_link_status` nur "hinterlegt ja/nein" mit Zeitpunkt, nie der Link (`docs/decisions/2026-11-12-architektur.md`)

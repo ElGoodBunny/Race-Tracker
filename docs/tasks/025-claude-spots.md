@@ -1,6 +1,6 @@
 # 025 Cheering Spots aus Supabase
 Besitzer: claude
-Status: in Arbeit (wartet auf Test im echten Projekt)
+Status: review
 Branch: claude/025-cheering-spots
 Roadmap: Phase 1, Cheering Spots mit ETA, eigener Spot hervorgehoben
 
@@ -56,6 +56,6 @@ Geprüft:
 - `tests/page.test.ts` und `tests/spots.test.ts` zuerst, rot ohne Modul, dann 25 Tests grün. Neuer Fall in `tests/live-supabase.test.ts` für DELETE, erst rot, dann grün
 - `npm run check` 0 Fehler, `npm test` 339 grün
 - Sichtprüfung lokal: dunkel Desktop (Barcelona) mit Fehler am Feld und Namensabfrage, hell Handy (Hamburg) mit Spots und Pinnwand. HUD-Karten der 3D-Ansicht unverändert (Padding 12/16). `/dev/live` zeigt "Als Nächstes" mit den Demo-Spots
-- Offen: Test gegen das echte Projekt mit zwei Tabs in Dimas Chrome
+- Gegen das echte Projekt (25.11., Dima in Chrome, zweiter Tab im Browser-Bereich der App): Namensabfrage über die neue Komponente legt ein anonymes Konto an, zwei Nachrichten gesendet und über das X gelöscht, sie verschwinden in beiden Tabs ohne Neuladen (damit ist auch der offene Punkt aus 024 erledigt). Zwei Spots angelegt, Liste mit "dein Spot", ETA "nach Plan", Farben wie die Pins. In 3D Labels und "Als Nächstes" mit beiden Spots. Spot "Tim" gelöscht: nach 153 s ohne Neuladen aus Liste, 3D-Labels und "Als Nächstes" verschwunden
 
 ## Review
