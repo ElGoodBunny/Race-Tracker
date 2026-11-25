@@ -54,7 +54,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
   - [x] `subscribeRace` mit Tests gegen einen nachgebauten Client (Paket 018), gegen das echte Projekt geladen und abonniert. Offen: ein Realtime-Ereignis echt empfangen, braucht einen Schreibzugriff mit Login
 - [x] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile) (Paket 024)
 - [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil
-- [ ] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion
+- [x] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion (Paket 029)
 - [x] Statuskarte: km, Pace, Zielzeit-Prognose, "zuletzt gesehen" (Paket 027)
 - [ ] Interaktive 2D-Karte: Läufer, gelaufener Teil, Spots, Tippen setzt Spot, Neigen-Ansicht, Mobil-Labels
 - [x] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf (Paket 025)

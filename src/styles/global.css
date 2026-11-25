@@ -36,4 +36,14 @@
 .live-sec .btn[disabled]{opacity:.5;cursor:not-allowed}
 .live-sec .btn.small{padding:var(--s50) var(--s100)}
 .live-sec .btn .ico{width:16px;height:16px}
+.live-sec .btn.lg{padding:var(--s100) var(--s300);text-decoration:none}
+.live-sec .btn.lg .ico{width:20px;height:20px;transition:transform var(--t-move) var(--ease)}
+.live-sec .btn.lg:hover .ico{transform:translateX(4px)}
+/* Phase pill of the hero and the status card (docs/tasks/027-claude-statuskarte.md, 029-claude-hero.md). */
+.live-sec .pill{display:inline-flex;align-items:center;gap:var(--s75);padding:var(--s50) var(--s100);border-radius:9999px;border:1px solid var(--line);background:var(--surface)}
+.live-sec .pill .dot{width:8px;height:8px;border-radius:9999px;background:var(--muted)}
+.live-sec .pill.live .dot{background:var(--signal);animation:blink 1.4s var(--ease) infinite}
+.live-sec .pill.done .dot{background:var(--good)}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.live-sec .pill.live .dot{animation:none}}
 @media (max-width:640px){.live-sec{padding-top:var(--s800)}.live-sec .card{padding:var(--s200)}.live-sec .section-head{margin-bottom:var(--s300)}.live-sec .section-head .heading-2{font-size:30px;line-height:36px}}

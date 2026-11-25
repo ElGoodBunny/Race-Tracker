@@ -90,3 +90,4 @@ Roadmap: <Phase und Schritt>
 - 026 Gesehen-Button (Phase 1): claude, review
 - 027 Statuskarte (Phase 1): claude, review
 - 028 Zwischenzeiten (Phase 1): claude, review
+- 029 Hero mit Phase (Phase 1): claude, review
