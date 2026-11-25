@@ -1,6 +1,6 @@
 # 032 Einstellungen und Split-Eingabe
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/032-einstellungen
 Roadmap: Phase 1, Einstellungen (nur Dima) und Zwischenzeiten-Tabelle und Split-Eingabe
 
@@ -43,5 +43,25 @@ Startzeit im Hero-Untertitel und Startnummer/Block im HUD aus der Datenbank, Cre
 ## Rückfragen
 
 ## Ergebnis
+Umgesetzt:
+- `src/lib/live/admin.ts` mit 23 Tests (erst rot "Cannot find module", dann grün): Formularprüfung, Zeitzone des Rennens, Split-km, Rollen, Speichern mit 0 Zeilen als "nur Leserechte", Start/Ziel, Splits, LiveTrack-Link und Status, Magic Link
+- `Settings.astro` und `settings.ts`: Bereich `#einstellungen`, versteckt bis zum Footer-Link "Anmelden" oder einer bestehenden Anmeldung. Abgemeldet: E-Mail-Feld mit Turnstile. Admin oder Crew: Start, Ziel, Zurücksetzen (fragt zweimal), Split-Eingabe mit Punktauswahl, Liste mit Löschen. Nur Admin: Name, Startnummer, Startblock, geplanter Start, Zielzeit, LiveTrack-Link mit Status
+- Footer-Slot in `Base.astro`, Startnummer im Hero aus der Datenbank, `loadTurnstile` aus `guest-prompt.ts` exportiert
+
+Abweichungen vom Auftrag und vom Legacy:
+- Turnstile auch bei der Anmeldung: Supabase verlangt das Token bei jeder Anmeldung, nicht nur bei der anonymen. Deshalb `guest-prompt.ts` zusätzlich angefasst (nur `export`)
+- Zielzeit 0:10:00 bis 10:00:00 statt 1 bis 4 Stunden, Startzeit in der Zeitzone des Rennens statt fest Hamburg
+- Nach dem Abmelden lädt die Seite neu, weil Pinnwand und Spots die angemeldete Person halten
+
+Geprüft:
+- `npm run check` 0 Fehler, `npm test` 400 grün, `npm run build` ok
+- Sichtprüfung lokal auf `/barcelona-2027`: abgemeldet hell Desktop (Formular, Fehler "Bestätig kurz unten, dass du kein Bot bist." ohne Token). Angemeldet als Admin hell Desktop und dunkel 375 px, Bereiche dafür per JS eingeblendet, weil ein echter Login von hier nicht geht. Gefunden und behoben: Footer-Link klebte am Text, "Abmelden" auf dem Handy volle Breite, leerer Hinweis verschob den Speichern-Knopf
+- Nicht geprüft: Crew-Ansicht einzeln (gleicher Code mit ausgeblendetem Einstellungsblock), echter Login, echte Schreibzugriffe
+
+Für Dima am echten Projekt:
+1. Supabase, Authentication, URL Configuration: Site URL und Redirect URLs um die Rennseiten ergänzen (`http://localhost:4321/**` und die workers.dev-Adresse mit `/**`)
+2. Auf `/barcelona-2027` unten "Anmelden", eigene Adresse, Link aus der Mail öffnen. Erwartet: "Angemeldet als …, Admin."
+3. Einmal speichern (zum Beispiel Startnummer), einen Split bei 5 km eintragen und wieder löschen, LiveTrack-Link setzen. Erwartet: Startnummer im Hero, Split in der Tabelle als "offiziell", Status "Link hinterlegt seit …"
+4. Start/Ziel nicht am echten Barcelona-Rennen testen, oder danach zurücksetzen
 
 ## Review

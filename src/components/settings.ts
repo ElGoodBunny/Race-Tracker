@@ -183,7 +183,8 @@ export function startSettings(root: HTMLElement): void {
 
   function openFromHash() {
     if (location.hash !== HASH) return;
-    show();
+    // The section was hidden when the browser looked for the anchor, so scroll here.
+    show(true);
     if (!loginForm.hidden) {
       mountCaptcha();
       mail.focus();

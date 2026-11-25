@@ -116,6 +116,7 @@ const city = timezone.split("/").pop()?.replace(/_/g, " ");
   .muted { color: var(--muted); }
   .stack { display: flex; flex-direction: column; gap: var(--s200); }
   .row { display: flex; flex-wrap: wrap; gap: var(--s75); align-items: center; }
+  .row .hint:empty { display: none; }
   .who { justify-content: space-between; }
   .who p { margin: 0; }
   .block { display: flex; flex-direction: column; gap: var(--s200); padding-top: var(--s300); border-top: 1px solid var(--line); }
@@ -135,6 +136,6 @@ const city = timezone.split("/").pop()?.replace(/_/g, " ");
     .grid { grid-template-columns: minmax(0, 1fr); }
     .split-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .split-form button { grid-column: 1 / -1; }
-    .row .btn { flex: 1 1 auto; }
+    .row:not(.who) .btn { flex: 1 1 auto; }
   }
 </style>
