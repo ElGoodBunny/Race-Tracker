@@ -29,8 +29,7 @@ Annahme: Die Pinnwand ist der kleinste Schreibfall und kommt deshalb zuerst. Spo
 Spots, "Gesehen"-Button, Löschen durch Dima als Admin (die Policy erlaubt es, die Oberfläche zeigt das X nur bei eigenen Nachrichten), Limit für anonyme Anmeldungen pro IP.
 
 ## Rückfragen
-- Dima: Anonymous Sign-in im Supabase-Projekt einschalten (Stand 25.11. aus)
-- Dima: Turnstile-Secret im Supabase-Dashboard eintragen (Authentication, Attack Protection, CAPTCHA, Anbieter Turnstile). Den Secret Key gibt es im Cloudflare-Dashboard unter Turnstile, Widget `race-tracker`
+- Erledigt 25.11.: Dima hat Anonymous Sign-in eingeschaltet und das Turnstile-Secret in Supabase eingetragen
 
 ## Ergebnis
 Umgesetzt:
@@ -49,4 +48,6 @@ Geprüft:
 - `tests/guest.test.ts` zuerst geschrieben, rot ohne Modul. 14 Tests grün, dazu 1 neuer Fall in `tests/errors.test.ts`
 - `npm run check` 0 Fehler, `npm test` grün
 - Sichtprüfung lokal: dunkel Desktop (Barcelona, Hamburg), hell Handy (Barcelona). Namensabfrage, Fehler am Feld, Turnstile sichtbar
-- Offen: Ende-zu-Ende gegen das echte Projekt, weil die anonyme Anmeldung dort noch aus ist. Das Turnstile-Kästchen muss ein Mensch anklicken
+- Gegen das echte Projekt (25.11., Dima in Chrome): Anmeldung ohne Token lehnt Supabase mit `captcha_failed` ab. Mit Turnstile entstehen ein anonymes Konto, das Profil und die Nachricht, `author_name` setzt die Datenbank. Testnachricht und anonymes Konto danach gelöscht
+- Im Browser-Bereich der App schlägt Turnstile fehl, weil er ferngesteuert ist. In Chrome klappt es
+- Offen: Löschen über das X gegen das echte Projekt
