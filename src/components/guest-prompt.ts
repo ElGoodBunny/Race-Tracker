@@ -18,7 +18,7 @@ declare global {
 
 /** The Turnstile script comes from Cloudflare and is loaded only when someone writes for the first time (docs/decisions/2026-11-25-turnstile.md). */
 let turnstileLoad: Promise<Turnstile> | null = null;
-function loadTurnstile(): Promise<Turnstile> {
+export function loadTurnstile(): Promise<Turnstile> {
   turnstileLoad ??= new Promise((resolve, reject) => {
     const s = document.createElement("script");
     s.src = TURNSTILE_SRC;

@@ -17,6 +17,7 @@ export function startHero(root: HTMLElement): void {
   const cta = root.querySelector<HTMLAnchorElement>("#hero-cta")!;
   const label = root.querySelector<HTMLElement>("#hero-cta-label")!;
   const proof = root.querySelector<HTMLElement>("#hero-proof")!;
+  const bib = root.querySelector<HTMLElement>("#hero-bib")!;
   let state: LiveState = emptyState();
 
   function render() {
@@ -30,6 +31,11 @@ export function startHero(root: HTMLElement): void {
     label.textContent = a.label;
     // At the finish the time is real, not estimated.
     proof.hidden = est.phase === "done";
+    // The bib from the settings (docs/tasks/032-claude-einstellungen.md) wins over the content file.
+    if (state.race?.bib) {
+      bib.querySelector("dd")!.textContent = state.race.bib;
+      bib.hidden = false;
+    }
   }
 
   render();

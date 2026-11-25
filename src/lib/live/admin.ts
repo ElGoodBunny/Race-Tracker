@@ -151,13 +151,15 @@ export async function liveTrackStatus(client: SupabaseClient, slug: string): Pro
 
 /**
  * Sends the sign-in mail. Never creates an account. Unknown addresses get the same answer as known ones,
- * so the form does not tell who has an account. Only a missing network is reported.
+ * so the form does not tell who has an account. Only a missing network and a failed bot check are reported.
+ * Supabase asks for the Turnstile token on every sign-in, not only the anonymous one.
  */
-export async function sendMagicLink(client: SupabaseClient, raw: string, redirectTo: string): Promise<Result> {
+export async function sendMagicLink(client: SupabaseClient, raw: string, redirectTo: string, captchaToken?: string): Promise<Result> {
   const email = raw.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Gib eine E-Mail-Adresse ein." };
-  const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } });
+  const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo, ...(captchaToken ? { captchaToken } : {}) } });
   if (!error) return {};
   const text = errorText(error);
-  return text === errorText(null, { online: false }) || error instanceof TypeError ? { error: text } : {};
+  const tell = [errorText(null, { online: false }), errorText({ code: "captcha_failed", message: "x" })];
+  return tell.includes(text) ? { error: text } : {};
 }

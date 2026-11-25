@@ -1,0 +1,140 @@
+---
+// Sign-in, race settings and split entry for Dima and the crew (docs/tasks/032-claude-einstellungen.md).
+// Markup and look from #ownerCard and #splitForm in legacy/hamburg-2026.html. Hidden until someone follows
+// the footer link or has a session. Roles only decide what is shown, RLS and the functions decide what works.
+import { splitPoints } from "../lib/live/splits";
+
+interface Props {
+  slug: string;
+  timezone: string;
+  plannedStart: string;
+  targetSec: number;
+  distanceKm: number;
+  turnKm?: number;
+  bib?: string;
+  block?: string;
+}
+const { slug, timezone, plannedStart, targetSec, distanceKm, turnKm, bib, block } = Astro.props;
+const defaults = { plannedStart, targetSec, bib: bib ?? "", block: block ?? "" };
+const points = splitPoints(distanceKm, turnKm);
+const city = timezone.split("/").pop()?.replace(/_/g, " ");
+---
+
+<section class="wrap live-sec settings" id="einstellungen" aria-labelledby="set-h" hidden data-slug={slug} data-tz={timezone} data-defaults={JSON.stringify(defaults)}>
+  <div class="section-head">
+    <p class="caption-4 muted">Nur für Dima und die Crew</p>
+    <h2 id="set-h" class="heading-2">Einstellungen</h2>
+  </div>
+
+  <div class="card set-card">
+    <form class="stack" id="login-form" novalidate hidden>
+      <div class="field">
+        <label class="caption-4" for="login-mail">E-Mail-Adresse</label>
+        <input type="email" id="login-mail" class="body-5" autocomplete="email" aria-describedby="login-err" />
+        <p class="err body-6" id="login-err" hidden></p>
+      </div>
+      <div class="captcha" id="login-captcha"></div>
+      <div class="row">
+        <button class="btn primary button-md" type="submit">Anmeldelink schicken</button>
+      </div>
+      <p class="hint body-6" id="login-hint" role="status" hidden></p>
+    </form>
+
+    <div class="stack" id="signed-in" hidden>
+      <div class="row who">
+        <p class="body-5" id="who"></p>
+        <button class="btn small button-sm" type="button" id="logout">Abmelden</button>
+      </div>
+
+      <div class="block" id="run-block" hidden>
+        <h3 class="title-2">Rennen</h3>
+        <div class="row">
+          <button class="btn signal button-md" type="button" id="go-btn" disabled>Ich bin jetzt über die Startmatte</button>
+          <button class="btn button-md" type="button" id="fin-btn" disabled>Ich bin im Ziel</button>
+          <button class="btn button-md" type="button" id="reset-btn" disabled>Start und Ziel zurücksetzen</button>
+        </div>
+        <p class="hint body-6" id="run-hint" role="status"></p>
+      </div>
+
+      <div class="block" id="split-block" hidden>
+        <h3 class="title-2">Offizielle Zwischenzeit</h3>
+        <form class="split-form" id="split-form" novalidate>
+          <div class="field">
+            <label class="caption-4" for="split-km">Punkt</label>
+            <select id="split-km" class="body-5">
+              {points.map((p) => <option value={p.km}>{p.name}</option>)}
+            </select>
+          </div>
+          <div class="field">
+            <label class="caption-4" for="split-time">Netto (h:mm:ss)</label>
+            <input type="text" id="split-time" class="body-5 mono" inputmode="numeric" placeholder="1:41:07" autocomplete="off" aria-describedby="split-err" />
+          </div>
+          <button class="btn primary button-md" type="submit">Eintragen</button>
+        </form>
+        <p class="err body-6" id="split-err" hidden></p>
+        <ul class="cp-list body-5" id="cp-list"></ul>
+      </div>
+
+      <div class="block" id="cfg-block" hidden>
+        <h3 class="title-2">Rennen einstellen</h3>
+        <form class="stack" id="cfg-form" novalidate>
+          <div class="grid">
+            <div class="field"><label class="caption-4" for="cfg-runner">Name</label><input type="text" id="cfg-runner" class="body-5" maxlength="40" aria-describedby="cfg-runner-err" /><p class="err body-6" id="cfg-runner-err" hidden></p></div>
+            <div class="field"><label class="caption-4" for="cfg-bib">Startnummer</label><input type="text" id="cfg-bib" class="body-5" maxlength="12" aria-describedby="cfg-bib-err" /><p class="err body-6" id="cfg-bib-err" hidden></p></div>
+            <div class="field"><label class="caption-4" for="cfg-block">Startblock</label><input type="text" id="cfg-block" class="body-5" maxlength="12" aria-describedby="cfg-block-err" /><p class="err body-6" id="cfg-block-err" hidden></p></div>
+            <div class="field"><label class="caption-4" for="cfg-start">Geplanter Start (Zeit in {city})</label><input type="datetime-local" id="cfg-start" class="body-5" aria-describedby="cfg-start-err" /><p class="err body-6" id="cfg-start-err" hidden></p></div>
+            <div class="field"><label class="caption-4" for="cfg-target">Zielzeit (h:mm:ss)</label><input type="text" id="cfg-target" class="body-5 mono" placeholder="3:15:00" aria-describedby="cfg-target-err" /><p class="err body-6" id="cfg-target-err" hidden></p></div>
+          </div>
+          <div class="row">
+            <button class="btn primary button-md" type="submit">Speichern</button>
+            <p class="hint body-6" id="cfg-hint" role="status"></p>
+          </div>
+        </form>
+
+        <form class="stack lt" id="lt-form" novalidate>
+          <div class="field">
+            <label class="caption-4" for="lt-url">Link zu Garmin LiveTrack</label>
+            <input type="text" id="lt-url" class="body-5" inputmode="url" placeholder="https://livetrack.garmin.com/session/…" autocomplete="off" aria-describedby="lt-err lt-status" />
+            <p class="err body-6" id="lt-err" hidden></p>
+            <p class="hint body-6" id="lt-status"></p>
+          </div>
+          <div class="row"><button class="btn button-md" type="submit">Link speichern</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { startSettings } from "./settings";
+  const root = document.getElementById("einstellungen");
+  if (root) startSettings(root);
+</script>
+
+<style>
+  .set-card { max-width: 760px; }
+  .muted { color: var(--muted); }
+  .stack { display: flex; flex-direction: column; gap: var(--s200); }
+  .row { display: flex; flex-wrap: wrap; gap: var(--s75); align-items: center; }
+  .who { justify-content: space-between; }
+  .who p { margin: 0; }
+  .block { display: flex; flex-direction: column; gap: var(--s200); padding-top: var(--s300); border-top: 1px solid var(--line); }
+  .block h3 { margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s200); }
+  .lt { padding-top: var(--s200); }
+  .split-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: var(--s200); align-items: end; }
+  .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  input[type=email], input[type=datetime-local], select { width: 100%; min-width: 0; padding: var(--s75) var(--s100); border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; transition: border-color var(--t-color) var(--ease); }
+  input[type=email]:hover, input[type=datetime-local]:hover, select:hover { border-color: var(--muted); }
+  .cp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .cp-list :global(li) { display: flex; align-items: center; gap: var(--s100); padding-block: var(--s50); border-top: 1px solid var(--line); }
+  .cp-list :global(li .mono) { color: var(--muted); }
+  .cp-list :global(li .x) { margin-left: auto; }
+  .cp-list :global(li.none) { color: var(--muted); border-top: 0; }
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .split-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .split-form button { grid-column: 1 / -1; }
+    .row .btn { flex: 1 1 auto; }
+  }
+</style>

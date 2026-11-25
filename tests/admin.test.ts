@@ -192,6 +192,15 @@ describe("sendMagicLink", () => {
     expect(await sendMagicLink(client, " dima@example.com ", "https://example.com/barcelona-2027#einstellungen")).toEqual({});
     expect(calls[0].arg).toEqual({ email: "dima@example.com", options: { shouldCreateUser: false, emailRedirectTo: "https://example.com/barcelona-2027#einstellungen" } });
   });
+  it("passes the Turnstile token, Supabase checks it on this sign-in too", async () => {
+    const { client, calls } = fakeClient();
+    await sendMagicLink(client, "dima@example.com", "https://example.com/", "tok");
+    expect((calls[0].arg as { options: Row }).options.captchaToken).toBe("tok");
+  });
+  it("reports a failed bot check", async () => {
+    const { client } = fakeClient({ otp: { error: { code: "captcha_failed", message: "captcha protection: request disallowed" } } });
+    expect(await sendMagicLink(client, "dima@example.com", "https://example.com/")).toEqual({ error: "Die Prüfung gegen Bots hat nicht geklappt. Bitte nochmal versuchen." });
+  });
   it("says the same for unknown addresses", async () => {
     const { client } = fakeClient({ otp: { error: { code: "otp_disabled", message: "Signups not allowed for otp" } } });
     expect(await sendMagicLink(client, "fremd@example.com", "https://example.com/")).toEqual({});
