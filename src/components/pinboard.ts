@@ -2,6 +2,7 @@
 import { getSupabase } from "../lib/supabase";
 import { emptyState, type LiveState } from "../lib/live/supabase";
 import { QUICK, checkBody, deleteMessage, feed, postMessage } from "../lib/live/guest";
+import { deleteSighting } from "../lib/live/seen";
 import { guestStore, watchRace } from "../lib/live/page";
 import { fmtClock, fmtDay } from "../lib/format";
 import { fieldErr, guestPrompt } from "./guest-prompt";
@@ -53,15 +54,16 @@ export function startPinboard(root: HTMLElement): void {
         sp.className = "caption-5";
         sp.textContent = `${fmtDay(m.at, tz)} ${fmtClock(m.at, tz)}`;
         h.append(b, sp);
-        if (m.mine && m.kind === "msg") {
+        if (m.mine) {
           const x = document.createElement("button");
           x.type = "button";
           x.className = "x";
           x.innerHTML = ICON_X; // fixed icon, no user input
-          x.setAttribute("aria-label", "Nachricht löschen");
-          x.title = "Nachricht löschen";
+          const label = m.kind === "seen" ? "Sichtung löschen" : "Nachricht löschen";
+          x.setAttribute("aria-label", label);
+          x.title = label;
           x.onclick = async () => {
-            const r = await deleteMessage(db, m.id);
+            const r = await (m.kind === "seen" ? deleteSighting(db, m.id) : deleteMessage(db, m.id));
             fieldErr(msgText, msgErr, r.error ?? "");
           };
           h.append(x);
