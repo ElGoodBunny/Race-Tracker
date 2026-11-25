@@ -1,0 +1,61 @@
+---
+// FAQ and closing section of a race page (docs/tasks/033-claude-navigation.md). Markup and look from #faq and
+// .final in legacy/hamburg-2026.html, questions from faqItems, the main action set by hero.ts.
+import { faqItems } from "../lib/live/faq";
+import { finalText } from "../lib/live/status";
+
+interface Props {
+  waterKm: number[];
+  done: boolean;
+  cta: { label: string; href: string };
+}
+const { waterKm, done, cta } = Astro.props;
+const items = faqItems(waterKm);
+const final = finalText(done ? "done" : "pre");
+---
+
+<section class="wrap live-sec faq-sec" id="faq" aria-labelledby="faq-h">
+  <div class="section-head">
+    <p class="caption-4 muted">FAQ</p>
+    <h2 id="faq-h" class="heading-2">Gute Fragen vor dem Start</h2>
+  </div>
+  <div class="faq">
+    {items.map((i) => (
+      <details>
+        <summary>
+          <span class="title-2">{i.q}</span>
+          <span class="tog"><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path></svg></span>
+        </summary>
+        <p class="body-3">{i.a}</p>
+      </details>
+    ))}
+  </div>
+</section>
+
+<section class="wrap live-sec final" aria-labelledby="final-h">
+  <h2 id="final-h" class="heading-1 final-title" data-final-title>{final.title}</h2>
+  <p class="title-2 sub" data-final-sub>{final.sub}</p>
+  <a class="btn primary lg button-lg" data-cta href={cta.href}><span data-cta-label>{cta.label}</span><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path></svg></a>
+</section>
+
+<style>
+  .muted { color: var(--muted); }
+  .faq { display: flex; flex-direction: column; max-width: 880px; border-top: 1px solid var(--line); }
+  .faq details { border-bottom: 1px solid var(--line); }
+  .faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: var(--s200); padding: var(--s300) 0; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq p { margin: 0; color: var(--muted); padding-bottom: var(--s300); max-width: 720px; }
+  .tog { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 9999px; color: var(--muted); transition: transform var(--t-move) var(--ease); }
+  .tog .ico { width: 16px; height: 16px; }
+  summary:hover .tog { background: var(--surface-2); }
+  details[open] > summary .tog { transform: rotate(45deg); }
+  .final { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--s300); padding-bottom: var(--s300); }
+  .final-title { max-width: 680px; margin: 0; letter-spacing: -0.03em; background: linear-gradient(90deg, var(--head-from), var(--head-to)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: var(--s50); }
+  .sub { margin: 0; max-width: 560px; color: var(--muted); font-weight: 400; }
+  @media (max-width: 640px) {
+    .final-title { font-size: 48px; line-height: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tog { transition: none; }
+  }
+</style>
