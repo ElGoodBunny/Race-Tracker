@@ -1,0 +1,61 @@
+---
+// Split table of a race (docs/tasks/028-claude-zwischenzeiten.md). Markup and look from the "#ergebnis" part of
+// legacy/hamburg-2026.html, the times from the estimate on Supabase data. Entering official splits comes with Dima's login.
+import { splitPoints } from "../lib/live/splits";
+
+interface Props {
+  slug: string;
+  timezone: string;
+  plannedStart: string;
+  targetSec: number;
+  distanceKm: number;
+  turnKm?: number;
+  netSec?: number;
+}
+const { slug, timezone, plannedStart, targetSec, distanceKm, turnKm, netSec } = Astro.props;
+const plan = { plannedStart, targetSec, distanceKm, netSec };
+const points = splitPoints(distanceKm, turnKm);
+---
+
+<section class="wrap live-sec splits-sec" id="ergebnis" aria-labelledby="split-h" data-slug={slug} data-tz={timezone} data-plan={JSON.stringify(plan)} data-points={JSON.stringify(points)}>
+  <div class="section-head">
+    <p class="caption-4 muted">Zeiten</p>
+    <h2 id="split-h" class="heading-2">Zwischenzeiten</h2>
+  </div>
+  <div class="card split-card">
+    <p class="caption-4 muted note">Netto ab Startmatte</p>
+    <div class="tablewrap">
+      <table class="splits body-5">
+        <thead><tr><th class="caption-4" scope="col">Punkt</th><th class="caption-4" scope="col">Zeit</th><th class="caption-4" scope="col">Uhrzeit</th><th class="caption-4" scope="col">Pace</th><th class="caption-4" scope="col">Quelle</th></tr></thead>
+        <tbody id="split-body">
+          {points.map((p) => <tr><td>{p.name}</td><td class="num">·</td><td class="num">·</td><td class="num">·</td><td></td></tr>)}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { startSplits } from "./splits";
+  const root = document.getElementById("ergebnis");
+  if (root) startSplits(root);
+</script>
+
+<style>
+  .split-card { max-width: 760px; }
+  .note { margin: 0 0 var(--s100); }
+  .muted { color: var(--muted); }
+  .tablewrap { overflow-x: auto; }
+  .splits { width: 100%; border-collapse: collapse; }
+  .splits th, .splits :global(td) { text-align: left; padding: var(--s75); border-top: 1px solid var(--line); white-space: nowrap; }
+  .splits th { color: var(--muted); border-top: 0; }
+  .splits :global(td.num) { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .splits :global(.chip) { display: inline-flex; align-items: center; padding: var(--s25) var(--s75); border-radius: 9999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 16px; font-weight: 500; }
+  .splits :global(.chip.official) { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+  .splits :global(.chip.seen) { color: var(--route); border-color: color-mix(in srgb, var(--route) 40%, transparent); }
+  .splits :global(.chip.plan) { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  @media (max-width: 640px) {
+    .splits th, .splits :global(td) { padding-inline: var(--s50); }
+    .splits th:first-child, .splits :global(td:first-child) { padding-left: 0; }
+  }
+</style>

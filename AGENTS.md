@@ -89,3 +89,4 @@ Roadmap: <Phase und Schritt>
 - 025 Cheering Spots aus Supabase (Phase 1): claude, review
 - 026 Gesehen-Button (Phase 1): claude, review
 - 027 Statuskarte (Phase 1): claude, review
+- 028 Zwischenzeiten (Phase 1): claude, review
