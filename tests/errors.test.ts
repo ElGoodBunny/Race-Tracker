@@ -30,6 +30,11 @@ describe("errorText", () => {
     expect(errorText(pg("22023", "livetrack link not allowed"))).toBe("Nur Links von livetrack.garmin.com.");
   });
 
+  it("anonyme Anmeldung: CAPTCHA abgelehnt oder in Supabase abgeschaltet", () => {
+    expect(errorText({ code: "captcha_failed", message: "captcha protection: request disallowed (no captcha response)" })).toBe("Die Prüfung gegen Bots hat nicht geklappt. Bitte nochmal versuchen.");
+    expect(errorText({ code: "anonymous_provider_disabled", message: "Anonymous sign-ins are disabled" })).toBe("Mitschreiben ist gerade abgeschaltet.");
+  });
+
   it("alles andere: allgemeiner Text aus dem Legacy", () => {
     const text = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
     expect(errorText(pg("23514", 'new row for relation "spots" violates check constraint "spots_name_check"'))).toBe(text);

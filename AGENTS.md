@@ -85,3 +85,4 @@ Roadmap: <Phase und Schritt>
 - 018 Datenschicht Supabase (Phase 1): claude, erledigt
 - 019 Fehlertexte (Phase 1): claude, erledigt
 - 021 Funktionsrechte (Phase 1, Supabase): claude, review
+- 024 Pinnwand mit Gast-Anmeldung (Phase 1): claude, review

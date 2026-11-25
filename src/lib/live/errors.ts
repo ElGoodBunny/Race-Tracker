@@ -12,6 +12,9 @@ const KNOWN: [code: string, message: RegExp, text: string][] = [
   ["P0001", /spot limit reached/, "Mehr als 3 Spots gehen nicht. Lösch einen, dann klappt es."],
   ["23514", /km beyond race distance/, "Dieser Punkt liegt hinter dem Ziel."],
   ["22023", /livetrack link not allowed/, "Nur Links von livetrack.garmin.com."],
+  // Auth errors on the anonymous sign-in carry a string code (supabase-js AuthApiError.code).
+  ["captcha_failed", /./, "Die Prüfung gegen Bots hat nicht geklappt. Bitte nochmal versuchen."],
+  ["anonymous_provider_disabled", /./, "Mitschreiben ist gerade abgeschaltet."],
   // Functions that refuse and RLS that rejects a row both report 42501.
   ["42501", /./, "Du hast hier nur Leserechte."],
 ];
