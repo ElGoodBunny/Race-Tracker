@@ -11,6 +11,7 @@ import LiveStage, { type LiveRace } from "../components/LiveStage.astro";
 import Pinboard from "../components/Pinboard.astro";
 import Status from "../components/Status.astro";
 import Spots from "../components/Spots.astro";
+import Splits from "../components/Splits.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
 
 export async function getStaticPaths() {
@@ -77,6 +78,8 @@ const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
   <Spots slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} netSec={net} course={race.course} />
 
   <Pinboard slug={race.slug} timezone={race.timezone} />
+
+  <Splits slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} turnKm={race.turnKm} netSec={net} />
 </Base>
 
 <script>

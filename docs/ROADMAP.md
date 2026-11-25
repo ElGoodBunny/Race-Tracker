@@ -60,6 +60,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [x] Cheering Spots mit ETA, eigener Spot hervorgehoben, Konfetti bei Durchlauf (Paket 025)
 - [x] Pinnwand mit Schnellnachrichten und "Gesehen"-Button (Pakete 024 und 026)
 - [ ] Zwischenzeiten-Tabelle und Split-Eingabe (nur Dima)
+  - [x] Tabelle mit offiziell, geschätzt, Plan und Prognose (Paket 028). Offen: Eingabe, kommt mit Dimas Anmeldung (Einstellungen)
 - [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, Start/Ziel zurücksetzen. LiveTrack-Link nur setzen über `set_livetrack_link` (nur `https://livetrack.garmin.com`, Liste erlaubter Hosts in der Funktion), angezeigt wird über `livetrack_link_status` nur "hinterlegt ja/nein" mit Zeitpunkt, nie der Link (`docs/decisions/2026-11-12-architektur.md`)
 - [ ] Simulation mit Geschwindigkeitsstufen
 - [ ] FAQ, Abschluss, Footer mit Quellen
