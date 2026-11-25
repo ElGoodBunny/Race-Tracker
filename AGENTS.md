@@ -93,3 +93,4 @@ Roadmap: <Phase und Schritt>
 - 029 Hero mit Phase (Phase 1): claude, review
 - 030 Wetter im HUD, Replay (Phase 2, Schritt 12): claude, erledigt
 - 031 Wetter live über Supabase (Phase 2, Schritt 12): claude, offen
+- 032 Einstellungen und Split-Eingabe (Phase 1): claude, review

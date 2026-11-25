@@ -53,6 +53,7 @@ const imageUrl = site && image && new URL(image, site).href;
     <footer class="wrap foot body-6 muted">
       {source && <span>Strecke: {source}. </span>}
       <span>Kartendaten © OpenStreetMap-Mitwirkende, ODbL.</span>
+      <slot name="foot" />
     </footer>
   </body>
 </html>
