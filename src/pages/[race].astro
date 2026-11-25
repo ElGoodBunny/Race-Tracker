@@ -16,11 +16,18 @@ const dateFmt = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digi
 const startFmt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: race.timezone });
 const planned = new Date(race.plannedStart);
 const net = race.result?.netSec;
+const statusLine = {
+  upcoming: `${race.runner} startet${race.block ? ` · Block ${race.block}` : ""}`,
+  live: `${race.runner} läuft gerade`,
+  finished: `${race.runner} ist im Ziel`,
+}[race.status];
+const description = `${race.runner} beim ${race.title} am ${dateFmt.format(planned)}. Sieh, wo ${race.runner} gerade ist und wann es bei dir so weit ist.`;
 ---
 
-<Base title={race.title} description={`${race.title}: geschätzte Position, Zwischenzeiten, Cheering Spots und Pinnwand.`} source={race.course.source}>
+<Base title={race.title} description={description} source={race.course.source}>
   <section class="wrap hero">
     <a class="body-5 back" href="/">Alle Rennen</a>
+    <p class="caption-4 muted">{statusLine}</p>
     <h1 class="heading-1 grad">{race.title}</h1>
     <p class="title-2 sub">{dateFmt.format(planned)}, Start {startFmt.format(planned)} Uhr.</p>
     <dl class="facts">
@@ -32,7 +39,7 @@ const net = race.result?.netSec;
           <div><dt class="caption-4 muted">Pace</dt><dd class="heading-6 mono">{fmtPace(net / race.distanceKm)} /km</dd></div>
         </>
       ) : (
-        <div><dt class="caption-4 muted">Ziel</dt><dd class="heading-6 mono">{fmtDur(race.targetSec)}</dd></div>
+        <div><dt class="caption-4 muted">Zielzeit</dt><dd class="heading-6 mono">{fmtDur(race.targetSec)}</dd></div>
       )}
     </dl>
   </section>

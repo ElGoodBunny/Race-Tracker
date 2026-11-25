@@ -5,6 +5,12 @@ import { haversineKm, landmarkNear, latLngAt, makeProjection, nearestKm, type Co
 const race = raceJson;
 const c = race.course as unknown as CourseData;
 
+describe("hamburg-2026 race data", () => {
+  it("names the runner, used in status line, description and share texts", () => {
+    expect(race.runner).toBe("Dima");
+  });
+});
+
 describe("hamburg-2026 course data", () => {
   it("has one cumulative km value per route point, strictly increasing", () => {
     expect(c.km).toHaveLength(c.route.length);
