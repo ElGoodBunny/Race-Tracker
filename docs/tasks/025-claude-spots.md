@@ -1,6 +1,6 @@
 # 025 Cheering Spots aus Supabase
 Besitzer: claude
-Status: in Arbeit
+Status: in Arbeit (wartet auf Test im echten Projekt)
 Branch: claude/025-cheering-spots
 Roadmap: Phase 1, Cheering Spots mit ETA, eigener Spot hervorgehoben
 
@@ -39,5 +39,23 @@ Spot ändern (Legacy hatte "Spot ändern"), Spot per Tipp auf die Karte setzen, 
 ## Rückfragen
 
 ## Ergebnis
+Umgesetzt:
+- `watchRace` öffnet einen Kanal pro Rennen und Seite, später Hinzukommende (die 3D-Ansicht lädt erst beim Scrollen) bekommen sofort den letzten Stand. `guestStore` hält den Gast der Seite: wer sich an der Pinnwand anmeldet, ist auch bei den Spots angemeldet und umgekehrt
+- `GuestPrompt.astro` und `guest-prompt.ts`: Namensabfrage mit Turnstile, von Pinnwand und Spots genutzt. Gemeinsame Stile unter `.live-sec` in `global.css`, nicht global, weil LiveStage und Startseite `.card` mit eigenem Look nutzen
+- Abschnitt "An der Strecke": "Dein Platz an der Strecke" mit der Ankunft am nächsten eigenen Spot und dem Formular, daneben die Liste mit Farbe wie der Pin in 3D, km, Landmark, Autor, Ankunft. Eigene Spots hervorgehoben, mit X löschbar
+- ETA aus `estimate()` mit Rennzeile und Checkpoints aus Supabase. Fehlen Start oder Zielzeit in der Datenbank, gilt die Rennen-JSON
+- 3D-Ansicht auf der Rennseite nimmt die Spots aus derselben Verbindung, "Als Nächstes" erscheint, sobald es Spots gibt. `/dev/live` behält die Demo-Spots
+- Fund beim Bauen: Realtime kann DELETE nicht filtern (Supabase-Doku, "Delete events are not filterable"). Mit dem Filter auf `race_slug` kamen Löschungen nie an, auch nicht an der Pinnwand. Jetzt hört der Kanal zusätzlich ungefiltert auf DELETE, `applyChange` ignoriert fremde ids
+
+Abweichungen vom Legacy:
+- Bis zu 3 eigene Spots (Datenbank-Limit) statt einem, kein "Spot ändern", kein Setzen per Tipp auf die Karte
+- Ohne "am Sonntag", ohne Schritte und Simulation, ohne Hinweis auf die Karte
+- Im km-Label nur die Zahl in Geist Mono, die Landmark in Geist
+
+Geprüft:
+- `tests/page.test.ts` und `tests/spots.test.ts` zuerst, rot ohne Modul, dann 25 Tests grün. Neuer Fall in `tests/live-supabase.test.ts` für DELETE, erst rot, dann grün
+- `npm run check` 0 Fehler, `npm test` 339 grün
+- Sichtprüfung lokal: dunkel Desktop (Barcelona) mit Fehler am Feld und Namensabfrage, hell Handy (Hamburg) mit Spots und Pinnwand. HUD-Karten der 3D-Ansicht unverändert (Padding 12/16). `/dev/live` zeigt "Als Nächstes" mit den Demo-Spots
+- Offen: Test gegen das echte Projekt mit zwei Tabs in Dimas Chrome
 
 ## Review
