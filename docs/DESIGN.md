@@ -83,5 +83,43 @@ Ausgewählt aus dem Skill apple-design (github.com/dickwu/apple-design-skill), S
 - Wichtiges ist ohne Hover oder Antippen sichtbar. Antippen zeigt nur Details
 - Barrierefrei: Text oder Tabelle mit denselben Werten als Alternative. Beschreibungen mit echten Werten statt "schnell" oder "fast", Datum und Einheiten ausgeschrieben
 
+## Ergänzung 25.11.: Umsetzung im Browser
+Ausgewählt aus ui-skills (github.com/ibelick/ui-skills, MIT): fixing-motion-performance, fixing-accessibility, Teile von baseline-ui und fixing-metadata. Ergänzt den HIG-Abschnitt um das Wie im Code. Bei Widerspruch gelten die Regeln oben. Begründung: `docs/decisions/2026-11-25-ui-skills.md`.
+
+### Bewegung und Leistung (3D-Szene, HUD)
+- Jede `requestAnimationFrame`-Schleife hat eine Abbruchbedingung. Ist die Szene nicht sichtbar (IntersectionObserver) oder der Tab im Hintergrund (`visibilitychange`), steht die Schleife
+- Nie auf Scroll-Events animieren. Für Einblendungen beim Scrollen `animation-timeline: view()` oder IntersectionObserver
+- Erst alle Maße lesen, dann schreiben. Nie Layout lesen und schreiben im selben Frame, nie während einer Animation messen
+- Wege, die nach Layout aussehen (Panel auf und zu, Karten umsortieren), laufen über transform, bei Bedarf als FLIP
+- `will-change` nur während der Animation setzen und danach entfernen
+- Unschärfe nie animieren. Glasflächen blenden über opacity und transform ein, `backdrop-filter` bleibt dabei fest
+- CSS-Variablen nicht für Position, transform oder opacity animieren
+- View Transitions nur für Seitenwechsel, nicht für das HUD
+
+### Barrierefreiheit im Code
+- Native Elemente zuerst: `button`, `a`, `input`. ARIA nur, wenn HTML es nicht schon löst
+- Icon-Buttons haben `aria-label`, Icons darin `aria-hidden="true"`
+- Formularfehler: Feld mit `aria-invalid="true"` und `aria-describedby` auf den Fehlertext direkt darunter
+- Wechsel der Datenquelle (live, geschätzt) und neue Zwischenzeiten im HUD werden über `aria-live="polite"` angesagt. Laden zeigt `aria-busy` oder einen Statustext
+- Panel und Vollbildmenü: Fokus beim Öffnen hinein, beim Schließen zurück auf den Auslöser, Escape schließt, solange offen bleibt der Fokus drin
+- Aufklappbares hat `aria-expanded` und `aria-controls`
+- Hover allein reicht nie, jede Hover-Info ist auch per Tastatur und Antippen erreichbar
+- Kein `tabindex` größer als 0, Fokusrahmen nie ohne sichtbaren Ersatz entfernen
+- Überschriften ohne Sprung in der Ebene, Listen als `ul` oder `ol`, Tabellen mit `th`
+
+### Layout
+- Volle Höhe mit `100dvh`, nie `100vh`
+- Alles mit `position: fixed` (Navigation, HUD, Kartenbuttons) hält `env(safe-area-inset-*)` ein
+- Feste Ebenen für z-index statt freier Werte: Karte, HUD, Navigation, Panel, Meldung. Die Werte stehen als Tokens in `tokens.css`, sobald das HUD gebaut wird
+- Quadratische Elemente mit `aspect-ratio: 1` oder gleicher Breite und Höhe aus einem Token
+
+### Metadaten (geteilte Rennseite)
+- Rennseiten haben `og:title`, `og:description`, `og:image` und `og:url` mit absoluter URL, `twitter:card` ist `summary_large_image`
+- Titel überall im gleichen Format, Beschreibung als einfacher Text
+- `theme-color` passend zu `--bg`, hell und dunkel getrennt
+- `noindex` bleibt Standard in `Base.astro`. Ob Rennseiten indexiert werden, entscheidet Checkpoint C
+- Keine erfundenen strukturierten Daten. JSON-LD nur, wenn es genau dem sichtbaren Inhalt entspricht
+- Vorschau auf einer echten URL prüfen, nicht auf localhost
+
 ## Bewusst nicht übernommen
 Rechtliches, 404, Cookie-Banner: für einen privaten Tracker ohne Tracking nicht passend. Bei öffentlicher Domain neu prüfen (Fable-Checkpoint C).
