@@ -12,8 +12,10 @@ interface Props {
   source?: string;
   /** Social preview image, path under public/ (e.g. /data/hamburg-2026/og.png), 1200x630. */
   image?: string;
+  /** Title for link previews (WhatsApp etc.) when it should differ from <title>. */
+  ogTitle?: string;
 }
-const { title, description, noindex = true, source, image } = Astro.props;
+const { title, description, noindex = true, source, image, ogTitle } = Astro.props;
 // astro.config.mjs still has a placeholder site. Absolute URLs only once the real domain is set.
 const site = Astro.site && Astro.site.hostname !== "example.com" ? Astro.site : undefined;
 const pageUrl = site && new URL(Astro.url.pathname, site).href;
@@ -28,7 +30,7 @@ const imageUrl = site && image && new URL(image, site).href;
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={ogTitle ?? title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="de_DE" />

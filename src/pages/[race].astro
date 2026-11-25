@@ -21,10 +21,12 @@ const statusLine = {
   live: `${race.runner} läuft gerade`,
   finished: `${race.runner} ist im Ziel`,
 }[race.status];
+// Link preview leads with the runner. Assumes race names that take "beim" (Marathon, Halbmarathon, Lauf).
+const ogTitle = race.status === "finished" ? `${race.runner} im Ziel beim ${race.title}` : `${race.runner} läuft beim ${race.title}`;
 const description = `${race.runner} beim ${race.title} am ${dateFmt.format(planned)}. Sieh, wo ${race.runner} gerade ist und wann es bei dir so weit ist.`;
 ---
 
-<Base title={race.title} description={description} source={race.course.source}>
+<Base title={race.title} ogTitle={ogTitle} description={description} source={race.course.source}>
   <section class="wrap hero">
     <a class="body-5 back" href="/">Alle Rennen</a>
     <p class="caption-4 muted">{statusLine}</p>

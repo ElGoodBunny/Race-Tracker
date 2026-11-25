@@ -17,3 +17,8 @@ Seitentitel und H1 einer Rennseite sind nur der Name des Rennens, so wie er in `
 - Browsertitel "Race Tracker", H1 "Rennen live verfolgen", Unterzeile ohne Ich-Form
 - Grund: Der Tracker soll später auch für Freunde laufen und vielleicht als App beworben werden. Ein persönlicher Titel wie "Dima läuft" passt dann nicht mehr
 - "Race Tracker" ist eine Beschreibung, kein Markenname. Einen Namen gibt es noch nicht. Vor jeder Werbung Name, Marke und Domain festlegen
+
+## Nachtrag: Linkvorschau
+- `og:title` der Rennseite nennt den Läufer: vor dem Start und live "{runner} läuft beim {title}", im Ziel "{runner} im Ziel beim {title}". Seitentitel und H1 bleiben der Rennname
+- Grund: Im Gruppenchat erkennt man den Link am Namen. Die Vorschau wird gebaut, nicht live erzeugt. Wechselt der Status, muss die Seite neu gebaut werden, und WhatsApp zeigt eine alte Vorschau eventuell weiter an
+- "beim" passt zu Rennnamen auf Marathon, Halbmarathon oder Lauf. Bei anderen Namen (etwa "die Tour") neu formulieren
