@@ -10,6 +10,8 @@ import { createStats, finishForecast, passedLandmark } from "../lib/live/stats";
 import { unpackScene, type PackedScene } from "../lib/osm";
 import type { Mode } from "../lib/view3d/camera";
 import { createLabels } from "../lib/view3d/labels";
+import { watchRace } from "../lib/live/page";
+import { getSupabase } from "../lib/supabase";
 import { VIEW_TOKENS, createView } from "../lib/view3d/view";
 import { makeLocal, makeTrack } from "../lib/view3d/world";
 
@@ -51,6 +53,8 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
   let stats = createStats(known());
   const clock = createClock(source.duration);
   const tracker = createSpotTracker();
+  /** The static spots of the page, or on the race page the rows from Supabase, replaced on every change (see below). */
+  let spots: Spot[] = race.spots;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
 
@@ -121,7 +125,7 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
   let nextText = "";
   function showNext(s: Sample) {
     const avg = s.km >= 0.2 ? s.t / s.km : null;
-    const next = upcomingSpots(s.km, avg, race.spots, tracker.passed).map((u) => ({
+    const next = upcomingSpots(s.km, avg, spots, tracker.passed).map((u) => ({
       name: u.spot.name,
       when: [`${fmtKm(u.distKm)} km`, u.etaSec != null ? fmtIn(u.etaSec * 1000) : ""].filter(Boolean).join(" · "),
     }));
@@ -208,8 +212,8 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
       // One measurement per frame: clock, source, events, then the view and the HUD get the same sample.
       tick(now) {
         const sample = source.sampleAt(clock.time(now));
-        announce(tracker.update(sample.km, race.spots));
-        view.update(sample, race.spots.map((s) => ({ ...s, passed: tracker.passed(s.id) })));
+        announce(tracker.update(sample.km, spots));
+        view.update(sample, spots.map((s) => ({ ...s, passed: tracker.passed(s.id) })));
         showHud(sample);
         if (clock.playing && sample.t >= source.duration) setPlaying(false, now);
       },
@@ -258,8 +262,17 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
   });
   el("bar").hidden = false;
   el("controls").hidden = false;
-  // Without spots (race pages until phase 1) there is nothing to list.
-  el("next-block").hidden = !race.spots.length;
+  // Without spots there is nothing to list.
+  el("next-block").hidden = !spots.length;
+  // Race page: spots from the connection the spots section shares (docs/tasks/025-claude-spots.md). New ones get a pin,
+  // deleted ones lose it, a new spot behind the runner counts as passed without confetti (events.ts).
+  const db = stage.dataset.live === "spots" ? getSupabase() : null;
+  if (db) {
+    watchRace(db, race.slug, (s) => {
+      spots = s.spots.map(({ id, name, km }) => ({ id, name, km }));
+      el("next-block").hidden = !spots.length;
+    });
+  }
 
   const play = el("play");
   function setPlaying(on: boolean, now = performance.now()) {

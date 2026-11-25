@@ -1,0 +1,87 @@
+---
+// Cheering spots of a race (docs/tasks/025-claude-spots.md). Markup and look come from the "#spots" part of
+// legacy/hamburg-2026.html, the data from Supabase. Reading needs no account, the name is asked for on the first spot.
+import type { CourseData } from "../lib/course";
+import { kmRange } from "../lib/live/spots";
+import GuestPrompt from "./GuestPrompt.astro";
+
+interface Props {
+  slug: string;
+  timezone: string;
+  plannedStart: string;
+  targetSec: number;
+  distanceKm: number;
+  course: Pick<CourseData, "km" | "landmarks">;
+}
+const { slug, timezone, plannedStart, targetSec, distanceKm, course } = Astro.props;
+const range = kmRange(distanceKm);
+// landmarkNear() only needs the km of each landmark, not the whole route.
+const landmarks = { km: course.landmarks.map((l) => course.km[l.idx]), landmarks: course.landmarks.map((l, i) => ({ name: l.name, idx: i })) };
+const plan = { plannedStart, targetSec, distanceKm };
+---
+
+<section class="wrap live-sec spots" id="spots" aria-labelledby="spots-h" data-slug={slug} data-tz={timezone} data-plan={JSON.stringify(plan)} data-landmarks={JSON.stringify(landmarks)}>
+  <div class="section-head">
+    <p class="caption-4 muted">An der Strecke</p>
+    <h2 id="spots-h" class="heading-2">So findest du mich unterwegs</h2>
+  </div>
+  <div class="two">
+    <section class="card myspot" aria-labelledby="mine-h">
+      <div class="card-head"><h3 id="mine-h" class="title-1">Dein Platz an der Strecke</h3></div>
+      <div id="mine-view"><p class="hint body-6">Spots laden.</p></div>
+      <form class="spot-form" id="spot-form" hidden novalidate>
+        <div class="field">
+          <label class="caption-4" for="spot-name">Wer steht da?</label>
+          <input type="text" id="spot-name" class="body-5" maxlength="40" placeholder="z. B. Alex & Sina mit Schild" aria-describedby="spot-err" autocomplete="off" />
+          <p class="err body-6" id="spot-err" hidden></p>
+        </div>
+        <div class="field">
+          <label class="caption-4" for="spot-km">Wo? <span id="spot-km-label" class="mono"></span></label>
+          <input type="range" id="spot-km" min={range.min} max={range.max} step="0.1" value={Math.min(9, range.max)} />
+        </div>
+        <div><button class="btn signal button-md" type="submit">Spot speichern</button></div>
+      </form>
+      <GuestPrompt id="spot-guest" label="Wie heißt du? Der Name steht bei deinem Spot." submit="Speichern und Spot setzen" />
+    </section>
+
+    <section class="card" aria-labelledby="list-h">
+      <div class="card-head"><h3 id="list-h" class="title-1">Cheering Spots</h3><span class="caption-4 muted" id="spot-count"></span></div>
+      <ul class="list" id="spot-list" aria-live="polite"></ul>
+      <p class="err body-6" id="list-err" hidden></p>
+    </section>
+  </div>
+</section>
+
+<script>
+  import { startSpots } from "./spots";
+  const root = document.getElementById("spots");
+  if (root) startSpots(root);
+</script>
+
+<style>
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s300); align-items: start; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s100); flex-wrap: wrap; margin-bottom: var(--s200); }
+  .card-head h3 { margin: 0; }
+  .spot-form { display: grid; gap: var(--s100); margin-top: var(--s200); }
+  .myspot :global(.eyebrow) { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+  .myspot :global(.eta) { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .myspot :global(.eta small) { font-family: var(--f-body); font-size: 16px; line-height: 24px; font-weight: 500; color: var(--muted); margin-left: var(--s75); letter-spacing: 0; }
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .list :global(li) { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: var(--s100); align-items: center; padding: var(--s100) 0; border-top: 1px solid var(--line); }
+  .list :global(li:first-child) { border-top: 0; padding-top: 0; }
+  .list :global(li.empty-row) { display: block; }
+  .list :global(li.mine) { margin-inline: calc(-1 * var(--s100)); padding-inline: var(--s100); border-radius: 12px; background: color-mix(in srgb, var(--signal) 10%, transparent); }
+  .list :global(li.mine + li) { border-top-color: transparent; }
+  .list :global(li.passed) { opacity: 0.6; }
+  .list :global(.sw) { width: 12px; height: 16px; border-radius: 2px; }
+  .list :global(.name) { overflow-wrap: anywhere; }
+  .list :global(li.mine .name) { font-weight: 600; }
+  .list :global(.sub) { color: var(--muted); }
+  .list :global(.right) { display: flex; align-items: center; gap: var(--s75); }
+  .list :global(.when) { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .list :global(.when small) { display: block; font-family: var(--f-body); color: var(--muted); }
+  #list-err { margin-top: var(--s100); }
+  @media (max-width: 900px) {
+    .two { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
