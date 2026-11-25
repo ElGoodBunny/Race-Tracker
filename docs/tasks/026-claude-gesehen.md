@@ -1,6 +1,6 @@
 # 026 Gesehen-Button
 Besitzer: claude
-Status: in Arbeit
+Status: review
 Branch: claude/026-gesehen
 Roadmap: Phase 1, Pinnwand mit Schnellnachrichten und "Gesehen"-Button
 
@@ -38,5 +38,26 @@ Statuskarte, Hero mit Phase, Zwischenzeiten-Tabelle, Simulation.
 ## Rückfragen
 
 ## Ergebnis
+Umgesetzt:
+- `src/lib/live/seen.ts`: `sightingKm` (null außerhalb von `run` und `arriving`, eigener Spot unter 2,5 km gewinnt, sonst Schätzung auf 0,1 km, Grenzen 0,1 und letztes Zehntel im Rennen), `reportSeen` schreibt nur `race_slug`, `km`, `src`, `deleteSighting`. Fehler über `errorText`, keine neuen Texte nötig: Der Button ist vor dem Start, im Ziel und bei veralteter Schätzung unsichtbar wie im Legacy
+- `Seen.astro` mit `seen.ts` direkt unter der Strecke in `#live`. Dieselbe Namensabfrage (`GuestPrompt`, `guestStore`) und dieselbe Verbindung (`watchRace`). Sichtbarkeit wird bei jedem Realtime-Stand und alle 15 s neu geprüft, der km erst im Moment der Meldung berechnet. Bestätigung "Danke, Sichtung bei km … gespeichert." im Hinweis darunter, Fehler darunter in Rot
+- Pinnwand: eigene Sichtungen haben jetzt ein X ("Sichtung löschen")
+- Roadmap: Datenschicht, Gast-Onboarding und Pinnwand abgehakt
+
+Abweichungen vom Legacy:
+- Platz unter der Strecke statt in der Statuskarte, die gibt es noch nicht
+- Bei bis zu 3 eigenen Spots zählt der nächstgelegene
+- km nie 0,0 und nie hinter dem Ziel, das Legacy hätte hier einen Datenbankfehler bekommen
+- Keine zweite Pinnwand-Zeile: Sichtungen stehen nur in `checkpoints`, die Pinnwand liest sie dort (Migration Phase 1)
+- Eigene Sichtungen löschbar, im Legacy nicht
+
+Geprüft:
+- `tests/seen.test.ts` zuerst, rot ohne Modul, dann 8 Tests grün
+- `npm run check` 0 Fehler, `npm test` 347 grün
+- Sichtprüfung lokal auf Hamburg: dunkel 800 px mit Namensabfrage, hell Handy 375 px mit Namensabfrage (kein seitliches Scrollen), hell Desktop 1280 px. In Phase `stale` blendet sich der Button selbst aus
+- Gegen das echte Projekt (25.11., mit Dimas Ja `races.actual_start` von `hamburg-2026` vorübergehend auf jetzt minus 30 min, vorher null): Dima in Chrome legt Spot "Test" bei km 8,5 an (Anmeldung mit Turnstile, ein anonymes Konto), dann "Ich sehe Dima gerade". Per SQL: 4 Zeilen `src='seen'` bei km 8,500 (Spot-Regel griff, Schätzung stand bei etwa km 7), `seen_at` gleich `created_at` vom Server, `author_name` aus dem Profil. Zweiter Tab ohne Anmeldung zeigt die Sichtungen auf der Pinnwand und den Spot als "vorbei, geschätzt", die ETA hat sich also neu gerechnet. Edge-Logs: `POST /rest/v1/checkpoints` 201 um 01:26:09 UTC, die drei weiteren Inserts stehen in der Datenbank, waren in den Logs beim Prüfen noch nicht zu sehen
+- Beobachtung: Mehrfaches Tippen erzeugt mehrere Sichtungen am selben km (wie im Legacy), das Rate Limit greift erst ab 10 in 10 Minuten. Für die Schätzung harmlos, auf der Pinnwand sichtbar
+
+Offen bis Dimas Ja: Testzeilen (4 Sichtungen, Spot "Test"), anonymes Konto "popo" löschen, `actual_start` von `hamburg-2026` wieder auf null
 
 ## Review
