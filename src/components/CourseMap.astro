@@ -6,8 +6,10 @@ import { makeProjection, latLngAt, type LatLng } from "../lib/course";
 
 interface Props {
   race: CollectionEntry<"races">["data"];
+  /** Fill the box around it, without border and caption: placeholder of the 3D view on the race page. */
+  fill?: boolean;
 }
-const { race } = Astro.props;
+const { race, fill = false } = Astro.props;
 const c = race.course;
 const { vbw, vbh, project } = makeProjection(c.bounds);
 const path = (pts: LatLng[], close = false) =>
@@ -24,7 +26,7 @@ const start = project(c.route[0] as LatLng);
 const finish = project(c.route[c.route.length - 1] as LatLng);
 ---
 
-<figure class="map">
+<figure class:list={["map", { fill }]}>
   <svg viewBox={`0 0 ${vbw} ${vbh}`} role="img" aria-label={`Strecke ${race.title}, ${race.distanceKm.toLocaleString("de-DE")} km`}>
     <rect width={vbw} height={vbh} fill="var(--land)" />
     {c.features.parks.map((p) => <path d={path(p as LatLng[], true)} fill="var(--park)" />)}
@@ -44,12 +46,14 @@ const finish = project(c.route[c.route.length - 1] as LatLng);
       <text x={l.xy[0] + (l.dx ?? 0)} y={l.xy[1] + (l.dy ?? 0)} text-anchor={l.anchor ?? "start"} font-size="13" font-weight="500" fill="var(--ink)" paint-order="stroke" stroke="var(--land)" stroke-width="4">{l.label}</text>
     ))}
   </svg>
-  <figcaption class="body-6 muted">{c.source}</figcaption>
+  {!fill && <figcaption class="body-6 muted">{c.source}</figcaption>}
 </figure>
 
 <style>
   .map { margin: 0; display: flex; flex-direction: column; gap: var(--s100); }
   svg { width: 100%; height: auto; display: block; border-radius: 24px; border: 1px solid var(--line); background: var(--land); }
+  .fill { width: 100%; height: 100%; }
+  .fill svg { height: 100%; border: 0; border-radius: 0; }
   text { font-family: var(--f-body); }
   .mono { font-family: var(--f-mono); }
 </style>

@@ -1,0 +1,15 @@
+// Cloudflare Workers liefert nur die statischen Dateien aus dist/ aus.
+// Ohne diese Datei richtet wrangler deploy das Projekt bei jedem Build selbst ein
+// (astro add cloudflare, KV- und Images-Bindings), das soll nicht passieren.
+{
+  "$schema": "https://unpkg.com/wrangler@4.168.0/config-schema.json",
+  "name": "race-tracker",
+  "compatibility_date": "2026-11-24",
+  "workers_dev": true,
+  // Builds von Nicht-Production-Branches (z. B. phase-2) laufen als wrangler preview,
+  // das verlangt diesen Block, auch leer.
+  "previews": {},
+  "assets": {
+    "directory": "./dist"
+  }
+}

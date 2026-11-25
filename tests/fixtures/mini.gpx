@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Five points: 0 to 2 run north (about 111 m apart, point 1 is 2.5 m east of the line), then the track turns east.
+     Point 3 lists lon before lat on purpose. Elevation is ignored. -->
+<gpx version="1.1" creator="race-tracker test" xmlns="http://www.topografix.com/GPX/1/1">
+ <trk>
+  <name>Mini</name>
+  <trkseg>
+   <trkpt lat="41.380000" lon="2.170000"><ele>10</ele></trkpt>
+   <trkpt lat="41.381000" lon="2.170030"><ele>11</ele></trkpt>
+   <trkpt lat="41.382000" lon="2.170000"><ele>12</ele></trkpt>
+   <trkpt lon="2.171000" lat="41.382000"><ele>13</ele></trkpt>
+   <trkpt lat="41.382000" lon="2.172000"/>
+  </trkseg>
+ </trk>
+</gpx>

@@ -1,0 +1,58 @@
+---
+// Pinboard of a race (docs/tasks/024-claude-pinnwand-gast.md). Markup and look come from legacy/hamburg-2026.html,
+// the data from Supabase. Reading needs no account, the name is asked for on the first message.
+import GuestPrompt from "./GuestPrompt.astro";
+
+interface Props {
+  slug: string;
+  timezone: string;
+}
+const { slug, timezone } = Astro.props;
+---
+
+<section class="wrap live-sec pin" id="pinnwand" aria-labelledby="board-h" data-slug={slug} data-tz={timezone}>
+  <div class="section-head">
+    <p class="caption-4 muted">Pinnwand</p>
+    <h2 id="board-h" class="heading-2">Was ihr mir schreibt</h2>
+  </div>
+  <div class="card board-card">
+    <div class="board" id="board" aria-live="polite">
+      <p class="empty body-5">Pinnwand lädt.</p>
+    </div>
+    <form class="compose" id="msg-form" hidden novalidate>
+      <input type="text" id="msg-text" class="body-5" maxlength="200" placeholder="Nachricht an alle" aria-label="Nachricht" aria-describedby="msg-err" autocomplete="off" />
+      <button class="btn primary button-md" type="submit" aria-label="Senden">
+        <svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M231.87,114l-168-95.89A16,16,0,0,0,40.92,37.34L71.55,128,40.92,218.67A16,16,0,0,0,56,240a16.15,16.15,0,0,0,7.93-2.1l167.92-96.05a16,16,0,0,0,.05-27.89ZM56,224a.56.56,0,0,0,0-.12L85.74,136H144a8,8,0,0,0,0-16H85.74L56.06,32.16A.46.46,0,0,0,56,32l168,95.83Z"></path></svg>
+        <span>Senden</span>
+      </button>
+    </form>
+    <p class="err body-6" id="msg-err" hidden></p>
+    <div class="quick" id="quick" hidden></div>
+    <GuestPrompt id="board-guest" label="Wie heißt du? Der Name steht über deinen Nachrichten." submit="Speichern und senden" />
+    <p class="hint body-6" id="board-hint" hidden></p>
+  </div>
+</section>
+
+<script>
+  import { startPinboard } from "./pinboard";
+  const root = document.getElementById("pinnwand");
+  if (root) startPinboard(root);
+</script>
+
+<style>
+  .board-card { max-width: 760px; display: flex; flex-direction: column; gap: var(--s100); }
+  .board { display: flex; flex-direction: column; gap: var(--s200); max-height: 464px; overflow-y: auto; padding-right: var(--s50); }
+  .board :global(.msg) { display: flex; flex-direction: column; gap: var(--s25); }
+  .board :global(.msg .h) { display: flex; gap: var(--s75); align-items: center; flex-wrap: wrap; }
+  .board :global(.msg .h b) { font-weight: 600; }
+  .board :global(.msg .h span) { color: var(--muted); font-family: var(--f-mono); }
+  .board :global(.msg .t) { overflow-wrap: anywhere; }
+  .board :global(.msg.seen .t) { font-weight: 600; color: var(--route); }
+  .board :global(.x) { margin-left: auto; }
+  .compose { display: flex; gap: var(--s75); margin-top: var(--s100); }
+  .compose input { flex: 1; }
+  .quick { display: flex; flex-wrap: wrap; gap: var(--s75); }
+  @media (max-width: 640px) {
+    .compose button span { display: none; }
+  }
+</style>

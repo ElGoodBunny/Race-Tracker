@@ -1,0 +1,187 @@
+---
+// The live view: stage with canvas, labels, HUD, panel, camera bar, toast, and the replay controls below.
+// No script here: the page starts it with startLive from live-stage.ts, /dev/live at once, the race page when it comes into view.
+// One per page, the script finds its parts by id (docs/tasks/017-claude-einbau-rennseite.md).
+import type { CourseData } from "../lib/course";
+import type { Spot } from "../lib/live/events";
+
+export type LiveRace = { slug: string; city: string; note: string; targetSec: number; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
+interface Props {
+  races: LiveRace[];
+  /** Slug of the race whose replay.json all races run on. */
+  recording: string;
+  /** Development controls ("Ausfall 60 s"). */
+  dev?: boolean;
+  /** Spots from Supabase instead of the static ones in `races` (race page). */
+  live?: boolean;
+}
+const { races, recording, dev = false, live = false } = Astro.props;
+/** With a placeholder (the 2D map on the race page) it stays under the canvas until the view is ready, and stays for good without WebGL. */
+const placeholder = Astro.slots.has("placeholder");
+---
+
+  <div class:list={["stage", { scrollable: !!placeholder }]} id="stage" data-races={JSON.stringify(races)} data-recording={recording} data-live={live ? "spots" : undefined}>
+    {placeholder && <div class="placeholder"><slot name="placeholder" /></div>}
+    <canvas id="view" aria-label="3D-Ansicht der Strecke mit Läufer"></canvas>
+    <!-- Labels over runner and pins, moved by labels.ts. Under the HUD, panel and sheet, which cover them. -->
+    <div class="labels" id="labels"></div>
+    {!placeholder && <p class="body-6 muted fallback" id="fallback" hidden>Die Ansicht in 3D läuft auf diesem Gerät nicht.</p>}
+
+    <!-- Top bar like the video (frame-01.jpg): pulse with its curve, race time with the finish forecast -->
+    <div class="top" id="hud" hidden>
+      <div class="card stat">
+        <span class="caption-4 muted">Puls</span>
+        <span class="row"><span class="title-2 mono" id="hud-hr">k. A.</span><svg class="trail" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"><polyline id="hud-trail" points=""></polyline></svg></span>
+        <span class="caption-5 muted mono" id="hud-hr-stats"></span>
+      </div>
+      <div class="card stat">
+        <span class="caption-4 muted">Rennzeit</span>
+        <span class="title-2 mono" id="hud-time">0:00</span>
+        <span class="caption-5 muted" id="hud-finish"></span>
+      </div>
+    </div>
+    <!-- Panel on the right, a bottom sheet on the phone -->
+    <aside class="panel card" id="panel" aria-label="Läufer" hidden>
+      <button type="button" class="grip" id="grip" aria-expanded="false" aria-controls="panel-more" aria-label="Details zeigen"><span></span></button>
+      <div class="head">
+        <p class="title-3">Dima</p>
+        <p class="caption-4 muted" id="hud-who" hidden></p>
+        <p class="body-6 muted" id="hud-place"></p>
+      </div>
+      <div class="progress">
+        <div class="track"><div class="fill" id="hud-progress"></div></div>
+        <p class="body-5"><span class="mono" id="hud-km">0,0</span> <span class="muted mono" id="hud-total"></span></p>
+      </div>
+      <dl class="values">
+        <div><dt class="body-6 muted">Pace jetzt</dt><dd class="body-5 mono" id="hud-pace">k. A.</dd></div>
+        <div class="more"><dt class="body-6 muted">Schnitt</dt><dd class="body-5 mono" id="hud-avg">k. A.</dd></div>
+        <div class="more"><dt class="body-6 muted">Kadenz</dt><dd class="body-5 mono" id="hud-cad">k. A.</dd></div>
+        <div class="more"><dt class="body-6 muted">Höhe</dt><dd class="body-5 mono" id="hud-alt">k. A.</dd></div>
+        <div><dt class="body-6 muted">Daten</dt><dd class="body-5" id="hud-quality"><span class="dot" id="hud-dot"></span><span id="hud-quality-text">gemessen</span></dd></div>
+      </dl>
+      <div class="more" id="panel-more">
+        <div class="next-block" id="next-block">
+          <p class="caption-4 muted">Als Nächstes</p>
+          <ol class="next" id="hud-next"></ol>
+        </div>
+        <p class="caption-4 muted">Splits</p>
+        <ol class="splits" id="hud-splits"></ol>
+        <p class="caption-5 muted" id="note"></p>
+      </div>
+      <p class="caption-5 muted sheet-credit">© OpenStreetMap-Mitwirkende</p>
+    </aside>
+    <div class="bar card" id="bar" role="group" aria-label="Kamera" hidden>
+      <button type="button" class="title-2" id="zoom-in" aria-label="Näher heran">+</button>
+      <button type="button" class="title-2" id="zoom-out" aria-label="Weiter weg">−</button>
+      <button type="button" class="body-5" id="flat" aria-pressed="false" aria-label="Ansicht von oben">2D</button>
+    </div>
+    <p class="body-5 toast" id="toast" role="status" aria-live="polite"></p>
+    <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
+  </div>
+
+  <div class="controls" id="controls" hidden>
+    <div class="seg" role="group" aria-label="Kamera">
+      <button type="button" class="button-sm" data-mode="follow" aria-pressed="false">Folgen</button>
+      <button type="button" class="button-sm" data-mode="overview" aria-pressed="true">Übersicht</button>
+    </div>
+    <button type="button" class="button-sm solo" id="center">Zentrieren</button>
+    {dev && <button type="button" class="button-sm solo" id="outage">Ausfall 60 s</button>}
+    <div class="seg" role="group" aria-label="Uhr">
+      <button type="button" class="button-sm" id="play" aria-pressed="true">Pause</button>
+      <button type="button" class="button-sm" data-speed="1" aria-pressed="false">1×</button>
+      <button type="button" class="button-sm" data-speed="10" aria-pressed="true">10×</button>
+      <button type="button" class="button-sm" data-speed="60" aria-pressed="false">60×</button>
+    </div>
+    {/* On the phone the panel note is in the closed sheet, so the race page says it here: test run or recording. */}
+    {!dev && <p class="body-6 muted">{races[0].note}</p>}
+  </div>
+
+<style>
+  .stage { position: relative; aspect-ratio: 16 / 10; border-radius: 24px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  /* The labels are built in labels.ts, so they need :global. Positioned only by transform, from the top left. */
+  .labels :global(.label) { position: absolute; left: 0; top: 0; white-space: nowrap; padding: var(--s25) var(--s75); border-radius: 9999px; color: var(--ink); border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .labels :global(.label-runner) { display: flex; align-items: center; gap: var(--s50); padding-left: var(--s25); color: var(--route-ink); background: var(--route); border-color: var(--route); }
+  .labels :global(.label-name) { padding: 0 var(--s75); border-radius: 9999px; font-weight: 600; text-transform: uppercase; color: var(--route); background: var(--route-ink); }
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
+  .fallback[hidden], .top[hidden], .panel[hidden], .bar[hidden], .controls[hidden], [hidden] { display: none; }
+  /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
+  .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .top { position: absolute; left: var(--s200); top: var(--s200); display: flex; gap: var(--s100); pointer-events: none; }
+  .stat { display: flex; flex-direction: column; gap: var(--s25); }
+  .stat .row { display: flex; align-items: center; gap: var(--s100); }
+  .trail { width: 120px; height: var(--s400); }
+  .trail polyline { fill: none; stroke: var(--signal); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .panel { position: absolute; right: var(--s200); top: var(--s200); bottom: var(--s200); width: 300px; padding: var(--s200); display: flex; flex-direction: column; gap: var(--s200); overflow-y: auto; }
+  .panel p, .panel dl, .panel dd, .panel ol { margin: 0; }
+  .grip, .sheet-credit { display: none; }
+  .head { display: flex; flex-direction: column; gap: var(--s25); }
+  .progress { display: flex; flex-direction: column; gap: var(--s75); }
+  .track { height: var(--s75); border-radius: 9999px; background: var(--surface-2); overflow: hidden; }
+  .fill { height: 100%; background: var(--route); transform-origin: left; transform: scaleX(0); }
+  .values { display: flex; flex-direction: column; gap: var(--s75); }
+  .values div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s200); }
+  #hud-quality { display: inline-flex; align-items: center; gap: var(--s75); }
+  .dot { width: var(--s75); height: var(--s75); border-radius: 9999px; background: var(--good); }
+  .dot.estimated { background: var(--warn); }
+  #panel-more { display: flex; flex-direction: column; gap: var(--s75); }
+  .splits { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s50); }
+  /* Rows are built in the script, so they need :global to get these styles. */
+  .splits :global(li) { display: grid; grid-template-columns: var(--s400) 1fr auto; align-items: center; gap: var(--s100); }
+  .splits :global(li.empty) { display: block; }
+  .next { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s50); margin-bottom: var(--s100); }
+  .next :global(li) { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s100); }
+  .next :global(.next-name) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .next :global(.next-when) { flex-shrink: 0; }
+  .splits :global(.split-bar) { height: var(--s75); border-radius: 9999px; background: var(--route); transform-origin: left; }
+  /* Camera buttons on the map, like the bar in the video (frame-05.jpg) */
+  .bar { position: absolute; right: calc(300px + 2 * var(--s200)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: var(--s25); padding: var(--s25); border-radius: 24px; }
+  .bar button { width: var(--s500); height: var(--s500); border: 0; border-radius: 9999px; background: transparent; color: var(--ink); cursor: pointer; transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
+  .bar button[aria-pressed="true"] { background: var(--pressed); color: var(--pressed-ink); }
+  .toast { position: absolute; left: 50%; bottom: var(--s500); margin: 0; padding: var(--s100) var(--s200); border-radius: 9999px; background: var(--toast); color: var(--toast-ink); opacity: 0; transform: translate(-50%, var(--s100)); transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease); pointer-events: none; white-space: nowrap; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .credit { position: absolute; right: calc(300px + 2 * var(--s200)); bottom: var(--s75); pointer-events: none; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
+  .seg { display: inline-flex; flex-wrap: wrap; align-self: flex-start; padding: var(--s25); border-radius: 24px; background: var(--surface-2); }
+  .seg button, .seg a, .solo { height: var(--s500); padding-inline: var(--s200); border: 0; border-radius: 9999px; cursor: pointer; background: transparent; color: var(--muted); transition: background-color var(--t-color) var(--ease), color var(--t-color) var(--ease); }
+  .seg a { display: inline-flex; align-items: center; text-decoration: none; }
+  .seg button[aria-pressed="true"], .seg a[aria-current="page"] { background: var(--surface); color: var(--ink); }
+  .solo { background: var(--surface-2); }
+  /* The camera is free: this button is the way back. */
+  .solo.on { background: var(--pressed); color: var(--pressed-ink); }
+  /* Race page: the 2D map fills the stage until the 3D view fades in over it. Only opacity moves. */
+  .placeholder { position: absolute; inset: 0; background: var(--land); }
+  .placeholder :global(svg) { width: 100%; height: 100%; }
+  .scrollable canvas, .scrollable .labels, .scrollable .top, .scrollable .panel, .scrollable .bar, .scrollable .credit { opacity: 0; transition: opacity var(--t-move) var(--ease); }
+  .scrollable[data-ready] canvas, .scrollable[data-ready] .labels, .scrollable[data-ready] .top, .scrollable[data-ready] .panel, .scrollable[data-ready] .bar, .scrollable[data-ready] .credit { opacity: 1; }
+  /* The controls keep their row while hidden, so nothing below moves when they appear. Only on the race page. */
+  .scrollable ~ .controls[hidden] { display: flex; visibility: hidden; }
+  /* The page has to stay scrollable over the view on the phone (docs/decisions/2026-11-13-3d-konzept.md). */
+  .scrollable canvas { position: relative; touch-action: pan-y; }
+  @media (max-width: 640px) {
+    .page { padding-block: var(--s600) 0; }
+    /* Taller on the phone, so the runner stays above the collapsed sheet. */
+    .stage { aspect-ratio: 9 / 16; }
+    .top { left: var(--s100); right: var(--s100); top: var(--s100); }
+    .top .card { flex: 1; padding: var(--s75) var(--s100); }
+    .trail { display: none; }
+    .bar { right: var(--s100); top: calc(var(--s800) + var(--s300)); transform: none; }
+    .toast { bottom: auto; top: calc(var(--s900) + var(--s400)); }
+    /* The sheet covers the bottom of the map, so the credit moves into it. */
+    .credit { display: none; }
+    .sheet-credit { display: block; }
+    /* Bottom sheet: collapsed shows place, progress, pace and data; the grip opens the rest. */
+    .panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 75%; gap: var(--s100); border-radius: 24px 24px 0 0; border-bottom: 0; padding: 0 var(--s200) var(--s100); }
+    .head { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: var(--s25) var(--s100); }
+    .grip { display: flex; justify-content: center; align-self: stretch; height: var(--s300); border: 0; background: transparent; cursor: pointer; }
+    .grip span { width: var(--s500); height: var(--s50); border-radius: 9999px; background: var(--line); }
+    .panel:not(.open) .more, .panel:not(.open) #panel-more { display: none; }
+    /* The open sheet reaches up to the bar, so the bar steps aside until it closes. */
+    .panel.open ~ .bar { display: none; }
+    .values { flex-direction: row; flex-wrap: wrap; gap: var(--s75) var(--s300); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast, .scrollable canvas, .scrollable .labels, .scrollable .top, .scrollable .panel, .scrollable .bar, .scrollable .credit { transition: none; }
+  }
+</style>
