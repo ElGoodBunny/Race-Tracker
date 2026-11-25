@@ -91,6 +91,8 @@ Ziel: Die Seite, die man Leuten zeigt. Bauschritte aus Checkpoint B (`docs/decis
 - [ ] 12. **HUD und Panel** mit Replay-Daten, mobil als Bottom Sheet. Prüfpunkt: Sichtprüfung gegen `frame-01.jpg` und `frame-05.jpg`, hell und dunkel, Desktop und Handy. Zahlen in Geist Mono
   - [x] Obere Leiste, Panel und Bottom Sheet auf `/dev/live` mit Replay-Daten, Sichtprüfung hell und dunkel, Desktop und Handy (`docs/decisions/2026-11-13-3d-konzept.md`)
   - [ ] Wetter, Live-Indikator, Avatar, Startzeit und letzter offizieller Split (brauchen Supabase, Wetterquelle und offizielle Splits)
+    - [x] Wetter im Replay: Open-Meteo, Renntag aus fester Datei, Karte nur auf der eigenen Strecke (Paket 030)
+    - [ ] Wetter vor dem Start und live über Supabase, nie direkt vom Browser zum Anbieter (Paket 031)
 - [ ] 13. **Replay-Steuerung** ersetzt die Simulation. Mischquelle mit Rückfall auf die Schätzung. Prüfpunkt: Check "Rückfall ohne Sprung" als Test: Telemetrie 60 s abschneiden, km läuft stetig weiter, Qualität wechselt auf "geschätzt", beim Wiederkommen kein Rücksprung
   - [x] Mischquelle mit Rückfall und Check "Rückfall ohne Sprung" als Test (`mixedSource`, `tests/mixed-source.test.ts`)
   - [ ] Schwelle für "geschätzt" nach der LiveTrack-Messung festlegen (Vorschlag 90 s, Check und Demo nehmen 30 s)

@@ -38,6 +38,7 @@ const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
       city: race.city,
       note: race.slug === recording ? "Aufzeichnung vom Renntag" : "Probelauf mit Dimas Daten aus Hamburg",
       targetSec: race.targetSec,
+      plannedStart: race.plannedStart,
       bib: race.bib,
       block: race.block,
       course: { route: race.course.route, km: race.course.km, landmarks: race.course.landmarks },

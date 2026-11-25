@@ -5,7 +5,7 @@
 import type { CourseData } from "../lib/course";
 import type { Spot } from "../lib/live/events";
 
-export type LiveRace = { slug: string; city: string; note: string; targetSec: number; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
+export type LiveRace = { slug: string; city: string; note: string; targetSec: number; /** Start the replay time counts from, for the weather (030). */ plannedStart?: string; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
 interface Props {
   races: LiveRace[];
   /** Slug of the race whose replay.json all races run on. */
@@ -39,6 +39,13 @@ const placeholder = Astro.slots.has("placeholder");
         <span class="title-2 mono" id="hud-time">0:00</span>
         <span class="caption-5 muted" id="hud-finish"></span>
       </div>
+      <!-- Only for the replay on its own course, from public/data/<slug>/weather.json (docs/tasks/030-claude-wetter-replay.md) -->
+      <div class="card stat" id="hud-weather" hidden>
+        <span class="caption-4 muted">Wetter</span>
+        <span class="row"><svg class="wx" aria-hidden="true"><use id="hud-wx-icon" href="#wx-cloud"></use></svg><span class="title-2 mono" id="hud-wx-temp"></span></span>
+        <span class="caption-5 muted"><span id="hud-wx-label"></span><span class="wx-wind" id="hud-wx-wind"></span></span>
+      </div>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="wx-sun" viewBox="0 0 256 256"><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></symbol><symbol id="wx-moon" viewBox="0 0 256 256"><path d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,136,224a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM188.9,190.34A88,88,0,0,1,65.66,67.11a89,89,0,0,1,31.4-26A106,106,0,0,0,96,56,104.11,104.11,0,0,0,200,160a106,106,0,0,0,14.92-1.06A89,89,0,0,1,188.9,190.34Z"/></symbol><symbol id="wx-cloud-sun" viewBox="0 0 256 256"><path d="M164,72a76.2,76.2,0,0,0-20.26,2.73,55.63,55.63,0,0,0-9.41-11.54l9.51-13.57a8,8,0,1,0-13.11-9.18L121.22,54A55.9,55.9,0,0,0,96,48c-.58,0-1.16,0-1.74,0L91.37,31.71a8,8,0,1,0-15.75,2.77L78.5,50.82A56.1,56.1,0,0,0,55.23,65.67L41.61,56.14a8,8,0,1,0-9.17,13.11L46,78.77A55.55,55.55,0,0,0,40,104c0,.57,0,1.15,0,1.72L23.71,108.6a8,8,0,0,0,1.38,15.88,8.24,8.24,0,0,0,1.39-.12l16.32-2.88a55.74,55.74,0,0,0,5.86,12.42A52,52,0,0,0,84,224h80a76,76,0,0,0,0-152ZM56,104a40,40,0,0,1,72.54-23.24,76.26,76.26,0,0,0-35.62,40,52.14,52.14,0,0,0-31,4.17A40,40,0,0,1,56,104ZM164,208H84a36,36,0,1,1,4.78-71.69c-.37,2.37-.63,4.79-.77,7.23a8,8,0,0,0,16,.92,58.91,58.91,0,0,1,1.88-11.81c0-.16.09-.32.12-.48A60.06,60.06,0,1,1,164,208Z"/></symbol><symbol id="wx-cloud-moon" viewBox="0 0 256 256"><path d="M172,72a76.45,76.45,0,0,0-12.36,1A71.93,71.93,0,0,0,104.17,9.83a8,8,0,0,0-9.59,9.58A56.05,56.05,0,0,1,40,88a56.45,56.45,0,0,1-12.59-1.42,8,8,0,0,0-9.59,9.59,72.22,72.22,0,0,0,32.29,45.06A52,52,0,0,0,92,224h80a76,76,0,0,0,0-152ZM37.37,104c.87,0,1.75,0,2.63,0a72.08,72.08,0,0,0,72-72c0-.89,0-1.78,0-2.67a55.63,55.63,0,0,1,32,48,76.28,76.28,0,0,0-43,43.4A52,52,0,0,0,62,129.59,56.22,56.22,0,0,1,37.37,104ZM172,208H92a36,36,0,1,1,4.78-71.69c-.37,2.37-.63,4.79-.77,7.23a8,8,0,0,0,16,.92,58.91,58.91,0,0,1,1.88-11.81c0-.16.09-.32.12-.48A60.06,60.06,0,1,1,172,208Z"/></symbol><symbol id="wx-cloud" viewBox="0 0 256 256"><path d="M160,40A88.09,88.09,0,0,0,81.29,88.67,64,64,0,1,0,72,216h88a88,88,0,0,0,0-176Zm0,160H72a48,48,0,0,1,0-96c1.1,0,2.2,0,3.29.11A88,88,0,0,0,72,128a8,8,0,0,0,16,0,72,72,0,1,1,72,72Z"/></symbol><symbol id="wx-cloud-fog" viewBox="0 0 256 256"><path d="M120,208H72a8,8,0,0,1,0-16h48a8,8,0,0,1,0,16Zm64-16H160a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Zm-24,32H104a8,8,0,0,0,0,16h56a8,8,0,0,0,0-16Zm72-124a76.08,76.08,0,0,1-76,76H76A52,52,0,0,1,76,72a53.26,53.26,0,0,1,8.92.76A76.08,76.08,0,0,1,232,100Zm-16,0A60.06,60.06,0,0,0,96,96.46a8,8,0,0,1-16-.92q.21-3.66.77-7.23A38.11,38.11,0,0,0,76,88a36,36,0,0,0,0,72h80A60.07,60.07,0,0,0,216,100Z"/></symbol><symbol id="wx-cloud-rain" viewBox="0 0 256 256"><path d="M158.66,196.44l-32,48a8,8,0,1,1-13.32-8.88l32-48a8,8,0,0,1,13.32,8.88ZM232,92a76.08,76.08,0,0,1-76,76H132.28l-29.62,44.44a8,8,0,1,1-13.32-8.88L113.05,168H76A52,52,0,0,1,76,64a53.26,53.26,0,0,1,8.92.76A76.08,76.08,0,0,1,232,92Zm-16,0A60.06,60.06,0,0,0,96,88.46a8,8,0,0,1-16-.92q.21-3.66.77-7.23A38.11,38.11,0,0,0,76,80a36,36,0,0,0,0,72h80A60.07,60.07,0,0,0,216,92Z"/></symbol><symbol id="wx-cloud-snow" viewBox="0 0 256 256"><path d="M88,196a12,12,0,1,1-12-12A12,12,0,0,1,88,196Zm28,4a12,12,0,1,0,12,12A12,12,0,0,0,116,200Zm48-16a12,12,0,1,0,12,12A12,12,0,0,0,164,184ZM68,224a12,12,0,1,0,12,12A12,12,0,0,0,68,224Zm88,0a12,12,0,1,0,12,12A12,12,0,0,0,156,224ZM232,92a76.08,76.08,0,0,1-76,76H76A52,52,0,0,1,76,64a53.26,53.26,0,0,1,8.92.76A76.08,76.08,0,0,1,232,92Zm-16,0A60.06,60.06,0,0,0,96,88.46a8,8,0,0,1-16-.92q.21-3.66.77-7.23A38.11,38.11,0,0,0,76,80a36,36,0,0,0,0,72h80A60.07,60.07,0,0,0,216,92Z"/></symbol><symbol id="wx-cloud-lightning" viewBox="0 0 256 256"><path d="M156,16A76.2,76.2,0,0,0,84.92,64.76,53.26,53.26,0,0,0,76,64a52,52,0,0,0,0,104h37.87L97.14,195.88A8,8,0,0,0,104,208h25.87l-16.73,27.88a8,8,0,0,0,13.72,8.24l24-40A8,8,0,0,0,144,192H118.13l14.4-24H156a76,76,0,0,0,0-152Zm0,136H76a36,36,0,0,1,0-72,38.11,38.11,0,0,1,4.78.31q-.56,3.57-.77,7.23a8,8,0,0,0,16,.92A60.06,60.06,0,1,1,156,152Z"/></symbol></svg>
     </div>
     <!-- Panel on the right, a bottom sheet on the phone -->
     <aside class="panel card" id="panel" aria-label="Läufer" hidden>
@@ -68,7 +75,7 @@ const placeholder = Astro.slots.has("placeholder");
         <ol class="splits" id="hud-splits"></ol>
         <p class="caption-5 muted" id="note"></p>
       </div>
-      <p class="caption-5 muted sheet-credit">© OpenStreetMap-Mitwirkende</p>
+      <p class="caption-5 muted sheet-credit">© OpenStreetMap-Mitwirkende<span class="wx-credit" hidden>, Wetter: Open-Meteo.com (CC BY 4.0), Modellwerte</span></p>
     </aside>
     <div class="bar card" id="bar" role="group" aria-label="Kamera" hidden>
       <button type="button" class="title-2" id="zoom-in" aria-label="Näher heran">+</button>
@@ -76,7 +83,7 @@ const placeholder = Astro.slots.has("placeholder");
       <button type="button" class="body-5" id="flat" aria-pressed="false" aria-label="Ansicht von oben">2D</button>
     </div>
     <p class="body-5 toast" id="toast" role="status" aria-live="polite"></p>
-    <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende</p>
+    <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende<span class="wx-credit" hidden>, Wetter: Open-Meteo.com (CC BY 4.0), Modellwerte</span></p>
   </div>
 
   <div class="controls" id="controls" hidden>
@@ -105,12 +112,15 @@ const placeholder = Astro.slots.has("placeholder");
   .labels :global(.label-runner) { display: flex; align-items: center; gap: var(--s50); padding-left: var(--s25); color: var(--route-ink); background: var(--route); border-color: var(--route); }
   .labels :global(.label-name) { padding: 0 var(--s75); border-radius: 9999px; font-weight: 600; text-transform: uppercase; color: var(--route); background: var(--route-ink); }
   .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--s300); text-align: center; }
-  .fallback[hidden], .top[hidden], .panel[hidden], .bar[hidden], .controls[hidden], [hidden] { display: none; }
+  .fallback[hidden], .top[hidden], .stat[hidden], .panel[hidden], .bar[hidden], .controls[hidden], [hidden] { display: none; }
   /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
   .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-  .top { position: absolute; left: var(--s200); top: var(--s200); display: flex; gap: var(--s100); pointer-events: none; }
+  /* Ends left of the panel, so a third card never slides under it on narrow desktops. */
+  .top { position: absolute; left: var(--s200); right: calc(300px + 2 * var(--s200)); top: var(--s200); display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s100); pointer-events: none; }
+  .stat .title-2 { white-space: nowrap; }
   .stat { display: flex; flex-direction: column; gap: var(--s25); }
   .stat .row { display: flex; align-items: center; gap: var(--s100); }
+  .wx { width: 24px; height: 24px; flex: none; fill: currentColor; }
   .trail { width: 120px; height: var(--s400); }
   .trail polyline { fill: none; stroke: var(--signal); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
   .panel { position: absolute; right: var(--s200); top: var(--s200); bottom: var(--s200); width: 300px; padding: var(--s200); display: flex; flex-direction: column; gap: var(--s200); overflow-y: auto; }
@@ -164,7 +174,11 @@ const placeholder = Astro.slots.has("placeholder");
     /* Taller on the phone, so the runner stays above the collapsed sheet. */
     .stage { aspect-ratio: 9 / 16; }
     .top { left: var(--s100); right: var(--s100); top: var(--s100); }
-    .top .card { flex: 1; padding: var(--s75) var(--s100); }
+    .top { flex-wrap: nowrap; }
+    .top .card { flex: 1; min-width: 0; padding: var(--s75) var(--s100); }
+    /* On the phone the weather card keeps temperature and condition, the wind would wrap into the camera bar. */
+    .wx-wind { display: none; }
+    .wx { width: 20px; height: 20px; }
     .trail { display: none; }
     .bar { right: var(--s100); top: calc(var(--s800) + var(--s300)); transform: none; }
     .toast { bottom: auto; top: calc(var(--s900) + var(--s400)); }

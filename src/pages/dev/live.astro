@@ -21,9 +21,9 @@ const setup: { slug: string; note: string; spots: { name: string; landmark?: str
 ];
 const races = await Promise.all(
   setup.map(async ({ slug, note, spots }) => {
-    const { city, course: c, targetSec, bib, block } = (await getEntry("races", slug))!.data;
+    const { city, course: c, targetSec, plannedStart, bib, block } = (await getEntry("races", slug))!.data;
     const km = (s: { landmark?: string; km?: number }) => s.km ?? c.km[c.landmarks.find((l) => l.name === s.landmark)!.idx];
-    return { slug, city, note, targetSec, bib, block, course: { route: c.route, km: c.km, landmarks: c.landmarks }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
+    return { slug, city, note, targetSec, plannedStart, bib, block, course: { route: c.route, km: c.km, landmarks: c.landmarks }, spots: spots.map((s, i) => ({ id: `demo-${i + 1}`, name: s.name, km: km(s) })) };
   }),
 );
 // The recording all demos run on. Its own course length decides how it is stretched onto another course.

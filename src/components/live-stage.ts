@@ -11,13 +11,23 @@ import { unpackScene, type PackedScene } from "../lib/osm";
 import type { Mode } from "../lib/view3d/camera";
 import { createLabels } from "../lib/view3d/labels";
 import { watchRace } from "../lib/live/page";
+import { describeWeather, weatherAt, weatherLine, type WeatherSeries } from "../lib/live/weather";
 import { getSupabase } from "../lib/supabase";
 import { VIEW_TOKENS, createView } from "../lib/view3d/view";
 import { makeLocal, makeTrack } from "../lib/view3d/world";
 
-type Race = { slug: string; city: string; note: string; targetSec: number; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
+type Race = { slug: string; city: string; note: string; targetSec: number; plannedStart?: string; bib?: string; block?: string; course: Pick<CourseData, "route" | "km" | "landmarks">; spots: Spot[] };
 const el = (id: string) => document.getElementById(id)!;
 const json = async <T,>(url: string) => (await (await fetch(url)).json()) as T;
+/** Like json, but null when the file is missing or broken: optional data must not stop the view. */
+const maybeJson = async <T,>(url: string) => {
+  try {
+    const res = await fetch(url);
+    return res.ok ? ((await res.json()) as T) : null;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Starts the live view in the stage of LiveStage.astro. False when WebGL is missing: the page keeps what it has under the canvas.
@@ -35,6 +45,11 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
     json<number[]>(`/data/${race.slug}/trees.json`),
     json<ReplayFile>(`/data/${stage.dataset.recording}/replay.json`),
   ]);
+  // Weather only for the replay on its own course: race-day values at replay time. A test run elsewhere gets none (030).
+  const ownReplay = race.slug === stage.dataset.recording && race.plannedStart;
+  const weather = ownReplay ? await maybeJson<WeatherSeries>(`/data/${race.slug}/weather.json`) : null;
+  const startMs = race.plannedStart ? Date.parse(race.plannedStart) : NaN;
+  for (const c of document.querySelectorAll<HTMLElement>(".wx-credit")) c.hidden = !weather;
   // The recording runs on its own course as it is. On another course it is a demo, stretched by share of the distance.
   const recorded = replaySource(replay);
   const demo = race.slug === stage.dataset.recording ? recorded : rescaleSource(recorded, replay.km[replay.km.length - 1], race.course);
@@ -87,6 +102,18 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
   const ago = (age: number) => (age < 60 ? `vor ${Math.round(age)} s` : fmtAgo(age * 1000));
   let splitCount = -1;
   let trailAt = -Infinity;
+  let weatherAtStep = NaN;
+  function showWeather(t: number) {
+    const w = weather ? weatherAt(weather, startMs + Math.max(0, t) * 1000) : null;
+    el("hud-weather").hidden = !w;
+    if (!w || w.at === weatherAtStep) return;
+    weatherAtStep = w.at;
+    const { temp, label, wind } = weatherLine(w);
+    put("hud-wx-temp", temp);
+    put("hud-wx-label", label);
+    put("hud-wx-wind", wind ? `, ${wind}` : "");
+    el("hud-wx-icon").setAttribute("href", `#wx-${describeWeather(w.code, w.day).icon}`);
+  }
   function showHud(s: Sample) {
     const done = s.km >= total - 0.05;
     put("hud-km", fmtKm(s.km));
@@ -101,6 +128,7 @@ export async function startLive(stage: HTMLElement): Promise<boolean> {
     const hr = stats.hr(s.t);
     put("hud-hr-stats", hr ? `Ø ${Math.round(hr.avg)}, max ${hr.max}` : "");
     put("hud-time", fmtDur(s.t));
+    showWeather(s.t);
     const finish = done ? null : finishForecast(s.t, s.km, total);
     putMixed("hud-finish", finish ? `Ziel etwa ${fmtDur(finish)}` : "");
     const measured = s.quality === "measured";
