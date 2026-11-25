@@ -5,3 +5,35 @@
 @media (min-width:640px){.wrap{padding-inline:var(--s300)}}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}
+
+/* Sections that read and write live data: pinboard and spots (docs/tasks/025-claude-spots.md). Look from the legacy page.
+   Scoped to .live-sec, because LiveStage and the start page use .card with their own look. */
+.live-sec{padding-top:var(--s900)}
+.live-sec [hidden]{display:none!important}
+.live-sec .section-head{display:flex;flex-direction:column;gap:var(--s75);margin-bottom:var(--s400);max-width:680px}
+.live-sec .card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:var(--s300);box-shadow:var(--shadow);min-width:0}
+.live-sec .empty{margin:0;padding:var(--s200);border:1px dashed var(--line);border-radius:16px;color:var(--muted)}
+.live-sec .hint{margin:0;color:var(--muted)}
+.live-sec .err{margin:0;color:var(--bad)}
+.live-sec .x{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border:0;background:transparent;color:var(--muted);cursor:pointer;border-radius:9999px;padding:0;transition:color var(--t-color) var(--ease)}
+.live-sec .x:hover{color:var(--signal);background:var(--surface-2)}
+.live-sec .x .ico{width:12px;height:12px}
+.live-sec .field{display:grid;gap:var(--s50)}
+.live-sec .field label{color:var(--muted)}
+.live-sec input[type=text]{width:100%;min-width:0;padding:var(--s75) var(--s100);border-radius:12px;border:1px solid var(--line);background:var(--surface-2);transition:border-color var(--t-color) var(--ease)}
+.live-sec input[type=text]:hover{border-color:var(--muted)}
+.live-sec input[aria-invalid="true"]{border-color:var(--bad)}
+.live-sec input[type=range]{width:100%;accent-color:var(--signal)}
+.live-sec .name-form{display:flex;flex-direction:column;gap:var(--s200);margin-top:var(--s100);padding-top:var(--s200);border-top:1px solid var(--line)}
+.live-sec .name-actions{display:flex;flex-wrap:wrap;gap:var(--s75)}
+.live-sec .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s75);padding:var(--s75) var(--s200);border-radius:9999px;border:1px solid var(--line);background:var(--surface);cursor:pointer;color:var(--ink);white-space:nowrap;transition:transform var(--t-color) var(--ease)}
+.live-sec .btn:hover{background:var(--surface-2);border-color:var(--muted)}
+.live-sec .btn:active{transform:scale(0.98)}
+.live-sec .btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.live-sec .btn.primary:hover{background:color-mix(in srgb,var(--ink) 82%,var(--bg))}
+.live-sec .btn.signal{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
+.live-sec .btn.signal:hover{background:color-mix(in srgb,var(--signal) 88%,var(--ink));border-color:transparent}
+.live-sec .btn[disabled]{opacity:.5;cursor:not-allowed}
+.live-sec .btn.small{padding:var(--s50) var(--s100)}
+.live-sec .btn .ico{width:16px;height:16px}
+@media (max-width:640px){.live-sec{padding-top:var(--s800)}.live-sec .card{padding:var(--s200)}.live-sec .section-head{margin-bottom:var(--s300)}.live-sec .section-head .heading-2{font-size:30px;line-height:36px}}

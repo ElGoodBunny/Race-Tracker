@@ -14,7 +14,7 @@ const cp = (id: string, km: number, over: Row = {}): Row => ({ id, race_slug: SL
 /** Minimal stand-in for the parts of supabase-js the layer uses: select chains and one realtime channel. */
 function fakeClient(tables: Record<string, Row[]>) {
   const queries: { table: string; columns: string; eq: [string, unknown][]; order: [string, boolean][]; limit?: number }[] = [];
-  const handlers: { table: string; filter?: string; fn: (p: unknown) => void }[] = [];
+  const handlers: { table: string; event: string; filter?: string; fn: (p: unknown) => void }[] = [];
   let status: ((s: string) => void) | undefined;
   let removed = false;
   let fail = false;
@@ -53,8 +53,8 @@ function fakeClient(tables: Record<string, Row[]>) {
     },
     channel() {
       const ch = {
-        on(_type: string, opts: { table: string; filter?: string }, fn: (p: unknown) => void) {
-          handlers.push({ table: opts.table, filter: opts.filter, fn });
+        on(_type: string, opts: { table: string; event: string; filter?: string }, fn: (p: unknown) => void) {
+          handlers.push({ table: opts.table, event: opts.event, filter: opts.filter, fn });
           return ch;
         },
         subscribe(cb: (s: string) => void) {
@@ -69,8 +69,10 @@ function fakeClient(tables: Record<string, Row[]>) {
       return Promise.resolve("ok");
     },
   };
+  // Like Realtime: a DELETE carries only the key, so a filter on another column never matches it.
   const emit = (table: string, eventType: string, n: Row, o: Row = {}) => {
-    for (const h of handlers.filter((h) => h.table === table)) h.fn({ table, eventType, new: n, old: o });
+    const hits = handlers.filter((h) => h.table === table && (h.event === "*" || h.event === eventType) && !(eventType === "DELETE" && h.filter));
+    for (const h of hits) h.fn({ table, eventType, new: n, old: o });
   };
   return {
     client: client as unknown as SupabaseClient,
@@ -161,7 +163,7 @@ describe("subscribeRace", () => {
       expect(q.eq).toEqual([[q.table === "races" ? "slug" : "race_slug", SLUG]]);
     }
     expect(fake.queries.find((q) => q.table === "messages")?.limit).toBe(MESSAGE_LIMIT);
-    expect(fake.handlers.map((h) => h.filter)).toEqual([`slug=eq.${SLUG}`, `race_slug=eq.${SLUG}`, `race_slug=eq.${SLUG}`, `race_slug=eq.${SLUG}`]);
+    expect(fake.handlers.filter((h) => h.event === "*").map((h) => h.filter)).toEqual([`slug=eq.${SLUG}`, `race_slug=eq.${SLUG}`, `race_slug=eq.${SLUG}`, `race_slug=eq.${SLUG}`]);
   });
 
   it("Änderungen während des Ladens gehen nicht verloren", async () => {
@@ -197,6 +199,16 @@ describe("subscribeRace", () => {
     await flush();
     expect(last().status).toBe("offline");
     expect(last().spots).toHaveLength(2);
+  });
+
+  it("Löschen kommt an, obwohl Realtime DELETE nicht nach Rennen filtern kann", async () => {
+    const { fake, last } = start(tables());
+    fake.status("SUBSCRIBED");
+    await flush();
+    expect(last().spots.map((s) => s.id)).toEqual(["b", "a"]);
+    fake.emit("spots", "DELETE", {}, { id: "a" });
+    fake.emit("spots", "DELETE", {}, { id: "fremd" });
+    expect(last().spots.map((s) => s.id)).toEqual(["b"]);
   });
 
   it("Abbestellen entfernt den Kanal, danach kommt nichts mehr", async () => {

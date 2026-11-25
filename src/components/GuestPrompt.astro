@@ -1,0 +1,23 @@
+---
+// Name prompt with Turnstile for the first write (docs/tasks/025-claude-spots.md). Wired by guestPrompt() in guest-prompt.ts.
+// Styles live in global.css under .live-sec, the sections that use it carry that class.
+interface Props {
+  id: string;
+  label: string;
+  submit: string;
+}
+const { id, label, submit } = Astro.props;
+---
+
+<form class="name-form" id={id} hidden novalidate>
+  <div class="field">
+    <label class="caption-4" for={`${id}-name`}>{label}</label>
+    <input type="text" id={`${id}-name`} class="body-5 guest-name" maxlength="30" autocomplete="nickname" aria-describedby={`${id}-err`} />
+    <p class="err body-6 name-err" id={`${id}-err`} hidden></p>
+  </div>
+  <div class="captcha"></div>
+  <div class="name-actions">
+    <button class="btn primary button-md" type="submit">{submit}</button>
+    <button class="btn button-md name-cancel" type="button">Abbrechen</button>
+  </div>
+</form>

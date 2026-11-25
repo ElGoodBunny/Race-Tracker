@@ -12,13 +12,15 @@ interface Props {
   recording: string;
   /** Development controls ("Ausfall 60 s"). */
   dev?: boolean;
+  /** Spots from Supabase instead of the static ones in `races` (race page). */
+  live?: boolean;
 }
-const { races, recording, dev = false } = Astro.props;
+const { races, recording, dev = false, live = false } = Astro.props;
 /** With a placeholder (the 2D map on the race page) it stays under the canvas until the view is ready, and stays for good without WebGL. */
 const placeholder = Astro.slots.has("placeholder");
 ---
 
-  <div class:list={["stage", { scrollable: !!placeholder }]} id="stage" data-races={JSON.stringify(races)} data-recording={recording}>
+  <div class:list={["stage", { scrollable: !!placeholder }]} id="stage" data-races={JSON.stringify(races)} data-recording={recording} data-live={live ? "spots" : undefined}>
     {placeholder && <div class="placeholder"><slot name="placeholder" /></div>}
     <canvas id="view" aria-label="3D-Ansicht der Strecke mit Läufer"></canvas>
     <!-- Labels over runner and pins, moved by labels.ts. Under the HUD, panel and sheet, which cover them. -->
