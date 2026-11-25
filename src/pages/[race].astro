@@ -2,14 +2,14 @@
 // One page per race: hero and the live view. The 3D view loads when it comes into view, the 2D map holds its place
 // until then and stays for good without WebGL (docs/tasks/017-claude-einbau-rennseite.md).
 // Phase 1 ports the rest of the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits).
-// Spots, pinboard, the sighting button and the 3D view share one Realtime connection (src/lib/live/page.ts).
+// Status card, spots, pinboard and the 3D view share one Realtime connection (src/lib/live/page.ts).
 import { existsSync } from "node:fs";
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import CourseMap from "../components/CourseMap.astro";
 import LiveStage, { type LiveRace } from "../components/LiveStage.astro";
 import Pinboard from "../components/Pinboard.astro";
-import Seen from "../components/Seen.astro";
+import Status from "../components/Status.astro";
 import Spots from "../components/Spots.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
 
@@ -71,10 +71,10 @@ const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
     ) : (
       <CourseMap race={race} />
     )}
-    <Seen slug={race.slug} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} />
+    <Status slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} netSec={net} />
   </section>
 
-  <Spots slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} course={race.course} />
+  <Spots slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} netSec={net} course={race.course} />
 
   <Pinboard slug={race.slug} timezone={race.timezone} />
 </Base>
@@ -105,6 +105,13 @@ const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
   .facts dd { margin: 0; }
   .section-title { margin-bottom: var(--s400); }
   .live { display: flex; flex-direction: column; gap: var(--s300); }
+  #live { display: flex; flex-direction: column; gap: var(--s300); }
+  #live .section-title { margin-bottom: 0; }
+  /* On the phone the status comes before the map (docs/DESIGN.md, page layout point 3). */
+  @media (max-width: 900px) {
+    #live > :global(.status) { order: 1; }
+    #live > :global(:not(h2):not(.status)) { order: 2; }
+  }
   @media (max-width: 640px) {
     .hero { padding-block: var(--s800) var(--s400); }
     .grad { font-size: 48px; line-height: 48px; }

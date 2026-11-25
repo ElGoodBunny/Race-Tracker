@@ -139,3 +139,24 @@ describe("raceEstimate and spotEta", () => {
     expect(spotEta(est, 42)).toEqual({ passed: true, at: null });
   });
 });
+
+describe("raceEstimate with a result in the content file", () => {
+  const START = Date.parse("2026-10-25T08:45:00Z");
+  const content = { plannedStart: "2026-10-25T08:45:00Z", targetSec: 6000, distanceKm: 21.0975, netSec: 6425 };
+  const row = (r: Partial<RaceRow> = {}): RaceRow => ({ slug: "hamburg-2026", runner_name: "Dima", planned_start: null, actual_start: null, finished_at: null, target_sec: null, bib: null, start_block: null, distance_km: 21.0975, updated_at: "", ...r });
+
+  it("counts as finished at start plus the net time when the database has no finish", () => {
+    const est = raceEstimate(row(), [], content, START + 40 * 86400_000);
+    expect(est.phase).toBe("done");
+    expect(est.netSec).toBe(6425);
+    expect(est.finishAt).toBe(START + 6425_000);
+  });
+  it("prefers the finish from the database", () => {
+    const fin = START + 6000_000;
+    const est = raceEstimate(row({ finished_at: new Date(fin).toISOString() }), [], content, fin + 1);
+    expect(est.netSec).toBe(6000);
+  });
+  it("is not finished before start plus the net time", () => {
+    expect(raceEstimate(row(), [], content, START + 3600_000).phase).toBe("run");
+  });
+});

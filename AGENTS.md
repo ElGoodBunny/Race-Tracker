@@ -88,3 +88,4 @@ Roadmap: <Phase und Schritt>
 - 024 Pinnwand mit Gast-Anmeldung (Phase 1): claude, review
 - 025 Cheering Spots aus Supabase (Phase 1): claude, review
 - 026 Gesehen-Button (Phase 1): claude, review
+- 027 Statuskarte (Phase 1): claude, review

@@ -1,6 +1,6 @@
 ---
-// "Ich sehe Dima gerade" (docs/tasks/026-claude-gesehen.md). In the legacy page it sat in the status card under the map,
-// which does not exist yet, so it sits right under the course. Shown only while Dima runs.
+// "Ich sehe Dima gerade" (docs/tasks/026-claude-gesehen.md). Sits in the status card like in the legacy page
+// (docs/tasks/027-claude-statuskarte.md). Shown only while Dima runs.
 import GuestPrompt from "./GuestPrompt.astro";
 
 interface Props {
@@ -8,9 +8,10 @@ interface Props {
   plannedStart: string;
   targetSec: number;
   distanceKm: number;
+  netSec?: number;
 }
-const { slug, plannedStart, targetSec, distanceKm } = Astro.props;
-const plan = { plannedStart, targetSec, distanceKm };
+const { slug, plannedStart, targetSec, distanceKm, netSec } = Astro.props;
+const plan = { plannedStart, targetSec, distanceKm, netSec };
 ---
 
 <div class="live-sec seen-box" id="seen" data-slug={slug} data-plan={JSON.stringify(plan)} hidden>
@@ -30,7 +31,7 @@ const plan = { plannedStart, targetSec, distanceKm };
 </script>
 
 <style>
-  .seen-box { padding-top: var(--s300); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s100); max-width: 560px; }
+  .seen-box { padding-top: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--s100); max-width: 560px; }
   .seen-box[hidden] { display: none; }
   .seen-box :global(.name-form) { align-self: stretch; }
 </style>

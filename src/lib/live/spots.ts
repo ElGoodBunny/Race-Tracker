@@ -48,6 +48,8 @@ export interface RacePlan {
   plannedStart: string;
   targetSec: number;
   distanceKm: number;
+  /** Net time from the result, for races that are over before the database knew their finish. */
+  netSec?: number;
 }
 
 const time = (iso: string | null) => (iso ? Date.parse(iso) : null);
@@ -55,10 +57,14 @@ const time = (iso: string | null) => (iso ? Date.parse(iso) : null);
 /** The legacy estimate on the race row and checkpoints from Supabase. */
 export function raceEstimate(race: RaceRow | null, checkpoints: CheckpointRow[], plan: RacePlan, now: number): Estimate {
   const cps: Checkpoint[] = checkpoints.map((c) => ({ id: c.id, km: c.km, netSec: c.net_sec, at: time(c.seen_at ?? c.created_at), src: c.src }));
+  const plannedStart = time(race?.planned_start ?? null) ?? Date.parse(plan.plannedStart);
+  const actualStart = time(race?.actual_start ?? null);
+  // Without a finish in the database the result from the content file counts, once its finish time has passed.
+  const resultAt = plan.netSec ? (actualStart ?? plannedStart) + plan.netSec * 1000 : null;
   const state = {
-    plannedStart: time(race?.planned_start ?? null) ?? Date.parse(plan.plannedStart),
-    actualStart: time(race?.actual_start ?? null),
-    finishedAt: time(race?.finished_at ?? null),
+    plannedStart,
+    actualStart,
+    finishedAt: time(race?.finished_at ?? null) ?? (resultAt != null && now >= resultAt ? resultAt : null),
     targetSec: race?.target_sec || plan.targetSec,
   };
   return estimate(state, cps, race?.distance_km || plan.distanceKm, now);
