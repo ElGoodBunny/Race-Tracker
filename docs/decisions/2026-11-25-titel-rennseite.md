@@ -14,6 +14,6 @@ Seitentitel und H1 einer Rennseite sind nur der Name des Rennens, so wie er in `
 - Branches mit "Dima läuft in {Stadt}" (seit b1615b7) bekommen an dieser Zeile einen Konflikt. Beim Mergen gilt diese Entscheidung
 
 ## Nachtrag: Startseite
-- Browsertitel "PibeRuns Race Tracker", H1 "Rennen live verfolgen", Unterzeile ohne Ich-Form
+- Browsertitel "Race Tracker", H1 "Rennen live verfolgen", Unterzeile ohne Ich-Form
 - Grund: Der Tracker soll später auch für Freunde laufen und vielleicht als App beworben werden. Ein persönlicher Titel wie "Dima läuft" passt dann nicht mehr
-- "PibeRuns" ist ein Arbeitsname. Vor jeder Werbung Marken und Domain prüfen
+- "Race Tracker" ist eine Beschreibung, kein Markenname. Einen Namen gibt es noch nicht. Vor jeder Werbung Name, Marke und Domain festlegen
