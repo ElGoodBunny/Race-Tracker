@@ -75,7 +75,7 @@ const placeholder = Astro.slots.has("placeholder");
         <ol class="splits" id="hud-splits"></ol>
         <p class="caption-5 muted" id="note"></p>
       </div>
-      <p class="caption-5 muted sheet-credit">© OpenStreetMap-Mitwirkende<span class="wx-credit" hidden>, Wetter: Open-Meteo.com (CC BY 4.0), Modellwerte</span></p>
+      <p class="caption-5 muted sheet-credit">© OpenStreetMap-Mitwirkende<span class="wx-credit" hidden>, Wetter: <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>), Modell ICON des DWD</span></p>
     </aside>
     <div class="bar card" id="bar" role="group" aria-label="Kamera" hidden>
       <button type="button" class="title-2" id="zoom-in" aria-label="Näher heran">+</button>
@@ -83,7 +83,7 @@ const placeholder = Astro.slots.has("placeholder");
       <button type="button" class="body-5" id="flat" aria-pressed="false" aria-label="Ansicht von oben">2D</button>
     </div>
     <p class="body-5 toast" id="toast" role="status" aria-live="polite"></p>
-    <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende<span class="wx-credit" hidden>, Wetter: Open-Meteo.com (CC BY 4.0), Modellwerte</span></p>
+    <p class="caption-5 muted credit">© OpenStreetMap-Mitwirkende<span class="wx-credit" hidden>, Wetter: <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>), Modell ICON des DWD</span></p>
   </div>
 
   <div class="controls" id="controls" hidden>
@@ -116,7 +116,7 @@ const placeholder = Astro.slots.has("placeholder");
   /* Overlays on the map: translucent with blur, as in the video (docs/DESIGN.md, Ergänzung 12.11.) */
   .card { margin: 0; padding: var(--s100) var(--s200); border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   /* Ends left of the panel, so a third card never slides under it on narrow desktops. */
-  .top { position: absolute; left: var(--s200); right: calc(300px + 2 * var(--s200)); top: var(--s200); display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s100); pointer-events: none; }
+  .top { position: absolute; left: var(--s200); right: calc(300px + 2 * var(--s200)); top: var(--s200); display: flex; flex-wrap: wrap; gap: var(--s100); pointer-events: none; }
   .stat .title-2 { white-space: nowrap; }
   .stat { display: flex; flex-direction: column; gap: var(--s25); }
   .stat .row { display: flex; align-items: center; gap: var(--s100); }
@@ -151,6 +151,8 @@ const placeholder = Astro.slots.has("placeholder");
   .bar button[aria-pressed="true"] { background: var(--pressed); color: var(--pressed-ink); }
   .toast { position: absolute; left: 50%; bottom: var(--s500); margin: 0; padding: var(--s100) var(--s200); border-radius: 9999px; background: var(--toast); color: var(--toast-ink); opacity: 0; transform: translate(-50%, var(--s100)); transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease); pointer-events: none; white-space: nowrap; }
   .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  /* The weather credit must be a link next to the data (Open-Meteo licence), so it takes clicks while the line does not. */
+  .wx-credit a { pointer-events: auto; color: inherit; }
   .credit { position: absolute; right: calc(300px + 2 * var(--s200)); bottom: var(--s75); pointer-events: none; }
   .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s200) var(--s300); }
   .seg { display: inline-flex; flex-wrap: wrap; align-self: flex-start; padding: var(--s25); border-radius: 24px; background: var(--surface-2); }
@@ -179,6 +181,7 @@ const placeholder = Astro.slots.has("placeholder");
     /* On the phone the weather card keeps temperature and condition, the wind would wrap into the camera bar. */
     .wx-wind { display: none; }
     .wx { width: 20px; height: 20px; }
+    #hud-weather .row { gap: var(--s50); }
     .trail { display: none; }
     .bar { right: var(--s100); top: calc(var(--s800) + var(--s300)); transform: none; }
     .toast { bottom: auto; top: calc(var(--s900) + var(--s400)); }
