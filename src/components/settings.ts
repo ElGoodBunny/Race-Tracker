@@ -2,6 +2,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { fmtClock, fmtDay, fmtDur } from "../lib/format";
 import {
+  checkEmail,
   checkLiveTrack,
   checkSettings,
   checkSplit,
@@ -66,7 +67,7 @@ export function startSettings(root: HTMLElement): void {
   const splitTime = $<HTMLInputElement>("split-time");
   const splitErr = $("split-err");
   const cpList = $("cp-list");
-  const cfgBlock = $("cfg-block");
+  const adminBlock = $("admin-block");
   const cfgForm = $<HTMLFormElement>("cfg-form");
   const cfgHint = $("cfg-hint");
   const ltForm = $<HTMLFormElement>("lt-form");
@@ -89,9 +90,20 @@ export function startSettings(root: HTMLElement): void {
   // Coming back from the mail link: the token is in the hash until supabase-js has read it.
   const fromLink = /access_token=|type=magiclink/.test(location.hash);
 
+  let scrolled = false;
   function show(focus = false) {
     root.hidden = false;
-    if (focus) root.scrollIntoView({ block: "start" });
+    // SIGNED_IN comes again when the tab gets focus back, scroll only the first time.
+    if (focus && !scrolled) {
+      scrolled = true;
+      root.scrollIntoView({ block: "start" });
+    }
+  }
+
+  /** Hint or error in the same line, errors in the error colour. */
+  function say(el: HTMLElement, text: string, error = false) {
+    el.textContent = text;
+    el.className = `${error ? "err" : "hint"} body-6`;
   }
 
   // ---------- sign-in ----------
@@ -125,6 +137,12 @@ export function startSettings(root: HTMLElement): void {
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (busy) return;
+    const email = checkEmail(mail.value);
+    if ("error" in email) {
+      fieldErr(mail, loginErr, email.error);
+      mail.focus();
+      return;
+    }
     if (captchaId && !captchaToken) {
       fieldErr(mail, loginErr, "Bestätig kurz unten, dass du kein Bot bist.");
       return;
@@ -132,7 +150,7 @@ export function startSettings(root: HTMLElement): void {
     busy = true;
     fieldErr(mail, loginErr, "");
     loginHint.hidden = true;
-    const r = await sendMagicLink(db, mail.value, `${location.origin}${location.pathname}${HASH}`, captchaToken);
+    const r = await sendMagicLink(db, email.email, `${location.origin}${location.pathname}${HASH}`, captchaToken);
     busy = false;
     // A token is good for one sign-in only.
     if (captchaId && window.turnstile) window.turnstile.reset(captchaId);
@@ -176,7 +194,7 @@ export function startSettings(root: HTMLElement): void {
     const can = role.admin || role.crew;
     runBlock.hidden = !can;
     splitBlock.hidden = !can;
-    cfgBlock.hidden = !role.admin;
+    adminBlock.hidden = !role.admin;
     if (role.admin) refreshLiveTrack();
     render();
   }
@@ -213,7 +231,7 @@ export function startSettings(root: HTMLElement): void {
     setBusy(true);
     const r = await setRaceTimes(db, slug, start, finish);
     setBusy(false);
-    runHint.textContent = r.error ?? done;
+    say(runHint, r.error ?? done, !!r.error);
   }
 
   goBtn.addEventListener("click", () => run(new Date().toISOString(), null, "Startzeit gesetzt. Viel Erfolg."));
@@ -309,7 +327,7 @@ export function startSettings(root: HTMLElement): void {
     const checked = checkSettings(input, tz);
     const errors = "errors" in checked ? checked.errors : {};
     for (const [k, el] of Object.entries(cfgFields)) fieldErr(el, $(`${el.id}-err`), errors[k as keyof SettingsInput] ?? "");
-    cfgHint.textContent = "";
+    say(cfgHint, "");
     if ("errors" in checked) {
       const first = Object.keys(checked.errors)[0] as keyof SettingsInput;
       cfgFields[first].focus();
@@ -319,11 +337,11 @@ export function startSettings(root: HTMLElement): void {
     const r = await saveSettings(db, slug, checked.row);
     setBusy(false);
     if (r.error) {
-      cfgHint.textContent = r.error;
+      say(cfgHint, r.error, true);
       return;
     }
     cfgDirty = false;
-    cfgHint.textContent = "Gespeichert.";
+    say(cfgHint, "Gespeichert.");
   });
 
   async function refreshLiveTrack() {
@@ -359,7 +377,8 @@ export function startSettings(root: HTMLElement): void {
   function render() {
     const race = state.race;
     // set_race_times writes both values: without the loaded row "Im Ziel" would clear the start.
-    goBtn.disabled = busy || !race;
+    // Once started, a stray tap would move the start and clear the finish. Reset first, it asks twice.
+    goBtn.disabled = busy || !race || !!race.actual_start;
     finBtn.disabled = busy || !race?.actual_start || !!race.finished_at;
     resetBtn.disabled = busy || !race || (!race.actual_start && !race.finished_at);
     for (const b of root.querySelectorAll<HTMLButtonElement>("form button[type=submit]")) b.disabled = busy;

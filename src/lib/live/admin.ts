@@ -154,9 +154,15 @@ export async function liveTrackStatus(client: SupabaseClient, slug: string): Pro
  * so the form does not tell who has an account. Only a missing network and a failed bot check are reported.
  * Supabase asks for the Turnstile token on every sign-in, not only the anonymous one.
  */
-export async function sendMagicLink(client: SupabaseClient, raw: string, redirectTo: string, captchaToken?: string): Promise<Result> {
+export function checkEmail(raw: string): { email: string } | { error: string } {
   const email = raw.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Gib eine E-Mail-Adresse ein." };
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { email } : { error: "Gib eine E-Mail-Adresse ein." };
+}
+
+export async function sendMagicLink(client: SupabaseClient, raw: string, redirectTo: string, captchaToken?: string): Promise<Result> {
+  const checked = checkEmail(raw);
+  if ("error" in checked) return checked;
+  const { email } = checked;
   const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo, ...(captchaToken ? { captchaToken } : {}) } });
   if (!error) return {};
   const text = errorText(error);
