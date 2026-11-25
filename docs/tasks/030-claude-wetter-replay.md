@@ -1,6 +1,6 @@
 # 030 Wetter im HUD (Replay)
 Besitzer: claude
-Status: review
+Status: erledigt
 Branch: claude/030-wetter
 Roadmap: Phase 2, Schritt 12, Wetter in der oberen Leiste (VISION 4)
 
