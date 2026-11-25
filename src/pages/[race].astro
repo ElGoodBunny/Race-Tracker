@@ -2,13 +2,14 @@
 // One page per race: hero and the live view. The 3D view loads when it comes into view, the 2D map holds its place
 // until then and stays for good without WebGL (docs/tasks/017-claude-einbau-rennseite.md).
 // Phase 1 ports the rest of the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits).
-// Spots, pinboard and the 3D view share one Realtime connection (src/lib/live/page.ts).
+// Spots, pinboard, the sighting button and the 3D view share one Realtime connection (src/lib/live/page.ts).
 import { existsSync } from "node:fs";
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import CourseMap from "../components/CourseMap.astro";
 import LiveStage, { type LiveRace } from "../components/LiveStage.astro";
 import Pinboard from "../components/Pinboard.astro";
+import Seen from "../components/Seen.astro";
 import Spots from "../components/Spots.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
 
@@ -70,6 +71,7 @@ const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
     ) : (
       <CourseMap race={race} />
     )}
+    <Seen slug={race.slug} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} />
   </section>
 
   <Spots slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} course={race.course} />
