@@ -1,0 +1,93 @@
+---
+// Pinboard of a race (docs/tasks/024-claude-pinnwand-gast.md). Markup and look come from legacy/hamburg-2026.html,
+// the data from Supabase. Reading needs no account, the name is asked for on the first message.
+interface Props {
+  slug: string;
+  timezone: string;
+}
+const { slug, timezone } = Astro.props;
+---
+
+<section class="wrap pin" id="pinnwand" aria-labelledby="board-h" data-slug={slug} data-tz={timezone}>
+  <div class="section-head">
+    <p class="caption-4 muted">Pinnwand</p>
+    <h2 id="board-h" class="heading-2">Was ihr mir schreibt</h2>
+  </div>
+  <div class="card board-card">
+    <div class="board" id="board" aria-live="polite">
+      <p class="empty body-5">Pinnwand lädt.</p>
+    </div>
+    <form class="compose" id="msg-form" hidden novalidate>
+      <input type="text" id="msg-text" class="body-5" maxlength="200" placeholder="Nachricht an alle" aria-label="Nachricht" aria-describedby="msg-err" autocomplete="off" />
+      <button class="btn primary button-md" type="submit" aria-label="Senden">
+        <svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M231.87,114l-168-95.89A16,16,0,0,0,40.92,37.34L71.55,128,40.92,218.67A16,16,0,0,0,56,240a16.15,16.15,0,0,0,7.93-2.1l167.92-96.05a16,16,0,0,0,.05-27.89ZM56,224a.56.56,0,0,0,0-.12L85.74,136H144a8,8,0,0,0,0-16H85.74L56.06,32.16A.46.46,0,0,0,56,32l168,95.83Z"></path></svg>
+        <span>Senden</span>
+      </button>
+    </form>
+    <p class="err body-6" id="msg-err" hidden></p>
+    <div class="quick" id="quick" hidden></div>
+    <form class="name-form" id="name-form" hidden novalidate>
+      <div class="field">
+        <label class="caption-4" for="guest-name">Wie heißt du? Der Name steht über deinen Nachrichten.</label>
+        <input type="text" id="guest-name" class="body-5" maxlength="30" autocomplete="nickname" aria-describedby="name-err" />
+        <p class="err body-6" id="name-err" hidden></p>
+      </div>
+      <div id="captcha"></div>
+      <div class="name-actions">
+        <button class="btn primary button-md" type="submit">Speichern und senden</button>
+        <button class="btn button-md" type="button" id="name-cancel">Abbrechen</button>
+      </div>
+    </form>
+    <p class="hint body-6" id="board-hint" hidden></p>
+  </div>
+</section>
+
+<script>
+  import { startPinboard } from "./pinboard";
+  const root = document.getElementById("pinnwand");
+  if (root) startPinboard(root);
+</script>
+
+<style>
+  .pin { padding-top: var(--s900); }
+  .pin [hidden] { display: none !important; }
+  .section-head { display: flex; flex-direction: column; gap: var(--s75); margin-bottom: var(--s400); max-width: 680px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: var(--s300); box-shadow: var(--shadow); min-width: 0; }
+  .board-card { max-width: 760px; display: flex; flex-direction: column; gap: var(--s100); }
+  .board { display: flex; flex-direction: column; gap: var(--s200); max-height: 464px; overflow-y: auto; padding-right: var(--s50); }
+  .board :global(.msg) { display: flex; flex-direction: column; gap: var(--s25); }
+  .board :global(.msg .h) { display: flex; gap: var(--s75); align-items: center; flex-wrap: wrap; }
+  .board :global(.msg .h b) { font-weight: 600; }
+  .board :global(.msg .h span) { color: var(--muted); font-family: var(--f-mono); }
+  .board :global(.msg .t) { overflow-wrap: anywhere; }
+  .board :global(.msg.seen .t) { font-weight: 600; color: var(--route); }
+  .board :global(.x) { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-left: auto; border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 9999px; padding: 0; transition: color var(--t-color) var(--ease); }
+  .board :global(.x:hover) { color: var(--signal); background: var(--surface-2); }
+  .board :global(.x .ico) { width: 12px; height: 12px; }
+  .board :global(.empty), .empty { margin: 0; padding: var(--s200); border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); }
+  .compose { display: flex; gap: var(--s75); margin-top: var(--s100); }
+  .compose input { flex: 1; }
+  .quick { display: flex; flex-wrap: wrap; gap: var(--s75); }
+  .name-form { display: flex; flex-direction: column; gap: var(--s200); margin-top: var(--s100); padding-top: var(--s200); border-top: 1px solid var(--line); }
+  .field { display: grid; gap: var(--s50); }
+  .field label { color: var(--muted); }
+  .name-actions { display: flex; flex-wrap: wrap; gap: var(--s75); }
+  input[type="text"] { width: 100%; min-width: 0; padding: var(--s75) var(--s100); border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); transition: border-color var(--t-color) var(--ease); }
+  input[type="text"]:hover { border-color: var(--muted); }
+  input[aria-invalid="true"] { border-color: var(--bad); }
+  .hint { margin: 0; color: var(--muted); }
+  .err { margin: 0; color: var(--bad); }
+  .btn, .pin :global(.btn) { display: inline-flex; align-items: center; justify-content: center; gap: var(--s75); padding: var(--s75) var(--s200); border-radius: 9999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; color: var(--ink); white-space: nowrap; transition: transform var(--t-color) var(--ease); }
+  .pin :global(.btn:hover) { background: var(--surface-2); border-color: var(--muted); }
+  .pin :global(.btn:active) { transform: scale(0.98); }
+  .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .btn.primary:hover { background: color-mix(in srgb, var(--ink) 82%, var(--bg)); }
+  .pin :global(.btn[disabled]) { opacity: 0.5; cursor: not-allowed; }
+  .pin :global(.btn.small) { padding: var(--s50) var(--s100); }
+  .btn .ico { width: 16px; height: 16px; }
+  @media (max-width: 640px) {
+    .pin { padding-top: var(--s800); }
+    .card { padding: var(--s200); }
+    .compose button span { display: none; }
+  }
+</style>

@@ -7,6 +7,7 @@ import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import CourseMap from "../components/CourseMap.astro";
 import LiveStage, { type LiveRace } from "../components/LiveStage.astro";
+import Pinboard from "../components/Pinboard.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
 
 export async function getStaticPaths() {
@@ -68,6 +69,8 @@ const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
       <CourseMap race={race} />
     )}
   </section>
+
+  <Pinboard slug={race.slug} timezone={race.timezone} />
 </Base>
 
 <script>
