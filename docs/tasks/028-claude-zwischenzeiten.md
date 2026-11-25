@@ -44,5 +44,7 @@ Geprüft:
 - `tests/splits.test.ts` 7 grün (Tests vor dem Modul geschrieben, aber nicht vorher rot laufen lassen)
 - `npm run check` 0 Fehler, `npm test` 365 grün
 - Sichtprüfung lokal: Hamburg im Ziel hell 1280 px (Ziel 1:47:05 um 11:32, alles andere geschätzt mit 5:05), Barcelona vor dem Start dunkel 375 px (9 Zeilen mit Plan). Gefunden und behoben: doppelte Überschrift, am Handy lief die Tabelle 6 px über
+- Gegen das echte Projekt im selben Lauf wie 027: offizieller Split bei km 5 erscheint ohne Neuladen als "25:00, 5:00, offiziell", km 10 "geschätzt" mit 7:02 auf dem Abschnitt, danach "Prognose" mit 6:38. Nach dem Löschen wieder "Plan"
+- Wie im Legacy: Hamburg zeigt im Ziel nur gleichmäßige 5:05 "geschätzt", weil in der Datenbank keine offiziellen Splits stehen. Die echten Splits der Aufzeichnung fließen nicht ein
 
 ## Review
