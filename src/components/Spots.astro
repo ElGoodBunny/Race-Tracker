@@ -11,13 +11,14 @@ interface Props {
   plannedStart: string;
   targetSec: number;
   distanceKm: number;
+  netSec?: number;
   course: Pick<CourseData, "km" | "landmarks">;
 }
-const { slug, timezone, plannedStart, targetSec, distanceKm, course } = Astro.props;
+const { slug, timezone, plannedStart, targetSec, distanceKm, netSec, course } = Astro.props;
 const range = kmRange(distanceKm);
 // landmarkNear() only needs the km of each landmark, not the whole route.
 const landmarks = { km: course.landmarks.map((l) => course.km[l.idx]), landmarks: course.landmarks.map((l, i) => ({ name: l.name, idx: i })) };
-const plan = { plannedStart, targetSec, distanceKm };
+const plan = { plannedStart, targetSec, distanceKm, netSec };
 ---
 
 <section class="wrap live-sec spots" id="spots" aria-labelledby="spots-h" data-slug={slug} data-tz={timezone} data-plan={JSON.stringify(plan)} data-landmarks={JSON.stringify(landmarks)}>
