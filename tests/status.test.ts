@@ -1,7 +1,7 @@
 // Status card (docs/tasks/027-claude-statuskarte.md): what it says in each phase, texts as in legacy/hamburg-2026.html.
 import { describe, expect, it } from "vitest";
 import { estimate, type Checkpoint } from "../src/lib/estimate";
-import { heroAction, statusView } from "../src/lib/live/status";
+import { finalText, heroAction, statusView } from "../src/lib/live/status";
 
 const START = Date.parse("2027-03-14T07:30:00Z"); // 8:30 in Barcelona
 const DIST = 42.195;
@@ -77,5 +77,15 @@ describe("heroAction", () => {
   });
   it("without data the legacy page fell back to the action before the start", () => {
     expect(heroAction("stale")).toEqual({ label: "Spot setzen", href: "#spots" });
+  });
+});
+
+describe("finalText", () => {
+  it("has the legacy title and line for each phase (docs/tasks/033-claude-navigation.md)", () => {
+    expect(finalText("pre")).toEqual({ title: "Wir sehen uns an der Strecke", sub: "Setz deinen Spot, dann weißt du auf die Minute, wann ich bei dir bin." });
+    expect(finalText("stale")).toEqual(finalText("pre"));
+    expect(finalText("run").title).toBe("Ich bin gerade unterwegs");
+    expect(finalText("arriving")).toEqual(finalText("run"));
+    expect(finalText("done")).toEqual({ title: "Danke fürs Anfeuern", sub: "Alle Zwischenzeiten und die Strecke findest du weiter oben." });
   });
 });

@@ -53,7 +53,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [x] Datenschicht `src/lib/live/supabase.ts`: races/spots/messages/checkpoints laden und per Realtime abonnieren
   - [x] `subscribeRace` mit Tests gegen einen nachgebauten Client (Paket 018), gegen das echte Projekt geladen und abonniert. Offen: ein Realtime-Ereignis echt empfangen, braucht einen Schreibzugriff mit Login
 - [x] Gast-Onboarding: anonym anmelden, Anzeigenamen setzen (ersetzt die Artifact-Profile) (Paket 024)
-- [ ] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil
+- [x] Schwebende Navigation mit Abschnittsmarkierung, Vollbildmenü mobil (Paket 033)
 - [x] Hero mit Phase (vor dem Start, live, im Ziel) und phasenabhängiger Hauptaktion (Paket 029)
 - [x] Statuskarte: km, Pace, Zielzeit-Prognose, "zuletzt gesehen" (Paket 027)
 - [ ] Interaktive 2D-Karte: Läufer, gelaufener Teil, Spots, Tippen setzt Spot, Neigen-Ansicht, Mobil-Labels
@@ -65,7 +65,7 @@ Ziel: Alles, was "Dima läuft Hamburg" konnte, läuft auf Supabase. Prüfbar üb
 - [ ] Einstellungen (nur Dima): Start, Ziel, Zielzeit, Startnummer, Start/Ziel zurücksetzen. LiveTrack-Link nur setzen über `set_livetrack_link` (nur `https://livetrack.garmin.com`, Liste erlaubter Hosts in der Funktion), angezeigt wird über `livetrack_link_status` nur "hinterlegt ja/nein" mit Zeitpunkt, nie der Link (`docs/decisions/2026-11-12-architektur.md`)
   - [x] Oberfläche mit Magic Link über den Footer (Paket 032). Offen: Redirect-URLs im Supabase-Dashboard, echter Login und je ein Schreibzugriff durch Dima
 - [ ] Simulation mit Geschwindigkeitsstufen
-- [ ] FAQ, Abschluss, Footer mit Quellen
+- [x] FAQ, Abschluss, Footer mit Quellen (Paket 033)
 - [ ] Fehlertexte aus dem Legacy übernehmen (Rate Limit, keine Rechte, offline)
   - [x] Texte als `errorText` in `src/lib/live/errors.ts` (Paket 019). Anzeige kommt mit dem Schreiben
 

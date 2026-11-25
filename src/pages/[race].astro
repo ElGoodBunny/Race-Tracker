@@ -13,6 +13,8 @@ import Status from "../components/Status.astro";
 import Spots from "../components/Spots.astro";
 import Splits from "../components/Splits.astro";
 import Settings from "../components/Settings.astro";
+import Nav from "../components/Nav.astro";
+import Faq from "../components/Faq.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
 import { heroAction } from "../lib/live/status";
 
@@ -55,6 +57,8 @@ const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runne
 ---
 
 <Base title={race.title} ogTitle={ogTitle} description={description} source={race.course.source}>
+  <Nav brand={`${race.runner} läuft ${race.city}`} cta={cta} />
+
   <section class="wrap hero live-sec" id="hero" data-slug={race.slug} data-tz={race.timezone} data-plan={JSON.stringify(plan)}>
     <a class="body-5 back" href="/">Alle Rennen</a>
     <span class={`pill caption-4${done ? " done" : ""}`}><span class="dot"></span><span id="hero-phase">{done ? "Im Ziel" : "Vor dem Start"}</span></span>
@@ -72,7 +76,7 @@ const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runne
         <div><dt class="caption-4 muted">Zielzeit</dt><dd class="heading-6 mono" id="hero-target">{fmtDur(race.targetSec)}</dd></div>
       )}
     </dl>
-    <a class="btn primary lg button-lg" id="hero-cta" href={cta.href}><span id="hero-cta-label">{cta.label}</span><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path></svg></a>
+    <a class="btn primary lg button-lg" id="hero-cta" data-cta href={cta.href}><span id="hero-cta-label" data-cta-label>{cta.label}</span><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path></svg></a>
     <p class="proof body-6" id="hero-proof" hidden={done}><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,40a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,40Zm0,176a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,216ZM173.66,90.34a8,8,0,0,1,0,11.32l-40,40a8,8,0,0,1-11.32-11.32l40-40A8,8,0,0,1,173.66,90.34ZM96,16a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,16Z"></path></svg><span>Geschätzt aus Startzeit, Tempo und euren Sichtungen.</span></p>
   </section>
 
@@ -96,9 +100,12 @@ const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runne
 
   <Splits slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} turnKm={race.turnKm} netSec={net} />
 
+  <Faq waterKm={race.course.waterKm} done={done} cta={cta} />
+
   <Settings slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} turnKm={race.turnKm} bib={race.bib} block={race.block} />
 
   <a slot="foot" class="signin" href="#einstellungen">Anmelden</a>
+  <a slot="foot" class="signin" href="#hero">Nach oben</a>
 </Base>
 
 <script>
@@ -146,7 +153,8 @@ const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runne
     #live > :global(:not(h2):not(.status)) { order: 2; }
   }
   @media (max-width: 640px) {
-    .hero { padding-block: var(--s800) var(--s400); }
+    /* Room for the floating nav above "Alle Rennen". */
+    .hero { padding-block: var(--s900) var(--s400); }
     .grad { font-size: 48px; line-height: 48px; }
     .section-title { font-size: 30px; line-height: 36px; margin-bottom: var(--s300); }
   }

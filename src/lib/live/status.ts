@@ -84,3 +84,10 @@ export function heroAction(phase: Phase): { label: string; href: string } {
   if (phase === "done") return { label: "Zeiten ansehen", href: "#ergebnis" };
   return { label: "Spot setzen", href: "#spots" };
 }
+
+/** Title and line of the closing section per phase, word for word from the legacy page (docs/tasks/033-claude-navigation.md). */
+export function finalText(phase: Phase): { title: string; sub: string } {
+  if (phase === "run" || phase === "arriving") return { title: "Ich bin gerade unterwegs", sub: "Meine geschätzte Position und die Zeit bis zu deinem Spot stehen ganz oben." };
+  if (phase === "done") return { title: "Danke fürs Anfeuern", sub: "Alle Zwischenzeiten und die Strecke findest du weiter oben." };
+  return { title: "Wir sehen uns an der Strecke", sub: "Setz deinen Spot, dann weißt du auf die Minute, wann ich bei dir bin." };
+}
