@@ -36,7 +36,7 @@ const plan = { plannedStart, targetSec, distanceKm };
           <p class="err body-6" id="spot-err" hidden></p>
         </div>
         <div class="field">
-          <label class="caption-4" for="spot-km">Wo? <span id="spot-km-label" class="mono"></span></label>
+          <label class="caption-4" for="spot-km">Wo? <span id="spot-km-label"></span></label>
           <input type="range" id="spot-km" min={range.min} max={range.max} step="0.1" value={Math.min(9, range.max)} />
         </div>
         <div><button class="btn signal button-md" type="submit">Spot speichern</button></div>

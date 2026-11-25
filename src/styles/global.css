@@ -36,4 +36,4 @@
 .live-sec .btn[disabled]{opacity:.5;cursor:not-allowed}
 .live-sec .btn.small{padding:var(--s50) var(--s100)}
 .live-sec .btn .ico{width:16px;height:16px}
-@media (max-width:640px){.live-sec{padding-top:var(--s800)}.live-sec .card{padding:var(--s200)}}
+@media (max-width:640px){.live-sec{padding-top:var(--s800)}.live-sec .card{padding:var(--s200)}.live-sec .section-head{margin-bottom:var(--s300)}.live-sec .section-head .heading-2{font-size:30px;line-height:36px}}

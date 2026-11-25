@@ -124,9 +124,12 @@ export function startSpots(root: HTMLElement): void {
     }
   }
 
+  /** "km 9,0 · Landmark", only the number in Geist Mono. */
   const showKm = () => {
     const k = checkSpotKm(kmInput.value, plan.distanceKm);
-    kmLabel.textContent = "km" in k ? where(k.km) : "";
+    if (!("km" in k)) return kmLabel.replaceChildren();
+    const lm = landmarkNear(landmarks as CourseData, k.km);
+    kmLabel.replaceChildren("km ", text("span", "mono", fmtKm(k.km)), lm ? ` · ${lm}` : "");
   };
 
   function setBusy(on: boolean) {
