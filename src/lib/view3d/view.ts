@@ -4,13 +4,13 @@
 // What a frame looks like is decided elsewhere: camera.ts (pose), scene.ts (city, ribbon), actors.ts (figures).
 // No element ids, globals or CSS reads in here, so the race page can embed it as it is (step 15).
 
-import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { PerspectiveCamera, Plane, Raycaster, Scene, Vector2, Vector3, WebGLRenderer } from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import type { CourseData } from "../course";
 import type { Sample } from "../live/source";
 import type { SceneData } from "../osm";
 import { createActors } from "./actors";
-import { createFollowGesture } from "./gesture";
+import { DRAG_PX, createFollowGesture } from "./gesture";
 import { FLAT_TILT, FOV_DEG, LOOK_AHEAD_M, OVERVIEW_MARGIN, cameraPosition, createRig, ease, figureScale, fitOverview, pinScale, turnToward, viewFrame, type Insets, type Mode, type Pose } from "./camera";
 import type { Frame, Layer, SpotState, Tokens } from "./layer";
 import { createCity, createRibbon, CITY_TOKENS, type CityColors } from "./scene";
@@ -44,6 +44,8 @@ export interface ViewOptions {
   onState?(state: { mode: Mode; free: boolean }): void;
   /** Edges of the view that panel, sheet or HUD cover, in CSS pixels. Asked every frame, the camera aims at the rest. */
   insets?(): Insets;
+  /** One finger or click that did not move (docs/tasks/034-claude-karte.md). Client coordinates. */
+  onTap?(clientX: number, clientY: number): void;
 }
 
 export interface ViewStats {
@@ -69,6 +71,10 @@ export interface View {
   /** 2D (looking down) or 3D. Takes the camera back when the user holds it. */
   setFlat(flat: boolean): void;
   readonly flat: boolean;
+  /** Point on the ground under client coordinates, in scene metres (x east, y north). null above the horizon. */
+  groundAt(clientX: number, clientY: number): [number, number] | null;
+  /** Client coordinates of a point on the ground, in scene metres. */
+  screenOf(x: number, y: number): [number, number];
   /** Add something to draw: trees, labels, landmarks. See layer.ts. */
   add(layer: Layer): void;
   /** Draw one frame now, outside the loop (tests, screenshots). */
@@ -153,6 +159,34 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
   const doc = canvas.ownerDocument;
   let handing = false;
   const following = () => rig.mode === "follow" && !rig.free;
+  // Taps (docs/tasks/034-claude-karte.md). Registered before onTouchDown, which stops touch events while following,
+  // and skips the pointerdown that onTouchMove sends when it hands a finger to MapControls.
+  const TAP_MS = 500;
+  const taps = new Map<number, { x: number; y: number; t: number }>();
+  let tapSpoiled = false;
+  const onTapDown = (e: PointerEvent) => {
+    if (handing || e.target !== canvas || !o.onTap) return;
+    if (taps.size) tapSpoiled = true; // a second finger: pinch, not a tap
+    taps.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now() });
+  };
+  const onTapMove = (e: PointerEvent) => {
+    const t = taps.get(e.pointerId);
+    if (t && Math.hypot(e.clientX - t.x, e.clientY - t.y) > DRAG_PX) tapSpoiled = true;
+  };
+  const onTapUp = (e: PointerEvent) => {
+    const t = taps.get(e.pointerId);
+    if (!t) return;
+    taps.delete(e.pointerId);
+    const ok = !tapSpoiled && e.type === "pointerup" && performance.now() - t.t <= TAP_MS && Math.hypot(e.clientX - t.x, e.clientY - t.y) <= DRAG_PX;
+    if (!taps.size) tapSpoiled = false;
+    if (ok) o.onTap?.(e.clientX, e.clientY);
+  };
+  doc.addEventListener("pointerdown", onTapDown, { capture: true });
+  doc.addEventListener("pointermove", onTapMove);
+  doc.addEventListener("pointerup", onTapUp);
+  doc.addEventListener("pointercancel", onTapUp);
+  const ray = new Raycaster();
+  const ground = new Plane(new Vector3(0, 1, 0), 0);
   // On the document in the capture phase, so it runs before MapControls' listener on the canvas in every browser.
   const onTouchDown = (e: PointerEvent) => {
     if (handing || e.target !== canvas || e.pointerType !== "touch" || (!gesture.active && !following())) return;
@@ -299,6 +333,12 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
     if (onScreen) frame(now);
   });
 
+  /** Client coordinates to normalised device coordinates. The view offset is part of the projection matrix. */
+  const ndc = (cx: number, cy: number) => {
+    const r = canvas.getBoundingClientRect();
+    return new Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  };
+
   return {
     update(next, nextSpots) {
       sample = next;
@@ -321,6 +361,18 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
       }
       rig.setFlat(next);
       dirty = true;
+    },
+    groundAt(cx, cy) {
+      camera.updateMatrixWorld();
+      ray.setFromCamera(ndc(cx, cy), camera);
+      const hit = ray.ray.intersectPlane(ground, new Vector3());
+      return hit ? [hit.x, -hit.z] : null;
+    },
+    screenOf(x, y) {
+      camera.updateMatrixWorld();
+      const v = new Vector3(...toThree(x, y)).project(camera);
+      const r = canvas.getBoundingClientRect();
+      return [r.left + ((v.x + 1) / 2) * r.width, r.top + ((1 - v.y) / 2) * r.height];
     },
     get flat() {
       return rig.flat;
@@ -352,6 +404,10 @@ export function createView(canvas: HTMLCanvasElement, o: ViewOptions): View | nu
       renderer.setAnimationLoop(null);
       seen.disconnect();
       controls.removeEventListener("start", onGrab);
+      doc.removeEventListener("pointerdown", onTapDown, { capture: true });
+      doc.removeEventListener("pointermove", onTapMove);
+      doc.removeEventListener("pointerup", onTapUp);
+      doc.removeEventListener("pointercancel", onTapUp);
       doc.removeEventListener("pointerdown", onTouchDown, { capture: true });
       doc.removeEventListener("pointermove", onTouchMove);
       doc.removeEventListener("pointerup", onTouchUp);
