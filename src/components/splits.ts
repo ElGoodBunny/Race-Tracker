@@ -31,7 +31,7 @@ export function startSplits(root: HTMLElement): void {
         const src = document.createElement("td");
         if (r.src) {
           const chip = document.createElement("span");
-          chip.className = `chip ${r.src.kind}`;
+          chip.className = `chip caption-4 ${r.src.kind}`;
           chip.textContent = r.src.text;
           src.append(chip);
         }

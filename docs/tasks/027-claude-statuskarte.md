@@ -50,5 +50,7 @@ Geprüft:
 - `tests/status.test.ts` zuerst, rot ohne Modul, dann 8 grün. 3 neue Fälle in `tests/spots.test.ts`, der erste rot vor der Änderung
 - `npm run check` 0 Fehler, `npm test` 358 grün
 - Sichtprüfung lokal: Barcelona vor dem Start hell 642 px (Karte vor der 3D-Ansicht), Hamburg im Ziel dunkel 1280 px (Zieleinlauf 11:32 = 9:45 plus 1:47:05), Barcelona live dunkel 375 px und hell 1280 px mit Gesehen-Button. Live nur mit im Browser vorgestellter Uhr, ohne Änderung an der Datenbank. Gefunden und behoben: am Handy stießen "5:20 /km" und "12:15" aneinander, Werte unter 400 px jetzt 16 px
+- Gegen das echte Projekt (25.11., mit Dimas Ja, Seite im Browser-Bereich der App offen, ohne Neuladen): `actual_start` von `barcelona-2027` auf jetzt minus 60 min gesetzt, Hero und Karte springen auf "Live · geschätzt", 11,3 km, Gesehen-Button erscheint. Dann per SQL ein offizieller Split bei km 5 (25:00) und eine Sichtung bei km 10 unter Dimas Konto: Karte zeigt 10,0 km, Pace 6:38, Chip "Sichtung", "Zuletzt bestätigt bei km 10,0, gerade eben. Prognose 4:33:44.", Pinnwand "Gesehen bei km 10,0". Namensabfrage öffnet sich in der Karte. Nach dem Löschen beider Zeilen und `actual_start` zurück auf null springt alles ohne Neuladen auf "Start in 109 T 5 Std". Danach per SQL: `checkpoints`, `spots`, `messages`, anonyme Konten 0, beide `actual_start` null
+- Nachgezogen in 029 (Commit bc3c988): Werte und Chips mit benannten Textstilen (`caption-4`, `title-1`) statt fester Größen
 
 ## Review

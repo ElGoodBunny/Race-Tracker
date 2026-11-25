@@ -48,22 +48,18 @@ const plan = { plannedStart, targetSec, distanceKm, netSec };
   .card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s100); }
   .card-head h3 { margin: 0; }
   .muted { color: var(--muted); }
-  .pill { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--s75); padding: var(--s50) var(--s100); border-radius: 9999px; border: 1px solid var(--line); background: var(--surface); }
-  .pill .dot { width: 8px; height: 8px; border-radius: 9999px; background: var(--muted); }
-  .pill.live .dot { background: var(--signal); animation: blink 1.4s var(--ease) infinite; }
-  .pill.done .dot { background: var(--good); }
-  @keyframes blink { 50% { opacity: 0.25; } }
+  .pill { align-self: flex-start; }
   .bignum { margin: 0; letter-spacing: -0.03em; white-space: nowrap; }
   .bignum .mono { font-variant-numeric: tabular-nums; }
   .bignum small { font-size: 18px; line-height: 28px; font-weight: 500; margin-left: var(--s75); color: var(--muted); letter-spacing: 0; }
   .bar { position: relative; height: 8px; border-radius: 4px; background: var(--route-todo); overflow: hidden; }
   .bar .fill { position: absolute; inset: 0; background: var(--route); transform: scaleX(0); transform-origin: left center; transition: transform var(--t-move) var(--ease); }
   .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s100); margin: 0; }
-  .stats :global(dt) { color: var(--muted); font-size: 12px; line-height: 16px; font-weight: 500; }
-  .stats :global(dd) { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 20px; line-height: 28px; font-weight: 500; }
+  .stats :global(dt) { color: var(--muted); }
+  .stats :global(dd) { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .basis { margin: 0; color: var(--muted); display: flex; gap: var(--s75); align-items: center; flex-wrap: wrap; }
   .basis :global(b) { color: var(--ink); font-weight: 600; }
-  .basis :global(.chip) { display: inline-flex; align-items: center; padding: var(--s25) var(--s75); border-radius: 9999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; line-height: 16px; font-weight: 500; }
+  .basis :global(.chip) { display: inline-flex; align-items: center; padding: var(--s25) var(--s75); border-radius: 9999px; background: var(--surface-2); border: 1px solid var(--line); }
   .basis :global(.chip.official) { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
   .basis :global(.chip.seen) { color: var(--route); border-color: color-mix(in srgb, var(--route) 40%, transparent); }
   .basis :global(.chip.plan) { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
@@ -72,9 +68,7 @@ const plan = { plannedStart, targetSec, distanceKm, netSec };
   }
   @media (max-width: 400px) {
     .bignum { font-size: 48px; line-height: 48px; }
+    /* title-3 instead of title-1, otherwise pace and finish touch at 375 px. */
     .stats :global(dd) { font-size: 16px; line-height: 24px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .pill.live .dot { animation: none; }
   }
 </style>

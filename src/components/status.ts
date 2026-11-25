@@ -39,15 +39,17 @@ export function startStatus(root: HTMLElement): void {
       ...v.stats.map(([k, val]) => {
         const div = document.createElement("div");
         const dt = document.createElement("dt");
+        dt.className = "caption-4";
         dt.textContent = k;
         const dd = document.createElement("dd");
+        dd.className = "title-1";
         dd.textContent = val;
         div.append(dt, dd);
         return div;
       }),
     );
     const chip = document.createElement("span");
-    chip.className = `chip ${v.chip.kind}`;
+    chip.className = `chip caption-4 ${v.chip.kind}`;
     chip.textContent = v.chip.text;
     const line = document.createElement("span");
     line.append(...v.basis.map((b) => (b.bold ? Object.assign(document.createElement("b"), { textContent: b.text }) : b.text)));

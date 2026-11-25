@@ -1,6 +1,6 @@
 // Status card "Wo ist Dima?" (docs/tasks/027-claude-statuskarte.md). Texts and order from renderStatus() in
 // legacy/hamburg-2026.html. Pure, so every phase is tested. The page sets everything with textContent.
-import type { Estimate } from "../estimate";
+import type { Estimate, Phase } from "../estimate";
 import { fmtAgo, fmtClock, fmtDur, fmtKm, fmtPace } from "../format";
 
 export interface StatusView {
@@ -76,4 +76,11 @@ export function statusView(est: Estimate, { now, tz, targetSec, distanceKm, runn
       : [{ text: `Noch keine Bestätigung von der Strecke, geschätzt aus der Zielzeit ${fmtDur(targetSec)}.` }],
     progress: Math.min(1, Math.max(0, est.km / distanceKm)),
   };
+}
+
+/** Main action of the hero (docs/tasks/029-claude-hero.md). The legacy page knew only before, live and done, "stale" counted as before. */
+export function heroAction(phase: Phase): { label: string; href: string } {
+  if (phase === "run" || phase === "arriving") return { label: "Live verfolgen", href: "#live" };
+  if (phase === "done") return { label: "Zeiten ansehen", href: "#ergebnis" };
+  return { label: "Spot setzen", href: "#spots" };
 }

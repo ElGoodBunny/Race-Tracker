@@ -1,7 +1,7 @@
 // Status card (docs/tasks/027-claude-statuskarte.md): what it says in each phase, texts as in legacy/hamburg-2026.html.
 import { describe, expect, it } from "vitest";
 import { estimate, type Checkpoint } from "../src/lib/estimate";
-import { statusView } from "../src/lib/live/status";
+import { heroAction, statusView } from "../src/lib/live/status";
 
 const START = Date.parse("2027-03-14T07:30:00Z"); // 8:30 in Barcelona
 const DIST = 42.195;
@@ -65,5 +65,17 @@ describe("statusView", () => {
     expect(v.stats).toEqual([["Zieleinlauf", "12:10"], ["Ø Pace", "5:13 /km"], ["Distanz", "42,2 km"]]);
     expect(v.chip).toEqual({ kind: "official", text: "Ziel" });
     expect(text(v)).toBe("Geschafft. Glückwunsch an Dima.");
+  });
+});
+
+describe("heroAction", () => {
+  it("one main action per phase, as in the legacy page", () => {
+    expect(heroAction("pre")).toEqual({ label: "Spot setzen", href: "#spots" });
+    expect(heroAction("run")).toEqual({ label: "Live verfolgen", href: "#live" });
+    expect(heroAction("arriving")).toEqual({ label: "Live verfolgen", href: "#live" });
+    expect(heroAction("done")).toEqual({ label: "Zeiten ansehen", href: "#ergebnis" });
+  });
+  it("without data the legacy page fell back to the action before the start", () => {
+    expect(heroAction("stale")).toEqual({ label: "Spot setzen", href: "#spots" });
   });
 });
