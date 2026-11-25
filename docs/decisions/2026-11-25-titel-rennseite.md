@@ -10,5 +10,10 @@ Seitentitel und H1 einer Rennseite sind nur der Name des Rennens, so wie er in `
 
 ## Folgen
 - Die Unterzeile wiederholt den Namen nicht mehr, sie zeigt nur Datum und Startzeit
-- Die Startseite (`index.astro`) heißt weiter "Dima läuft". Sie ist keine Rennseite und gehört nicht zu dieser Entscheidung
+- Die Startseite ist im Nachtrag unten geregelt
 - Branches mit "Dima läuft in {Stadt}" (seit b1615b7) bekommen an dieser Zeile einen Konflikt. Beim Mergen gilt diese Entscheidung
+
+## Nachtrag: Startseite
+- Browsertitel "PibeRuns Race Tracker", H1 "Rennen live verfolgen", Unterzeile ohne Ich-Form
+- Grund: Der Tracker soll später auch für Freunde laufen und vielleicht als App beworben werden. Ein persönlicher Titel wie "Dima läuft" passt dann nicht mehr
+- "PibeRuns" ist ein Arbeitsname. Vor jeder Werbung Marken und Domain prüfen
