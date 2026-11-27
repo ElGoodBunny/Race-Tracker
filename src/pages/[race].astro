@@ -1,10 +1,22 @@
 ---
-// One page per race. Phase 0: static hero + course map.
-// Phase 1 ports the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits, 3D).
+// One page per race: hero and the live view. The 3D view loads when it comes into view, the 2D map holds its place
+// until then and stays for good without WebGL (docs/tasks/017-claude-einbau-rennseite.md).
+// Phase 1 ports the rest of the live layer from legacy/hamburg-2026.html (status, spots, pinboard, splits).
+// Status card, spots, pinboard and the 3D view share one Realtime connection (src/lib/live/page.ts).
+import { existsSync } from "node:fs";
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import CourseMap from "../components/CourseMap.astro";
+import LiveStage, { type LiveRace } from "../components/LiveStage.astro";
+import Pinboard from "../components/Pinboard.astro";
+import Status from "../components/Status.astro";
+import Spots from "../components/Spots.astro";
+import Splits from "../components/Splits.astro";
+import Settings from "../components/Settings.astro";
+import Nav from "../components/Nav.astro";
+import Faq from "../components/Faq.astro";
 import { fmtDur, fmtKm, fmtPace } from "../lib/format";
+import { heroAction } from "../lib/live/status";
 
 export async function getStaticPaths() {
   const races = await getCollection("races");
@@ -16,44 +28,138 @@ const dateFmt = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "2-digi
 const startFmt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: race.timezone });
 const planned = new Date(race.plannedStart);
 const net = race.result?.netSec;
+// Before the script knows the phase: finished if the content file has a result (docs/tasks/029-claude-hero.md).
+const done = !!net;
+const cta = heroAction(done ? "done" : "pre");
+const plan = { plannedStart: race.plannedStart, targetSec: race.targetSec, distanceKm: race.distanceKm, netSec: net };
+
+// The recording every replay runs on. On its own course it is the race day, on any other a test run (decided 24.11.).
+const recording = "hamburg-2026";
+const live: LiveRace | null = existsSync(`public/data/${race.slug}/scene.json`)
+  ? {
+      slug: race.slug,
+      city: race.city,
+      note: race.slug === recording ? "Aufzeichnung vom Renntag" : "Probelauf mit Dimas Daten aus Hamburg",
+      targetSec: race.targetSec,
+      plannedStart: race.plannedStart,
+      bib: race.bib,
+      block: race.block,
+      course: { route: race.course.route, km: race.course.km, landmarks: race.course.landmarks },
+      // Filled at runtime from Supabase (live below), the same rows as in the spots section.
+      spots: [],
+    }
+  : null;
+// Link preview leads with the runner. Assumes race names that take "beim" (Marathon, Halbmarathon, Lauf).
+const ogTitle = done ? `${race.runner} im Ziel beim ${race.title}` : `${race.runner} läuft beim ${race.title}`;
+const description = `${race.runner} beim ${race.title} am ${dateFmt.format(planned)}. Sieh, wo ${race.runner} gerade ist und wann es bei dir so weit ist.`;
+// Whose race it is, phase-neutral: "Dimas Rennen", "Jonas’ Rennen".
+const owner = /[sßxz]$/.test(race.runner) ? `${race.runner}’` : `${race.runner}s`;
 ---
 
-<Base title={`Dima läuft ${race.city}`} description={`${race.title}: geschätzte Position, Zwischenzeiten, Cheering Spots und Pinnwand.`} source={race.course.source}>
-  <section class="wrap hero">
+<Base title={race.title} ogTitle={ogTitle} description={description} source={race.course.source}>
+  <Nav brand={`${race.runner} läuft ${race.city}`} cta={cta} />
+
+  <section class="wrap hero live-sec" id="hero" data-slug={race.slug} data-tz={race.timezone} data-plan={JSON.stringify(plan)}>
     <a class="body-5 back" href="/">Alle Rennen</a>
-    <h1 class="heading-1 grad">Dima läuft {race.city}</h1>
-    <p class="title-2 sub">{race.title}, {dateFmt.format(planned)}, Start {startFmt.format(planned)} Uhr.</p>
+    <span class={`pill caption-4${done ? " done" : ""}`}><span class="dot"></span><span id="hero-phase">{done ? "Im Ziel" : "Vor dem Start"}</span></span>
+    <h1 class="heading-1 grad">{race.title}</h1>
+    <p class="title-2 sub">{owner} Rennen am {dateFmt.format(planned)}, Start {startFmt.format(planned)} Uhr.</p>
     <dl class="facts">
       <div><dt class="caption-4 muted">Distanz</dt><dd class="heading-6 mono">{fmtKm(race.distanceKm, 1)} km</dd></div>
-      {race.bib && <div><dt class="caption-4 muted">Startnummer</dt><dd class="heading-6 mono">{race.bib}</dd></div>}
+      <div id="hero-bib" hidden={!race.bib}><dt class="caption-4 muted">Startnummer</dt><dd class="heading-6 mono">{race.bib}</dd></div>
       {net ? (
         <>
           <div><dt class="caption-4 muted">Netto</dt><dd class="heading-6 mono">{fmtDur(net)}</dd></div>
           <div><dt class="caption-4 muted">Pace</dt><dd class="heading-6 mono">{fmtPace(net / race.distanceKm)} /km</dd></div>
         </>
       ) : (
-        <div><dt class="caption-4 muted">Ziel</dt><dd class="heading-6 mono">{fmtDur(race.targetSec)}</dd></div>
+        <div><dt class="caption-4 muted">Zielzeit</dt><dd class="heading-6 mono" id="hero-target">{fmtDur(race.targetSec)}</dd></div>
       )}
     </dl>
+    <a class="btn primary lg button-lg" id="hero-cta" data-cta href={cta.href}><span id="hero-cta-label" data-cta-label>{cta.label}</span><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path></svg></a>
+    <p class="proof body-6" id="hero-proof" hidden={done}><svg class="ico" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,40a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,40Zm0,176a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,216ZM173.66,90.34a8,8,0,0,1,0,11.32l-40,40a8,8,0,0,1-11.32-11.32l40-40A8,8,0,0,1,173.66,90.34ZM96,16a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,16Z"></path></svg><span>Geschätzt aus Startzeit, Tempo und euren Sichtungen.</span></p>
   </section>
 
   <section class="wrap" id="live" aria-labelledby="live-h">
     <h2 id="live-h" class="heading-2 section-title">Die Strecke</h2>
-    <CourseMap race={race} />
+    {live ? (
+      <div class="live">
+        <LiveStage races={[live]} recording={recording} live>
+          <CourseMap slot="placeholder" race={race} fill live />
+        </LiveStage>
+      </div>
+    ) : (
+      <CourseMap race={race} live />
+    )}
+    <Status slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} netSec={net} />
   </section>
+
+  <Spots slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} netSec={net} course={race.course} />
+
+  <Pinboard slug={race.slug} timezone={race.timezone} />
+
+  <Splits slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} turnKm={race.turnKm} netSec={net} />
+
+  <Faq waterKm={race.course.waterKm} done={done} cta={cta} />
+
+  <Settings slug={race.slug} timezone={race.timezone} plannedStart={race.plannedStart} targetSec={race.targetSec} distanceKm={race.distanceKm} turnKm={race.turnKm} bib={race.bib} block={race.block} />
+
+  <a slot="foot" class="signin" href="#einstellungen">Anmelden</a>
+  <a slot="foot" class="signin" href="#hero">Nach oben</a>
 </Base>
+
+<script>
+  import { startHero } from "../components/hero";
+  const hero = document.getElementById("hero");
+  if (hero) startHero(hero);
+</script>
+
+<script>
+  // three.js and the scene load only when the view comes into sight. Until then, and without WebGL, the 2D map shows.
+  const stage = document.getElementById("stage");
+  if (stage) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        // Without WebGL or when loading fails, the 2D map underneath gets its live layer (docs/tasks/034-claude-karte.md).
+        const fallback = () => document.dispatchEvent(new Event("stage-fallback"));
+        import("../components/live-stage")
+          .then(({ startLive }) => startLive(stage))
+          .then((ok) => ok || fallback())
+          .catch(fallback);
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(stage);
+  }
+</script>
 
 <style>
   .hero { padding-block: var(--s900) var(--s600); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s300); }
   .back { color: var(--muted); text-decoration: none; }
   .back:hover { color: var(--ink); }
-  .grad { max-width: 680px; letter-spacing: -0.03em; background: linear-gradient(90deg, var(--head-from), var(--head-to)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: var(--s50); }
+  .grad { max-width: 680px; letter-spacing: -0.03em; background: linear-gradient(90deg, var(--head-from), var(--head-to)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-block-end: var(--s75); margin-block-end: calc(-1 * var(--s75)); padding-bottom: var(--s50); }
   .sub { color: var(--muted); font-weight: 400; max-width: 680px; }
+  .proof { display: flex; gap: var(--s75); align-items: flex-start; color: var(--muted); max-width: 560px; margin: 0; }
+  .proof .ico { margin-top: var(--s25); }
   .facts { display: flex; flex-wrap: wrap; gap: var(--s300) var(--s400); margin: 0; }
   .facts dd { margin: 0; }
+  .facts [hidden] { display: none; }
+  .signin { color: var(--muted); margin-left: var(--s75); }
+  .signin:hover { color: var(--ink); }
   .section-title { margin-bottom: var(--s400); }
+  .live { display: flex; flex-direction: column; gap: var(--s300); }
+  #live { display: flex; flex-direction: column; gap: var(--s300); }
+  #live .section-title { margin-bottom: 0; }
+  /* On the phone the status comes before the map (docs/DESIGN.md, page layout point 3). */
+  @media (max-width: 900px) {
+    #live > :global(.status) { order: 1; }
+    #live > :global(:not(h2):not(.status)) { order: 2; }
+  }
   @media (max-width: 640px) {
-    .hero { padding-block: var(--s800) var(--s400); }
+    /* Room for the floating nav above "Alle Rennen". */
+    .hero { padding-block: var(--s900) var(--s400); }
     .grad { font-size: 48px; line-height: 48px; }
     .section-title { font-size: 30px; line-height: 36px; margin-bottom: var(--s300); }
   }

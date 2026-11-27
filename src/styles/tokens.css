@@ -8,6 +8,7 @@
   --bg:#F5F5F4; --surface:#FFFFFF; --surface-2:#EEEEEC; --ink:#111111; --muted:#62625F; --line:#E2E2DF;
   --pressed:#111111; --pressed-ink:#FFFFFF; --toast:#111111; --toast-ink:#FFFFFF;
   --nav-bg:rgba(255,255,255,.72); --menu-bg:rgba(245,245,244,.94);
+  --glass:rgba(255,255,255,.72); --glass-clear:rgba(255,255,255,.40); --glass-edge:rgba(226,226,223,.5);
   --head-from:#000000; --head-to:#666666;
   --water:#C6DCE8; --water-line:#9FBFD1; --park:#D3E5D4; --land:#FAFAF9;
   --route:#0A5CA8; --route-ink:#FFFFFF; --route-todo:#B4C8D6; --signal:#E2501B; --signal-ink:#FFFFFF;
@@ -16,12 +17,17 @@
   --flag-1:#E2501B; --flag-2:#E9B517; --flag-3:#1F6FC0; --flag-4:#1D7F55; --flag-5:#8A3FB8; --flag-6:#C2185B;
   /* 3D figures only (src/lib/figures.ts), not for UI surfaces */
   --figure-skin-1:#F0C4A0; --figure-skin-2:#C98E62; --figure-skin-3:#8D5A3C; --figure-hair-1:#2B2118; --figure-hair-2:#8A5A2B; --figure-hair-3:#D9A441;
+  /* 3D city (src/lib/view3d/scene.ts), values from the legacy palette: ground, and roofs (walls come out darker from the light) */
+  --ground:#E4E4E3; --building:#FFFFFF;
+  /* 3D trees (src/lib/view3d/trees.ts): crown and trunk */
+  --tree:#6FA77A; --trunk:#8C7A66;
 }
 /* dark: surfaces only #000000 #181818 #1F1F1F #272727 #313131 #131209 */
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#000000; --surface:#181818; --surface-2:#1F1F1F; --ink:#EDEDED; --muted:#A1A1A1; --line:#313131;
   --pressed:#EDEDED; --pressed-ink:#000000; --toast:#313131; --toast-ink:#EDEDED;
   --nav-bg:rgba(24,24,24,.72); --menu-bg:rgba(0,0,0,.94);
+  --glass:rgba(24,24,24,.72); --glass-clear:rgba(24,24,24,.40); --glass-edge:rgba(49,49,49,.5);
   --head-from:#FFFFFF; --head-to:#9B9B9B;
   --water:#11303F; --water-line:#1E4A5F; --park:#14301E; --land:#1F1F1F;
   --route:#4DA3EE; --route-ink:#131209; --route-todo:#2E3E4A; --signal:#FF6A33; --signal-ink:#131209;
@@ -29,11 +35,14 @@
   --shadow:none;
   --flag-1:#FF6A33; --flag-2:#F2C53D; --flag-3:#4DA3EE; --flag-4:#3DBB84; --flag-5:#B57BE0; --flag-6:#F06292;
   --figure-skin-1:#F2C9A8; --figure-skin-2:#D09A70; --figure-skin-3:#9C6A4A; --figure-hair-1:#6B5645; --figure-hair-2:#A8713A; --figure-hair-3:#E6B95A;
+  --ground:#050505; --building:#434343;
+  --tree:#2F6A42; --trunk:#4A3F34;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#000000; --surface:#181818; --surface-2:#1F1F1F; --ink:#EDEDED; --muted:#A1A1A1; --line:#313131;
   --pressed:#EDEDED; --pressed-ink:#000000; --toast:#313131; --toast-ink:#EDEDED;
   --nav-bg:rgba(24,24,24,.72); --menu-bg:rgba(0,0,0,.94);
+  --glass:rgba(24,24,24,.72); --glass-clear:rgba(24,24,24,.40); --glass-edge:rgba(49,49,49,.5);
   --head-from:#FFFFFF; --head-to:#9B9B9B;
   --water:#11303F; --water-line:#1E4A5F; --park:#14301E; --land:#1F1F1F;
   --route:#4DA3EE; --route-ink:#131209; --route-todo:#2E3E4A; --signal:#FF6A33; --signal-ink:#131209;
@@ -41,7 +50,21 @@
   --shadow:none;
   --flag-1:#FF6A33; --flag-2:#F2C53D; --flag-3:#4DA3EE; --flag-4:#3DBB84; --flag-5:#B57BE0; --flag-6:#F06292;
   --figure-skin-1:#F2C9A8; --figure-skin-2:#D09A70; --figure-skin-3:#9C6A4A; --figure-hair-1:#6B5645; --figure-hair-2:#A8713A; --figure-hair-3:#E6B95A;
+  --ground:#050505; --building:#434343;
+  --tree:#2F6A42; --trunk:#4A3F34;
   color-scheme:dark}
+
+/* glass for overlays on the map (DESIGN.md, Ergänzung 25.11.). Components use only the --glass-* values below */
+:root{
+  --glass-bg:var(--glass); --glass-clear-bg:var(--glass-clear); --glass-line:var(--glass-edge);
+  --glass-filter:blur(24px); --glass-clear-filter:blur(12px)}
+/* opaque fallback. Safari ignores prefers-reduced-transparency, glass must stay legible without it */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more){:root{
+  --glass-bg:var(--surface); --glass-clear-bg:var(--surface); --glass-line:var(--line);
+  --glass-filter:none; --glass-clear-filter:none}}
+@media (prefers-reduced-motion: reduce){
+  :root{--t-move:0ms}
+  html{scroll-behavior:auto}}
 
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:96px}
@@ -56,6 +79,8 @@ a{color:var(--route)}
 .muted{color:var(--muted)}
 .ico{width:16px;height:16px;flex:none;display:block}
 .btn.lg .ico{width:20px;height:20px}
+.glass{background:var(--glass-bg);border:1px solid var(--glass-line);-webkit-backdrop-filter:var(--glass-filter);backdrop-filter:var(--glass-filter)}
+.glass-clear{background:var(--glass-clear-bg);border:1px solid var(--glass-line);-webkit-backdrop-filter:var(--glass-clear-filter);backdrop-filter:var(--glass-clear-filter)}
 
 /* ---------- text styles (B1), each defined once ---------- */
 .heading-1{font-size:60px;line-height:60px;font-weight:600}

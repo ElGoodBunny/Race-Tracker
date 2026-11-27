@@ -1,0 +1,305 @@
+// Camera rig as pure logic (docs/decisions/2026-11-13-3d-konzept.md, section 2). No three.js in here.
+// A pose says where the camera looks and from where. The rig turns mode, runner and time into one pose per frame,
+// view.ts only applies it. Everything is in scene metres: x east, y north, angles in radians.
+
+export type Mode = "follow" | "overview";
+
+export interface Pose {
+  /** Point on the ground the camera looks at. */
+  x: number;
+  y: number;
+  /** Distance from the camera to that point. */
+  dist: number;
+  /** Angle above the ground. */
+  tilt: number;
+  /** Direction the camera looks along the ground, as atan2(north, east): 0 looks east, π/2 looks north. */
+  heading: number;
+}
+
+const DEG = Math.PI / 180;
+export const FOV_DEG = 35;
+export const FOLLOW_DIST_M = 140;
+/** Closer than this the runner (about 21 m tall in the follow mode) fills the view and the label slips under the HUD. */
+export const FOLLOW_MIN_M = 100;
+export const FOLLOW_MAX_M = 400;
+export const FOLLOW_TILT = 30 * DEG;
+/** The camera looks at a point this far ahead of the runner, along the course. */
+export const LOOK_AHEAD_M = 25;
+export const OVERVIEW_TILT = 50 * DEG;
+/** 2D: looking down from almost straight above. Exactly 90° would leave the camera without a direction. */
+export const FLAT_TILT = 88 * DEG;
+/** How fast a zoom of the follow camera closes the gap to the new distance (per second, on the logarithm). */
+const ZOOM_STIFFNESS = 6;
+export const OVERVIEW_MARGIN = 0.08;
+export const TRANSITION_S = 1.2;
+/** The follow camera turns at most this fast, so it swings round a hairpin instead of jumping. */
+export const MAX_TURN = 60 * DEG;
+/** Runner height in figure units (src/lib/figures.ts) and his scale in the follow mode. */
+export const FIGURE_UNITS = 38;
+export const FIGURE_SCALE = 0.55;
+export const FIGURE_MIN_PX = 40;
+/** Pin height in figure units (pinProfile in src/lib/figures.ts). From far away a pin stays this many pixels tall, below the runner. */
+export const PIN_UNITS = 41;
+export const PIN_MIN_PX = 24;
+/** Half the runner body across the direction of travel, mid stride, and the pin radius, in figure units. */
+export const RUNNER_SIDE_UNITS = 8.4;
+export const PIN_RADIUS_UNITS = 11;
+
+/** The easing curve from docs/DESIGN.md, cubic-bezier(0.22, 1, 0.36, 1), for k from 0 to 1. */
+export function ease(k: number): number {
+  if (k <= 0) return 0;
+  if (k >= 1) return 1;
+  const bez = (a: number, b: number, s: number) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+  // Solve x(s) = k by bisection, x is monotonic.
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 30; i++) {
+    const s = (lo + hi) / 2;
+    if (bez(0.22, 0.36, s) < k) lo = s;
+    else hi = s;
+  }
+  return bez(1, 1, (lo + hi) / 2);
+}
+
+/** Shortest way from one angle to another, in (-π, π]. */
+export function angleDelta(from: number, to: number): number {
+  let d = (to - from) % (2 * Math.PI);
+  if (d > Math.PI) d -= 2 * Math.PI;
+  if (d <= -Math.PI) d += 2 * Math.PI;
+  return d;
+}
+
+/**
+ * One step of a damped turn toward `target`: closes the gap exponentially, but never faster than maxRate.
+ * Used for the follow camera (60° per second) and for the runner figure, so neither snaps round at a hairpin.
+ */
+export function turnToward(current: number, target: number, dt: number, maxRate = MAX_TURN, stiffness = 4): number {
+  const gap = angleDelta(current, target);
+  const want = gap * (1 - Math.exp(-stiffness * dt));
+  const limit = maxRate * dt;
+  return current + Math.max(-limit, Math.min(limit, want));
+}
+
+/** Camera position for a pose as [x east, y north, up]. */
+export function cameraPosition(p: Pose): [number, number, number] {
+  const flat = Math.cos(p.tilt) * p.dist;
+  return [p.x - Math.cos(p.heading) * flat, p.y - Math.sin(p.heading) * flat, Math.sin(p.tilt) * p.dist];
+}
+
+/**
+ * Perspective projection of a pose: scene point to normalised screen coordinates (-1 to 1, y up) and the depth
+ * along the view direction. Same result as a three.js PerspectiveCamera placed with cameraPosition and looking at the target.
+ */
+export function projector(p: Pose, aspect: number, fovDeg = FOV_DEG) {
+  const [cx, cy, cz] = cameraPosition(p);
+  const ch = Math.cos(p.heading);
+  const sh = Math.sin(p.heading);
+  const ct = Math.cos(p.tilt);
+  const st = Math.sin(p.tilt);
+  const t = Math.tan((fovDeg * DEG) / 2);
+  return (x: number, y: number, up = 0) => {
+    const vx = x - cx;
+    const vy = y - cy;
+    const vz = up - cz;
+    const depth = vx * ch * ct + vy * sh * ct - vz * st;
+    const right = vx * sh - vy * ch;
+    const above = vx * ch * st + vy * sh * st + vz * ct;
+    return { x: right / (depth * t * aspect), y: above / (depth * t), depth };
+  };
+}
+
+/** CSS pixels at the edges of the view that panel, sheet or HUD cover. */
+export interface Insets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Camera for the free part of the view: aspect and vertical field of view of the free area, and the shift for
+ * camera.setViewOffset that puts the camera target in its middle. Without insets it is the plain camera.
+ */
+export function viewFrame(width: number, height: number, i: Insets, fovDeg = FOV_DEG): { aspect: number; fovDeg: number; offsetX: number; offsetY: number } {
+  const w = Math.max(1, width - i.left - i.right);
+  const h = Math.max(1, height - i.top - i.bottom);
+  const t = Math.tan((fovDeg * DEG) / 2);
+  return {
+    aspect: w / h,
+    fovDeg: h === height ? fovDeg : (2 * Math.atan((t * h) / height)) / DEG,
+    offsetX: (i.right - i.left) / 2,
+    offsetY: (i.bottom - i.top) / 2,
+  };
+}
+
+/** Overview: the whole course in the frame with a margin, north up, looking down at 50°. */
+export function fitOverview(points: readonly (readonly [number, number])[], aspect: number, margin = OVERVIEW_MARGIN, fovDeg = FOV_DEG, tilt = OVERVIEW_TILT): Pose {
+  let w = Infinity;
+  let e = -Infinity;
+  let s = Infinity;
+  let n = -Infinity;
+  for (const [x, y] of points) {
+    w = Math.min(w, x);
+    e = Math.max(e, x);
+    s = Math.min(s, y);
+    n = Math.max(n, y);
+  }
+  const pose: Pose = { x: (w + e) / 2, y: (s + n) / 2, dist: 5000, tilt, heading: Math.PI / 2 };
+  // Move out or in until the outermost course point sits on the margin. Perspective makes this a few rounds.
+  for (let i = 0; i < 8; i++) {
+    const project = projector(pose, aspect, fovDeg);
+    let reach = 0;
+    for (const [x, y] of points) {
+      const q = project(x, y);
+      reach = Math.max(reach, Math.abs(q.x), Math.abs(q.y));
+    }
+    pose.dist *= reach / (1 - margin);
+  }
+  return pose;
+}
+
+/** Metres that cover `px` pixels at the camera target, for a viewport `viewportH` pixels high. */
+export function metresForPixels(px: number, dist: number, viewportH: number, fovDeg = FOV_DEG): number {
+  return (px * 2 * dist * Math.tan((fovDeg * DEG) / 2)) / viewportH;
+}
+
+/** Scale of the runner: 0.55 in the follow mode, growing with the distance so the runner stays at least 40 px tall. */
+export function figureScale(dist: number, viewportH: number, fovDeg = FOV_DEG): number {
+  return Math.max(FIGURE_SCALE, metresForPixels(FIGURE_MIN_PX, dist, viewportH, fovDeg) / FIGURE_UNITS);
+}
+
+/** Scale of the pins: like figureScale, but from far away they only keep PIN_MIN_PX, so the runner is the bigger figure. */
+export function pinScale(dist: number, viewportH: number, fovDeg = FOV_DEG): number {
+  return Math.max(FIGURE_SCALE, metresForPixels(PIN_MIN_PX, dist, viewportH, fovDeg) / PIN_UNITS);
+}
+
+/** Metres from the course to a pin: the runner body and the pin side by side, at their scales. */
+export function pinOffset(figureScale: number, pinScale: number): number {
+  return RUNNER_SIDE_UNITS * figureScale + PIN_RADIUS_UNITS * pinScale;
+}
+
+/** Between two poses: target and angles linear (heading the short way round), distance along its logarithm. */
+export function mixPose(a: Pose, b: Pose, k: number): Pose {
+  return {
+    x: a.x + (b.x - a.x) * k,
+    y: a.y + (b.y - a.y) * k,
+    dist: Math.exp(Math.log(a.dist) + (Math.log(b.dist) - Math.log(a.dist)) * k),
+    tilt: a.tilt + (b.tilt - a.tilt) * k,
+    heading: a.heading + angleDelta(a.heading, b.heading) * k,
+  };
+}
+
+/** What the follow camera needs per frame: the point it looks at and the runner's direction along the course. */
+export interface Anchor {
+  x: number;
+  y: number;
+  heading: number;
+}
+
+export interface Rig {
+  readonly mode: Mode;
+  /** The user has taken the camera. The rig holds still until setMode. */
+  readonly free: boolean;
+  /** A flight between two poses is running. */
+  readonly moving: boolean;
+  /**
+   * Switch mode or, when the camera is free, take it back (the "Zentrieren" button).
+   * Flies 1.2 s from `from` (default: the last pose), with cut = true it jumps.
+   */
+  setMode(mode: Mode, from?: Pose): void;
+  /** Hand the camera to the user: stops any flight. `pose` is where the camera is now. */
+  release(pose?: Pose): void;
+  /** Overview pose and the one for 2D (default: the same from above), set again when the frame changes its shape. */
+  setOverview(pose: Pose, flat?: Pose): void;
+  /** Follow distance (clamped to 100 to 400 m) and tilt, at once. */
+  setFollow(dist: number, tilt?: number): void;
+  /** Follow mode: change the distance by this factor (clamped to 100 to 400 m), smoothly. Does nothing in the overview or when the camera is free. */
+  zoom(factor: number): void;
+  /** 2D (looking down) or 3D. Flies there, unless the camera is free: then it only applies when the camera is taken back. */
+  setFlat(flat: boolean): void;
+  readonly flat: boolean;
+  /** Advance by dt seconds of wall time and return the pose of this frame. */
+  step(dt: number, anchor: Anchor): Pose;
+}
+
+/** `cut`: no flights and no damped turning, for prefers-reduced-motion. Starts in the overview. */
+export function createRig(overview: Pose, opts: { cut?: boolean; mode?: Mode } = {}): Rig {
+  const cut = opts.cut ?? false;
+  let mode: Mode = opts.mode ?? "overview";
+  let free = false;
+  let followDist = FOLLOW_DIST_M;
+  let followTarget = FOLLOW_DIST_M;
+  let followTilt = FOLLOW_TILT;
+  let flat = false;
+  let flatOverview: Pose = { ...overview, tilt: FLAT_TILT };
+  let camHeading: number | null = null;
+  let last: Pose | null = null;
+  let flight: { from: Pose; elapsed: number } | null = null;
+
+  const goal = (a: Anchor): Pose =>
+    mode === "overview"
+      ? flat ? flatOverview : overview
+      : { x: a.x, y: a.y, dist: followDist, tilt: flat ? FLAT_TILT : followTilt, heading: camHeading ?? a.heading };
+  const clampFollow = (d: number) => Math.max(FOLLOW_MIN_M, Math.min(FOLLOW_MAX_M, d));
+
+  return {
+    get mode() {
+      return mode;
+    },
+    get free() {
+      return free;
+    },
+    get moving() {
+      return flight !== null;
+    },
+    setMode(next, from) {
+      const start = from ?? last;
+      mode = next;
+      free = false;
+      // The flight carries the turn, so the follow camera starts straight behind the runner.
+      camHeading = null;
+      flight = start && !cut ? { from: start, elapsed: 0 } : null;
+    },
+    release(pose) {
+      free = true;
+      flight = null;
+      if (pose) last = pose;
+    },
+    get flat() {
+      return flat;
+    },
+    setOverview(pose, flatPose) {
+      overview = pose;
+      flatOverview = flatPose ?? { ...pose, tilt: FLAT_TILT };
+    },
+    setFollow(dist, tilt) {
+      followDist = followTarget = clampFollow(dist);
+      if (tilt !== undefined) followTilt = tilt;
+    },
+    zoom(factor) {
+      if (mode === "follow" && !free) followTarget = clampFollow(followTarget * factor);
+    },
+    setFlat(next) {
+      if (next === flat) return;
+      flat = next;
+      if (!free && last && !cut) flight = { from: last, elapsed: 0 };
+    },
+    step(dt, anchor) {
+      if (free && last) return last;
+      // First frame, reduced motion, or a long gap (tab was hidden): no catching up, be there.
+      const snap = cut || camHeading === null || dt > 0.25;
+      camHeading = snap ? anchor.heading : turnToward(camHeading!, anchor.heading, dt);
+      followDist = cut ? followTarget : followTarget * (followDist / followTarget) ** Math.exp(-ZOOM_STIFFNESS * dt);
+      if (flight && dt > 0.25) flight = null;
+      let pose = goal(anchor);
+      if (flight) {
+        flight.elapsed += dt;
+        const k = Math.min(1, flight.elapsed / TRANSITION_S);
+        pose = mixPose(flight.from, pose, ease(k));
+        if (k >= 1) flight = null;
+      }
+      last = pose;
+      return pose;
+    },
+  };
+}

@@ -31,6 +31,7 @@ const races = defineCollection({
       turnKm: z.number().optional(),
       plannedStart: z.string(), // ISO 8601 UTC, default when Supabase has no value yet
       targetSec: z.number().int().positive(),
+      runner: z.string().min(1), // first name, shown in status line, description and share texts
       bib: z.string().optional(),
       block: z.string().optional(),
       result: z.object({ netSec: z.number().int().positive() }).optional(),

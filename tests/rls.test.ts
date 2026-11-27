@@ -43,7 +43,9 @@ beforeAll(async () => {
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     grant usage on schema auth to anon, authenticated;
     create publication supabase_realtime;
-    insert into auth.users values ('${ADMIN}'), ('${GUEST}'), ('${OTHER}'), ('${CREW}'), ('${NOPROFILE}');`);
+    insert into auth.users values ('${ADMIN}'), ('${GUEST}'), ('${OTHER}'), ('${CREW}'), ('${NOPROFILE}');
+    -- Like Supabase: every new function in public is executable by anon and authenticated directly, not only via PUBLIC.
+    alter default privileges in schema public grant execute on functions to anon, authenticated;`);
   const dir = new URL("../supabase/migrations/", import.meta.url);
   for (const f of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) await db.exec(readFileSync(new URL(f, dir), "utf8"));
   // Supabase grants table privileges to these roles by default, RLS does the filtering.
@@ -310,5 +312,31 @@ describe("crew rate limit", () => {
     let last = "";
     for (let i = 0; i < 11; i++) last = await as("authenticated", CREW, `insert into public.checkpoints(race_slug, km, src) values ('hamburg-2026', ${11 + i * 0.1}, 'seen')`);
     expect(last).toBe("ok");
+  });
+});
+
+describe("function privileges", () => {
+  // Supabase advisor "Public Can Execute SECURITY DEFINER Function": revoking from PUBLIC is not enough there.
+  const can = async (role: string, fn: string) =>
+    (await db.query<{ ok: boolean }>(`select has_function_privilege('${role}', '${fn}', 'execute') ok`)).rows[0].ok;
+  const rpc = ["public.set_livetrack_link(text, text)", "public.livetrack_link_status(text)", "public.set_official_split(text, numeric, integer)", "public.set_race_times(text, timestamptz, timestamptz)"];
+  const helpers = ["public.is_admin()", "public.is_crew(text)"];
+  const triggers = ["public.set_author()", "public.enforce_rate_limit()", "public.enforce_spot_limit()", "public.enforce_race_distance()", "public.stamp_sighting()", "public.touch_updated_at()"];
+
+  it("Gäste ohne Login rufen keine Funktion auf", async () => {
+    for (const fn of [...rpc, ...helpers, ...triggers]) expect(await can("anon", fn), fn).toBe(false);
+    expect(await as("anon", null, "select public.set_race_times('hamburg-2026', now(), null)")).toMatch(/permission denied for function/);
+  });
+
+  it("Angemeldete rufen die RPCs und Helfer auf, aber keine Trigger-Funktion", async () => {
+    for (const fn of [...rpc, ...helpers]) expect(await can("authenticated", fn), fn).toBe(true);
+    for (const fn of triggers) expect(await can("authenticated", fn), fn).toBe(false);
+  });
+
+  it("Trigger laufen weiter, obwohl niemand ihre Funktion aufrufen darf", async () => {
+    // Crew: no rate limit in their own race, other users used theirs up in the tests above.
+    expect(await as("authenticated", CREW, "insert into public.messages(race_slug, body) values ('hamburg-2026', 'Trigger laufen')")).toBe("ok");
+    const row = (await db.query<{ author_name: string }>("select author_name from public.messages where body = 'Trigger laufen'")).rows[0];
+    expect(row.author_name).toBe("Carla");
   });
 });

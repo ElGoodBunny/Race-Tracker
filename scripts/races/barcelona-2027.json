@@ -1,0 +1,22 @@
+{
+ "gpx": ".cache/courses/barcelona-strava.gpx",
+ "toleranceM": 4,
+ "race": {
+  "slug": "barcelona-2027",
+  "title": "Zurich Marató Barcelona 2027",
+  "city": "Barcelona",
+  "date": "2027-03-14",
+  "timezone": "Europe/Madrid",
+  "status": "upcoming",
+  "distanceKm": 42.195,
+  "plannedStart": "2027-03-14T07:30:00Z",
+  "targetSec": 13500
+ },
+ "source": "Strava-Route von RPM SPORTS auf OpenStreetMap-Daten (ODbL), deckungsgleich mit der Strecke 2025, vor dem Rennen mit der offiziellen Strecke 2027 abgleichen",
+ "landmarks": [
+  { "name": "Start Passeig de Gràcia", "at": "start" },
+  { "name": "Sagrada Família", "at": [41.4035046, 2.1744283], "osm": "relation/9194723" },
+  { "name": "Fòrum am Meer", "at": [41.4101105, 2.2204167], "osm": "relation/9805098 (Parc del Fòrum)" },
+  { "name": "Ziel", "at": "finish" }
+ ]
+}
